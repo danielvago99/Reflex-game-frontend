@@ -1,0 +1,73 @@
+import { motion } from 'motion/react';
+import { Target, MousePointerClick } from 'lucide-react';
+
+interface TargetHintPanelProps {
+  targetShape: 'circle' | 'square' | 'triangle';
+  targetColor: string;
+  colorName: string;
+  isActive: boolean;
+  hasReacted?: boolean;
+  reactionTime?: number | null;
+}
+
+export function TargetHintPanel({ targetShape, targetColor, colorName, isActive, hasReacted, reactionTime }: TargetHintPanelProps) {
+  const shapeIcons = {
+    circle: (
+      <svg viewBox="0 0 100 100" className="w-4 h-4">
+        <circle cx="50" cy="50" r="40" fill={targetColor} stroke="white" strokeWidth="2" />
+      </svg>
+    ),
+    square: (
+      <svg viewBox="0 0 100 100" className="w-4 h-4">
+        <rect x="10" y="10" width="80" height="80" fill={targetColor} stroke="white" strokeWidth="2" />
+      </svg>
+    ),
+    triangle: (
+      <svg viewBox="0 0 100 100" className="w-4 h-4">
+        <polygon points="50,10 90,90 10,90" fill={targetColor} stroke="white" strokeWidth="2" />
+      </svg>
+    ),
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="absolute top-2 left-1/2 -translate-x-1/2 z-20"
+    >
+      <div className="relative">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-lg blur opacity-60"></div>
+        <div className="relative bg-black/80 backdrop-blur-xl border border-white/20 rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-2">
+            {/* Target Icon */}
+            <div className="relative">
+              <Target className="w-3 h-3 text-cyan-400" />
+            </div>
+
+            {/* Label */}
+            <span className="text-[10px] uppercase tracking-wider text-gray-400">Target:</span>
+
+            {/* Shape Icon */}
+            <div className="flex items-center gap-1.5">
+              {shapeIcons[targetShape]}
+              <span className="text-xs" style={{ color: targetColor }}>
+                {colorName} {targetShape}
+              </span>
+            </div>
+
+            {/* Reaction Status */}
+            {hasReacted && reactionTime !== null && (
+              <div className="flex items-center gap-1 ml-2 pl-2 border-l border-cyan-400/30">
+                <MousePointerClick className="w-3 h-3 text-cyan-400" />
+                <span className="text-[10px] text-cyan-200 font-semibold tabular-nums">
+                  {reactionTime}ms
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
