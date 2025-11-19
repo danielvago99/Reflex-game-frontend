@@ -203,7 +203,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  body {
+body {
     line-height: inherit;
   }
 
@@ -512,6 +512,36 @@
     line-height: 1.5;
     font-family: var(--font-body);
   }
+}
+
+/* LOW PERF MODE */
+body.low-performance [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body.low-performance [class*="blur-"] {
+  filter: none !important;
+}
+
+body.low-performance [class*="blur-["] {
+  opacity: 0 !important;
+}
+
+body.low-performance [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+body.low-performance [class*="animate-"] {
+  animation: none !important;
+}
+
+body.low-performance button {
+  transition-duration: 120ms !important;
+}
+
+body.low-performance button:active {
+  transform: scale(0.98) !important;
 }
 
 @layer utilities {

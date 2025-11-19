@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { HUD } from './HUD';
 import { ArenaCanvas } from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
@@ -13,6 +13,7 @@ import { FullscreenToggle } from './FullscreenToggle';
 import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { usePerformanceMode } from '../../hooks/usePerformanceMode'; // LOW PERF MODE
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -30,6 +31,7 @@ interface Target {
 }
 
 export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType = 'bot' }: GameArenaProps) {
+  const { isLowPerformance } = usePerformanceMode(); // LOW PERF MODE
   // Game state
   const [gameState, setGameState] = useState<GameState>('countdown');
   const [currentRound, setCurrentRound] = useState(1);
@@ -86,14 +88,14 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   };
 
   // Target combinations
-  const targets: Target[] = [
+  const targets: Target[] = useMemo(() => [
     { shape: 'circle', color: '#00FF00', colorName: 'Green' },
     { shape: 'square', color: '#FF0000', colorName: 'Red' },
     { shape: 'triangle', color: '#0000FF', colorName: 'Blue' },
     { shape: 'circle', color: '#FFFF00', colorName: 'Yellow' },
     { shape: 'square', color: '#9333EA', colorName: 'Purple' },
     { shape: 'triangle', color: '#06B6D4', colorName: 'Cyan' },
-  ];
+  ], []); // LOW PERF MODE
 
   // Initialize first round target immediately
   useEffect(() => {
@@ -249,12 +251,16 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-500/10 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-        
+        {!isLowPerformance && (
+          <>
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink-500/10 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+          </>
+        )}
+
         {/* Grid overlay */}
-        <div 
+        <div
           className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: `
@@ -266,7 +272,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         ></div>
 
         {/* Scan lines */}
-        <div className="absolute inset-0 bg-scan-lines opacity-5"></div>
+        {!isLowPerformance && <div className="absolute inset-0 bg-scan-lines opacity-5"></div>}
       </div>
 
       {/* Main content */}
@@ -294,8 +300,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           )}
 
           {/* Target Hint Panel */}
-          <AnimatePresence>
-            {currentTarget && (gameState === 'playing') && (
+          {isLowPerformance ? (
+            currentTarget && gameState === 'playing' && (
               <TargetHintPanel
                 targetShape={currentTarget.shape}
                 targetColor={currentTarget.color}
@@ -304,8 +310,21 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
                 hasReacted={playerReactionTime !== null}
                 reactionTime={playerReactionTime}
               />
-            )}
-          </AnimatePresence>
+            )
+          ) : (
+            <AnimatePresence>
+              {currentTarget && gameState === 'playing' && (
+                <TargetHintPanel
+                  targetShape={currentTarget.shape}
+                  targetColor={currentTarget.color}
+                  colorName={currentTarget.colorName}
+                  isActive={gameState === 'playing'}
+                  hasReacted={playerReactionTime !== null}
+                  reactionTime={playerReactionTime}
+                />
+              )}
+            </AnimatePresence>
+          )}
         </div>
 
         {/* Bottom Bar */}
@@ -318,16 +337,27 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       </div>
 
       {/* Overlays */}
-      <AnimatePresence>
-        {gameState === 'countdown' && !showHowToPlay && (
+      {isLowPerformance ? (
+        gameState === 'countdown' && !showHowToPlay && (
           <CountdownOverlay
             onComplete={() => {
               setGameState('playing');
               startRound();
             }}
           />
-        )}
-      </AnimatePresence>
+        )
+      ) : (
+        <AnimatePresence>
+          {gameState === 'countdown' && !showHowToPlay && (
+            <CountdownOverlay
+              onComplete={() => {
+                setGameState('playing');
+                startRound();
+              }}
+            />
+          )}
+        </AnimatePresence>
+      )}
 
       {showPauseMenu && (
         <PauseMenu

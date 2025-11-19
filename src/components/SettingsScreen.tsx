@@ -1,8 +1,9 @@
-import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera, Lock, Key, Database, Eye } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera, Lock, Key, Database, Eye, Gauge } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
+import { usePerformanceMode } from '../hooks/usePerformanceMode'; // LOW PERF MODE
 
 interface SettingsScreenProps {
   currentName: string;
@@ -18,6 +19,15 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
     return localStorage.getItem('userAvatar') || 'gradient-1';
   });
+  const { performanceMode, setPerformanceMode, isLowPerformance } = usePerformanceMode(); // LOW PERF MODE
+  const performanceOptions = useMemo(
+    () => [
+      { label: 'Auto', value: 'auto' as const, description: 'Detect the best balance automatically.' },
+      { label: 'High Performance', value: 'high' as const, description: 'Always render the full VFX suite.' },
+      { label: 'Low Performance', value: 'low' as const, description: 'Minimize animations & heavy effects.' }
+    ],
+    []
+  ); // LOW PERF MODE
 
   const handleSaveName = () => {
     if (newName.trim() && newName !== currentName) {
@@ -31,7 +41,7 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
     localStorage.setItem('userAvatar', avatarId);
   };
 
-  const avatarData = getAvatarData(selectedAvatar);
+  const avatarData = useMemo(() => getAvatarData(selectedAvatar), [selectedAvatar]); // LOW PERF MODE
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
@@ -56,7 +66,7 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
           {/* Profile Settings */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}></div>
-            
+
             <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
               {/* Corner accents */}
               <div className="absolute top-0 left-0 w-4 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
@@ -172,6 +182,56 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Mode */}
+          <div className="relative">
+            {!isLowPerformance && (
+              <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/15 via-[#06B6D4]/15 to-[#7C3AED]/15 blur-sm rounded-2xl"></div>
+            )}
+
+            <div className={`${isLowPerformance ? 'bg-[#111b2c]/90 border border-white/5' : 'bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl'} relative rounded-2xl p-5`}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-[#00FFA3]/15 rounded-lg border border-[#00FFA3]/20">
+                  <Gauge className="w-5 h-5 text-[#00FFA3]" />
+                </div>
+                <div>
+                  <h2 className="text-white">Performance Mode</h2>
+                  <p className="text-xs text-gray-400">Optimize visuals for your device</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {performanceOptions.map((option) => {
+                  const isActive = performanceMode === option.value;
+                  return (
+                    <button
+                      type="button"
+                      key={option.value}
+                      onClick={() => setPerformanceMode(option.value)}
+                      className={`w-full text-left rounded-xl border px-4 py-3 transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/40 text-white'
+                          : 'bg-black/20 border-white/10 text-gray-300 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-white">{option.label}</p>
+                          <p className="text-xs text-gray-400">{option.description}</p>
+                        </div>
+                        {isActive && <span className="text-xs text-[#00FFA3]">Active</span>}
+                      </div>
+                      {option.value === 'auto' && (
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          Currently running {isLowPerformance ? 'Low Performance' : 'High Performance'} mode automatically.
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

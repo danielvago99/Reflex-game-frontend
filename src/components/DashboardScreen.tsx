@@ -7,6 +7,7 @@ import { getReflexPoints } from '../utils/reflexPoints';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { getRecentMatches } from '../utils/matchHistory';
+import { usePerformanceMode } from '../hooks/usePerformanceMode'; // LOW PERF MODE
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -15,12 +16,13 @@ interface DashboardScreenProps {
   balance?: number;
 }
 
-export function DashboardScreen({ 
-  onNavigate, 
+export function DashboardScreen({
+  onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
   balance = 5.42
 }: DashboardScreenProps) {
+  const { isLowPerformance } = usePerformanceMode(); // LOW PERF MODE
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [reflexPoints, setReflexPoints] = useState(0);
@@ -38,38 +40,61 @@ export function DashboardScreen({
   }, []); // Only run on mount since we use key prop to force remount
 
   const avatarData = getAvatarData(userAvatar);
+  const containerClass = isLowPerformance
+    ? 'min-h-screen bg-[#05070d] p-3 xs:p-4 sm:p-6 relative overflow-hidden'
+    : 'min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden'; // LOW PERF MODE
+  const heroCardClass = isLowPerformance
+    ? 'relative bg-[#111b2c] border border-white/5 rounded-2xl overflow-hidden'
+    : 'relative bg-gradient-to-br from-[#0B0F1A] via-[#1a0f2e] to-[#0B0F1A] border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden';
+  const walletInnerClass = isLowPerformance
+    ? 'relative bg-[#0f172a] border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden'
+    : 'relative bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden';
+  const depositButtonClass = isLowPerformance
+    ? 'relative bg-[#1b2437] border border-white/10 text-white px-3 py-2 rounded-lg transition-colors duration-150 flex items-center justify-center gap-2'
+    : 'relative bg-white/10 hover:bg-white/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2';
+  const withdrawButtonClass = isLowPerformance
+    ? 'relative bg-[#1b2437] border border-white/10 text-white px-3 py-2 rounded-lg transition-colors duration-150 flex items-center justify-center gap-2'
+    : 'relative bg-white/10 hover:bg-white/20 border border-[#06B6D4]/30 hover:border-[#06B6D4]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2';
+  const playButtonClass = isLowPerformance
+    ? 'relative w-full p-5 rounded-xl bg-[#00FFA3] text-[#0B0F1A] font-semibold flex items-center justify-center gap-3 active:scale-95 transition-colors duration-150'
+    : 'relative w-full overflow-hidden p-5 rounded-xl transition-all duration-300 transform hover:scale-[1.03] group';
+  const ambassadorButtonClass = isLowPerformance
+    ? 'w-full bg-[#1b2437] border border-white/10 text-white p-4 rounded-xl flex items-center justify-center gap-3 transition-colors duration-150'
+    : 'w-full bg-white/5 backdrop-blur-lg border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      <FuturisticBackground />
+    <div className={containerClass}>
+      {!isLowPerformance && <FuturisticBackground />}
       
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header with Avatar and Balance */}
         <div className="relative mb-4 xs:mb-6">
           {/* Outer glow - static, no animation */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] via-[#7C3AED] to-[#06B6D4] opacity-40 blur-xl rounded-2xl"></div>
-          
-          <div className="relative bg-gradient-to-br from-[#0B0F1A] via-[#1a0f2e] to-[#0B0F1A] border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
+          {!isLowPerformance && <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] via-[#7C3AED] to-[#06B6D4] opacity-40 blur-xl rounded-2xl"></div>}
+
+          <div className={heroCardClass}>
             {/* Static background effects - no animation */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#00FFA3] rounded-full blur-3xl opacity-30"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#7C3AED] rounded-full blur-3xl opacity-30"></div>
-              <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-[#06B6D4] rounded-full blur-3xl opacity-20"></div>
-            </div>
+            {!isLowPerformance && (
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-[#00FFA3] rounded-full blur-3xl opacity-30"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#7C3AED] rounded-full blur-3xl opacity-30"></div>
+                <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-[#06B6D4] rounded-full blur-3xl opacity-20"></div>
+              </div>
+            )}
 
             {/* Grid pattern overlay */}
             <div className="absolute inset-0 opacity-5" style={{
               backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)'
             }}></div>
             
-            <div className="relative p-5">
-              {/* User Info */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative">
-                  <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-40"></div>
-                  <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
-                    <img 
-                      src={avatarData.url} 
+              <div className="relative p-5">
+                {/* User Info */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    {!isLowPerformance && <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-40"></div>}
+                    <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
+                      <img
+                        src={avatarData.url}
                       alt="User avatar"
                       className="w-full h-full object-cover"
                     />
@@ -87,14 +112,16 @@ export function DashboardScreen({
               {/* Wallet Balance Section - Reduced Height */}
               <div className="relative">
                 {/* Inner glow border - static */}
-                <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur opacity-50 rounded-xl"></div>
-                
-                <div className="relative bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
+                {!isLowPerformance && <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur opacity-50 rounded-xl"></div>}
+
+                <div className={walletInnerClass}>
                   {/* Animated background grid */}
-                  <div className="absolute inset-0 opacity-10" style={{
-                    backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%)',
-                    backgroundSize: '8px 8px'
-                  }}></div>
+                  {!isLowPerformance && (
+                    <div className="absolute inset-0 opacity-10" style={{
+                      backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%)',
+                      backgroundSize: '8px 8px'
+                    }}></div>
+                  )}
 
                   {/* Corner accents */}
                   <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-[#00FFA3]/80"></div>
@@ -103,9 +130,11 @@ export function DashboardScreen({
                   <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-[#06B6D4]/80"></div>
 
                   {/* Shimmer effect */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 translate-x-[-200%] animate-shimmer"></div>
-                  </div>
+                  {!isLowPerformance && (
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 translate-x-[-200%] animate-shimmer"></div>
+                    </div>
+                  )}
                   
                   <div className="relative">
                     <div className="flex items-center justify-between mb-3">
@@ -134,23 +163,23 @@ export function DashboardScreen({
                         onClick={() => {
                           setShowDeposit(true);
                         }}
-                        className="relative group/btn"
+                        className="relative"
                       >
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className="relative bg-white/10 hover:bg-white/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
+                        {!isLowPerformance && <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 hover:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>}
+                        <div className={depositButtonClass}>
                           <ArrowDownToLine className="w-4 h-4 text-[#00FFA3]" />
                           <span className="text-sm">Deposit</span>
                         </div>
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           setShowWithdraw(true);
                         }}
-                        className="relative group/btn"
+                        className="relative"
                       >
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-[#06B6D4]/50 to-[#7C3AED]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className="relative bg-white/10 hover:bg-white/20 border border-[#06B6D4]/30 hover:border-[#06B6D4]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
+                        {!isLowPerformance && <div className="absolute -inset-0.5 bg-gradient-to-r from-[#06B6D4]/50 to-[#7C3AED]/50 blur opacity-0 hover:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>}
+                        <div className={withdrawButtonClass}>
                           <ArrowUpFromLine className="w-4 h-4 text-[#06B6D4]" />
                           <span className="text-sm">Withdraw</span>
                         </div>
@@ -162,31 +191,27 @@ export function DashboardScreen({
             </div>
 
             {/* Bottom shimmer effect on hover */}
-            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 translate-x-[-200%] hover:translate-x-[200%] transition-transform duration-1000"></div>
-            </div>
+            {!isLowPerformance && (
+              <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 translate-x-[-200%] hover:translate-x-[200%] transition-transform duration-1000"></div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Main Action Buttons */}
         <div className="space-y-3 mb-6">
-          <button
-            onClick={() => onNavigate('lobby')}
-            className="relative w-full overflow-hidden p-5 rounded-xl transition-all duration-300 transform hover:scale-[1.03] group"
-          >
-            {/* Animated gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#00FFA3] animate-[gradient_3s_ease_infinite]"></div>
-            
-            {/* Outer glow */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] opacity-50 blur-xl group-hover:opacity-100 transition-opacity duration-300"></div>
-            
-            {/* Shimmer effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-            
-            {/* Pulse effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 animate-pulse"></div>
-            
-            <div className="relative flex items-center justify-center gap-3 text-[#0B0F1A] drop-shadow-lg">
+          <button onClick={() => onNavigate('lobby')} className={playButtonClass}>
+            {!isLowPerformance && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#00FFA3] animate-[gradient_3s_ease_infinite]"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] opacity-50 blur-xl group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 animate-pulse"></div>
+              </>
+            )}
+
+            <div className={`flex items-center justify-center gap-3 ${isLowPerformance ? '' : 'relative text-[#0B0F1A] drop-shadow-lg'}`}>
               <Gamepad2 className="w-6 h-6" />
               <span className="text-lg">Play Game</span>
             </div>
@@ -194,7 +219,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('ambassador')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className={ambassadorButtonClass}
           >
             <Gift className="w-6 h-6 text-[#7C3AED]" />
             <span>Ambassador Dashboard</span>
