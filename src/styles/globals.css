@@ -345,3 +345,36 @@ html {
     transform: translateY(-15px);
   }
 }
+
+/* Low-performance futuristic background animations */
+@keyframes drift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(20px, 30px);
+  }
+  66% {
+    transform: translate(-15px, -20px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}
