@@ -44,6 +44,19 @@ async function getDb() {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+function getWebCrypto(): Crypto {
+  const scope = globalThis as typeof globalThis & { crypto?: Crypto; msCrypto?: Crypto };
+  const cryptoApi = scope.crypto ?? scope.msCrypto;
+
+  if (!cryptoApi || !cryptoApi.subtle) {
+    throw new Error(
+      'Secure cryptography APIs are not available. Please try again in a modern browser over HTTPS or in a secure context.'
+    );
+  }
+
+  return cryptoApi;
+}
+
 const toBase64 = (data: ArrayBuffer | Uint8Array) => {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   return btoa(String.fromCharCode(...bytes));
@@ -73,9 +86,10 @@ function normalizeSalt(salt: SaltSource): Uint8Array {
 }
 
 async function deriveKey(password: string, salt: SaltSource): Promise<CryptoKey> {
-  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const cryptoApi = getWebCrypto();
+  const keyMaterial = await cryptoApi.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   const saltBytes = normalizeSalt(salt);
-  return crypto.subtle.deriveKey(
+  return cryptoApi.subtle.deriveKey(
     {
       name: 'PBKDF2',
       salt: saltBytes,
@@ -90,11 +104,12 @@ async function deriveKey(password: string, salt: SaltSource): Promise<CryptoKey>
 }
 
 export async function encryptSeedPhrase(seedPhrase: string[], password: string): Promise<EncryptedWalletRecord> {
+  const cryptoApi = getWebCrypto();
   const mnemonic = seedPhrase.join(' ');
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const salt = cryptoApi.getRandomValues(new Uint8Array(16));
+  const iv = cryptoApi.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
-  const ciphertext = await crypto.subtle.encrypt(
+  const ciphertext = await cryptoApi.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv
@@ -115,10 +130,11 @@ export async function encryptSeedPhrase(seedPhrase: string[], password: string):
 
 export async function decryptSeedPhrase(record: EncryptedWalletRecord, password: string): Promise<string[]> {
   try {
+    const cryptoApi = getWebCrypto();
     const salt = fromBase64(record.salt);
     const iv = fromBase64(record.iv);
     const key = await deriveKey(password, salt);
-    const decrypted = await crypto.subtle.decrypt(
+    const decrypted = await cryptoApi.subtle.decrypt(
       {
         name: 'AES-GCM',
         iv
