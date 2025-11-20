@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { WalletInput } from './WalletInput';
-import { 
-  getEncryptedWallet, 
-  decryptSeedPhrase, 
-  getUnlockAttempts, 
-  incrementUnlockAttempts, 
-  resetUnlockAttempts 
+import {
+  decryptSeedPhrase,
+  getEncryptedWallet,
+  getUnlockAttempts,
+  incrementUnlockAttempts,
+  isUnlockBlocked,
+  resetUnlockAttempts
 } from '../../utils/walletCrypto';
 
 interface UnlockWalletScreenProps {
@@ -26,12 +27,11 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const MAX_ATTEMPTS = 3;
-  const isPasswordLocked = failedAttempts >= MAX_ATTEMPTS;
+  const MAX_ATTEMPTS = 5;
+  const isPasswordLocked = isUnlockBlocked(failedAttempts);
 
   useEffect(() => {
-    // Load failed attempts from storage
-    setFailedAttempts(getUnlockAttempts());
+    getUnlockAttempts().then(setFailedAttempts).catch(() => setFailedAttempts(0));
   }, []);
 
   const handleBiometricUnlock = async () => {
@@ -63,7 +63,7 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
 
     try {
       // Try to decrypt the wallet with the provided password
-      const encryptedWallet = getEncryptedWallet();
+      const encryptedWallet = await getEncryptedWallet();
       
       if (!encryptedWallet) {
         setErrorMessage('No wallet found. Please create or import a wallet.');
@@ -72,7 +72,7 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
       }
 
       // Attempt to decrypt
-      const seedPhrase = await decryptSeedPhrase(encryptedWallet.encryptedSeed, password);
+      const seedPhrase = await decryptSeedPhrase(encryptedWallet, password);
       
       // Success! Reset attempts and continue
       resetUnlockAttempts();
@@ -81,11 +81,11 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
     } catch (error) {
       // Failed to decrypt - wrong password
       setUnlocking(false);
-      const newAttempts = incrementUnlockAttempts();
+      const newAttempts = await incrementUnlockAttempts();
       setFailedAttempts(newAttempts);
       setPassword('');
-      
-      if (newAttempts >= MAX_ATTEMPTS) {
+
+      if (isUnlockBlocked(newAttempts)) {
         setErrorMessage('Wallet locked due to too many failed attempts. Use recovery options below.');
       } else {
         setErrorMessage(`Incorrect password. ${MAX_ATTEMPTS - newAttempts} attempt${MAX_ATTEMPTS - newAttempts === 1 ? '' : 's'} remaining.`);
