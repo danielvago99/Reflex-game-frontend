@@ -66,12 +66,19 @@ export async function deriveSolanaKeypair(seedPhrase: string[]): Promise<Keypair
   return Keypair.fromSeed(seed.slice(0, 32));
 }
 
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+type SaltSource = Uint8Array | ArrayBufferLike;
+
+function normalizeSalt(salt: SaltSource): Uint8Array {
+  return salt instanceof Uint8Array ? salt : new Uint8Array(salt);
+}
+
+async function deriveKey(password: string, salt: SaltSource): Promise<CryptoKey> {
   const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const saltBytes = normalizeSalt(salt);
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt.buffer,
+      salt: saltBytes,
       iterations: 200_000,
       hash: 'SHA-256'
     },
