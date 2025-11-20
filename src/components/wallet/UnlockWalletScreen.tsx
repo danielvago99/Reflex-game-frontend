@@ -3,22 +3,17 @@ import { useState, useEffect } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { WalletInput } from './WalletInput';
-import {
-  decryptSeedPhrase,
-  getEncryptedWallet,
-  getUnlockAttempts,
-  incrementUnlockAttempts,
-  isUnlockBlocked,
-  resetUnlockAttempts
-} from '../../utils/walletCrypto';
+import { getUnlockAttempts, isUnlockBlocked } from '../../utils/walletCrypto';
+import { useWallet } from '../../features/wallet/context/WalletProvider';
 
 interface UnlockWalletScreenProps {
-  onContinue: () => void;
+  onUnlocked: () => void;
   onBack: () => void;
   onRecoveryMethod: () => void;
 }
 
-export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: UnlockWalletScreenProps) {
+export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: UnlockWalletScreenProps) {
+  const { unlock } = useWallet();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [biometricAvailable] = useState(true); // Simulate biometric availability
@@ -35,17 +30,27 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
   }, []);
 
   const handleBiometricUnlock = async () => {
+    if (!password) {
+      setErrorMessage('Enter your password to complete biometric unlock');
+      return;
+    }
+
     setUnlocking(true);
-    // Simulate biometric authentication
-    setTimeout(() => {
+    setErrorMessage('');
+
+    try {
+      await unlock(password);
       setBiometricVerified(true);
       setUnlocking(false);
-      resetUnlockAttempts();
-      // Auto continue after biometric success
       setTimeout(() => {
-        onContinue();
+        onUnlocked();
       }, 500);
-    }, 1500);
+    } catch (error) {
+      const updatedAttempts = await getUnlockAttempts().catch(() => failedAttempts);
+      setFailedAttempts(updatedAttempts);
+      setUnlocking(false);
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to unlock wallet');
+    }
   };
 
   const handlePasswordUnlock = async () => {
@@ -62,26 +67,12 @@ export function UnlockWalletScreen({ onContinue, onBack, onRecoveryMethod }: Unl
     setErrorMessage('');
 
     try {
-      // Try to decrypt the wallet with the provided password
-      const encryptedWallet = await getEncryptedWallet();
-      
-      if (!encryptedWallet) {
-        setErrorMessage('No wallet found. Please create or import a wallet.');
-        setUnlocking(false);
-        return;
-      }
-
-      // Attempt to decrypt
-      const seedPhrase = await decryptSeedPhrase(encryptedWallet, password);
-      
-      // Success! Reset attempts and continue
-      resetUnlockAttempts();
+      await unlock(password);
       setUnlocking(false);
-      onContinue();
+      onUnlocked();
     } catch (error) {
-      // Failed to decrypt - wrong password
       setUnlocking(false);
-      const newAttempts = await incrementUnlockAttempts();
+      const newAttempts = await getUnlockAttempts();
       setFailedAttempts(newAttempts);
       setPassword('');
 

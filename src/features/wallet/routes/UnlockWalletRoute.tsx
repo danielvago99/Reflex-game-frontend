@@ -6,7 +6,7 @@ export default function UnlockWalletRoute() {
 
   return (
     <UnlockWalletScreen
-      onContinue={() => navigate('/dashboard')}
+      onUnlocked={() => navigate('/dashboard')}
       onBack={() => navigate('/')}
       onRecoveryMethod={() => navigate('/wallet/import')}
     />

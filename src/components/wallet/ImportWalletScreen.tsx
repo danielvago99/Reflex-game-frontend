@@ -3,17 +3,23 @@ import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { WalletInput } from './WalletInput';
+import { type EncryptedWalletRecord } from '../../utils/walletCrypto';
 
 interface ImportWalletScreenProps {
-  onContinue: () => void;
+  onImportSeed: (seedPhrase: string[], password: string) => Promise<void>;
+  onImportKeystore: (record: EncryptedWalletRecord, password: string) => Promise<void>;
   onBack: () => void;
 }
 
-export function ImportWalletScreen({ onContinue, onBack }: ImportWalletScreenProps) {
+export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: ImportWalletScreenProps) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const [seedPassword, setSeedPassword] = useState('');
   const [keystoreFile, setKeystoreFile] = useState<File | null>(null);
   const [keystorePassword, setKeystorePassword] = useState('');
   const [activeTab, setActiveTab] = useState('seed');
+  const [processing, setProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -21,8 +27,35 @@ export function ImportWalletScreen({ onContinue, onBack }: ImportWalletScreenPro
     }
   };
 
-  const canContinueSeed = seedPhrase.trim().split(/\s+/).length === 12 || seedPhrase.trim().split(/\s+/).length === 24;
+  const words = seedPhrase.trim().split(/\s+/).filter(Boolean);
+  const canContinueSeed =
+    (words.length === 12 || words.length === 24) && seedPassword.length >= 8;
   const canContinueKeystore = keystoreFile !== null && keystorePassword.length > 0;
+
+  const handleImport = async () => {
+    setProcessing(true);
+    setErrorMessage('');
+
+    try {
+      if (activeTab === 'seed') {
+        await onImportSeed(words, seedPassword);
+      } else {
+        if (!keystoreFile) {
+          throw new Error('Please upload a valid keystore file');
+        }
+
+        const fileText = await keystoreFile.text();
+        const parsed = JSON.parse(fileText) as EncryptedWalletRecord;
+        await onImportKeystore(parsed, keystorePassword);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to import wallet');
+      setProcessing(false);
+      return;
+    }
+
+    setProcessing(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
@@ -112,6 +145,19 @@ export function ImportWalletScreen({ onContinue, onBack }: ImportWalletScreenPro
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300 uppercase tracking-wider">
+                  Set Wallet Password
+                </label>
+                <WalletInput
+                  type="password"
+                  value={seedPassword}
+                  onChange={(e) => setSeedPassword(e.target.value)}
+                  placeholder="Create a password to secure this wallet"
+                />
+                <p className="text-xs text-gray-400">Minimum 8 characters required</p>
+              </div>
+
               <WalletAlert variant="info">
                 Your seed phrase should be 12 or 24 words long. Each word should be separated by a space.
               </WalletAlert>
@@ -195,14 +241,20 @@ export function ImportWalletScreen({ onContinue, onBack }: ImportWalletScreenPro
           </div>
         </div>
 
+        {errorMessage && (
+          <div className="mt-4">
+            <WalletAlert variant="danger">{errorMessage}</WalletAlert>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="space-y-3 mt-8">
-          <WalletButton 
-            onClick={onContinue} 
+          <WalletButton
+            onClick={handleImport}
             icon={ArrowRight}
-            disabled={activeTab === 'seed' ? !canContinueSeed : !canContinueKeystore}
+            disabled={processing || (activeTab === 'seed' ? !canContinueSeed : !canContinueKeystore)}
           >
-            Import Wallet
+            {processing ? 'Importing...' : 'Import Wallet'}
           </WalletButton>
           <WalletButton onClick={onBack} variant="secondary">
             Back to Unlock

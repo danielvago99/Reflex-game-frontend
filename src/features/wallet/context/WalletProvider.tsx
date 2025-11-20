@@ -11,6 +11,7 @@ import {
   isUnlockBlocked,
   resetUnlockAttempts,
   storeEncryptedWallet,
+  validateSeedPhrase,
   type EncryptedWalletRecord
 } from '../../../utils/walletCrypto';
 
@@ -24,6 +25,8 @@ interface WalletContextValue {
   setPassword: (password: string, biometric: boolean) => void;
   encryptAndStore: () => Promise<EncryptedWalletRecord>;
   unlock: (password: string) => Promise<string[]>;
+  importFromSeed: (seedPhrase: string[], password: string, biometric?: boolean) => Promise<EncryptedWalletRecord>;
+  importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<string[]>;
   connectExternalWallet: (address: string, provider: string) => void;
   logout: () => Promise<void>;
 }
@@ -59,13 +62,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     vaultRef.current.biometric = biometricEnabled;
   };
 
-  const encryptAndStore = async () => {
-    if (!vaultRef.current.seed.length || !vaultRef.current.password) {
-      throw new Error('Wallet vault is empty');
-    }
-
-    const encrypted = await encryptSeedPhrase(vaultRef.current.seed, vaultRef.current.password);
-    const keypair = await deriveSolanaKeypair(vaultRef.current.seed);
+  const persistVaultToStorage = async (seedPhrase: string[], password: string, biometricEnabled: boolean) => {
+    const encrypted = await encryptSeedPhrase(seedPhrase, password);
+    const keypair = await deriveSolanaKeypair(seedPhrase);
     const record: EncryptedWalletRecord = {
       ...encrypted,
       publicKey: keypair.publicKey.toBase58(),
@@ -76,10 +75,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await storeEncryptedWallet(record);
     await resetUnlockAttempts();
     setAddress(record.publicKey);
-    setBiometric(vaultRef.current.biometric);
+    setBiometric(biometricEnabled);
     setHasStoredWallet(true);
     vaultRef.current = createEmptyVault();
     return record;
+  };
+
+  const encryptAndStore = async () => {
+    if (!vaultRef.current.seed.length || !vaultRef.current.password) {
+      throw new Error('Wallet vault is empty');
+    }
+
+    return persistVaultToStorage(vaultRef.current.seed, vaultRef.current.password, vaultRef.current.biometric);
   };
 
   const unlock = async (password: string) => {
@@ -111,6 +118,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const importFromSeed = async (seedPhrase: string[], password: string, biometricEnabled = false) => {
+    if (!validateSeedPhrase(seedPhrase)) {
+      throw new Error('Invalid seed phrase');
+    }
+
+    vaultRef.current.seed = seedPhrase;
+    vaultRef.current.password = password;
+    vaultRef.current.biometric = biometricEnabled;
+    return persistVaultToStorage(seedPhrase, password, biometricEnabled);
+  };
+
+  const importFromKeystore = async (record: EncryptedWalletRecord, password: string) => {
+    if (!record?.ciphertext || !record.iv || !record.salt) {
+      throw new Error('Invalid keystore file');
+    }
+
+    const seed = await decryptSeedPhrase(record, password);
+    const keypair = await deriveSolanaKeypair(seed);
+    const publicKey = record.publicKey || keypair.publicKey.toBase58();
+
+    const normalized: EncryptedWalletRecord = {
+      ...record,
+      publicKey,
+      createdAt: record.createdAt || new Date().toISOString(),
+      version: record.version || '2.0'
+    } as EncryptedWalletRecord;
+
+    await storeEncryptedWallet(normalized);
+    await resetUnlockAttempts();
+    setAddress(publicKey);
+    setBiometric(false);
+    setHasStoredWallet(true);
+    vaultRef.current = createEmptyVault();
+    return seed;
+  };
+
   const connectExternalWallet = (walletAddress: string, walletProvider: string) => {
     setAddress(walletAddress);
     setProvider(walletProvider);
@@ -134,6 +177,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setPassword,
       encryptAndStore,
       unlock,
+      importFromSeed,
+      importFromKeystore,
       connectExternalWallet,
       logout
     }),
