@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { WalletInput } from './WalletInput';
-import { getUnlockAttempts, isUnlockBlocked } from '../../utils/walletCrypto';
+import { getEncryptedWallet, getUnlockAttempts, isUnlockBlocked } from '../../utils/walletCrypto';
 import { useWallet } from '../../features/wallet/context/WalletProvider';
+import { biometricsUtils } from '../../utils/biometrics';
 
 interface UnlockWalletScreenProps {
   onUnlocked: () => void;
@@ -16,7 +17,9 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
   const { unlock } = useWallet();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [biometricAvailable] = useState(true); // Simulate biometric availability
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricCredentialId, setBiometricCredentialId] = useState<string | null>(null);
+  const [walletId, setWalletId] = useState<string | null>(null);
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -27,6 +30,26 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
 
   useEffect(() => {
     getUnlockAttempts().then(setFailedAttempts).catch(() => setFailedAttempts(0));
+    (async () => {
+      try {
+        const [available, record] = await Promise.all([
+          biometricsUtils.isBiometricAvailable(),
+          getEncryptedWallet()
+        ]);
+        if (record?.publicKey) {
+          setWalletId(record.publicKey);
+        }
+        if (available && record?.biometricEnabled && record.biometricCredentialId) {
+          setBiometricCredentialId(record.biometricCredentialId);
+          setBiometricAvailable(true);
+        } else {
+          setBiometricAvailable(false);
+        }
+      } catch (error) {
+        console.error('Unable to check biometric support', error);
+        setBiometricAvailable(false);
+      }
+    })();
   }, []);
 
   const handleBiometricUnlock = async () => {
@@ -35,10 +58,22 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
       return;
     }
 
+    if (!biometricAvailable || !biometricCredentialId || !walletId) {
+      setErrorMessage('Biometric unlock is not available on this device.');
+      return;
+    }
+
     setUnlocking(true);
     setErrorMessage('');
 
     try {
+      const verified = await biometricsUtils.verifyBiometricCredential(walletId, biometricCredentialId);
+      if (!verified) {
+        setUnlocking(false);
+        setErrorMessage('Biometric verification failed. Please try again or use your password.');
+        return;
+      }
+
       await unlock(password);
       setBiometricVerified(true);
       setUnlocking(false);

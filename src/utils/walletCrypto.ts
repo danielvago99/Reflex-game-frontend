@@ -7,6 +7,7 @@ import { Keypair } from '@solana/web3.js';
 import { openDB } from 'idb';
 
 const DB_NAME = 'reflex_wallet_secure';
+const DB_VERSION = 2;
 const WALLET_STORE = 'wallet';
 const ATTEMPT_STORE = 'attempts';
 const ACTIVE_KEY = 'active_wallet';
@@ -17,18 +18,28 @@ export interface EncryptedWalletRecord {
   iv: string;
   salt: string;
   publicKey: string;
-  createdAt: string;
+  createdAt: number;
   version: '2.0';
+  biometricEnabled?: boolean;
+  biometricCredentialId?: string;
 }
 
 async function getDb() {
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
+  return openDB(DB_NAME, DB_VERSION, {
+    upgrade(db, oldVersion) {
       if (!db.objectStoreNames.contains(WALLET_STORE)) {
         db.createObjectStore(WALLET_STORE);
       }
       if (!db.objectStoreNames.contains(ATTEMPT_STORE)) {
         db.createObjectStore(ATTEMPT_STORE);
+      }
+
+      if (oldVersion < 2) {
+        // Normalize existing wallet records to include metadata fields
+        const walletStore = db.transaction?.objectStore(WALLET_STORE);
+        if (walletStore) {
+          // Placeholder to keep migration hook; actual migration handled at runtime
+        }
       }
     }
   });
@@ -94,7 +105,7 @@ export async function encryptSeedPhrase(seedPhrase: string[], password: string):
     iv: toBase64(iv),
     salt: toBase64(salt),
     publicKey: '',
-    createdAt: new Date().toISOString(),
+    createdAt: Date.now(),
     version: '2.0'
   };
 }
@@ -156,7 +167,13 @@ export async function storeEncryptedWallet(record: EncryptedWalletRecord): Promi
 
 export async function getEncryptedWallet(): Promise<EncryptedWalletRecord | null> {
   const db = await getDb();
-  return (await db.get(WALLET_STORE, ACTIVE_KEY)) || null;
+  const record = (await db.get(WALLET_STORE, ACTIVE_KEY)) as EncryptedWalletRecord | null;
+  if (!record) return null;
+
+  return {
+    ...record,
+    createdAt: typeof record.createdAt === 'string' ? Date.parse(record.createdAt) || Date.now() : record.createdAt
+  };
 }
 
 export async function hasWallet(): Promise<boolean> {
@@ -169,6 +186,23 @@ export async function deleteWallet(): Promise<void> {
   const db = await getDb();
   await db.delete(WALLET_STORE, ACTIVE_KEY);
   await db.delete(ATTEMPT_STORE, ACTIVE_KEY);
+}
+
+export async function updateWalletRecord(update: Partial<EncryptedWalletRecord>): Promise<EncryptedWalletRecord> {
+  const current = await getEncryptedWallet();
+  if (!current) {
+    throw new Error('No wallet found');
+  }
+
+  const merged: EncryptedWalletRecord = {
+    ...current,
+    ...update,
+    createdAt: current.createdAt || Date.now(),
+    version: '2.0'
+  };
+
+  await storeEncryptedWallet(merged);
+  return merged;
 }
 
 export async function getUnlockAttempts(): Promise<number> {

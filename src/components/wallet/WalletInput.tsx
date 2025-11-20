@@ -1,25 +1,19 @@
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import type { InputHTMLAttributes } from 'react';
+import { forwardRef, useState } from 'react';
 
-interface WalletInputProps {
+interface WalletInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type'> {
   label: string;
   type?: 'text' | 'password' | 'number';
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
   error?: string;
   required?: boolean;
+  onChange?: (value: string) => void;
 }
 
-export function WalletInput({ 
-  label, 
-  type = 'text', 
-  value, 
-  onChange, 
-  placeholder,
-  error,
-  required = false
-}: WalletInputProps) {
+export const WalletInput = forwardRef<HTMLInputElement, WalletInputProps>(function WalletInput(
+  { label, type = 'text', error, required = false, onChange, ...props },
+  ref
+) {
   const [showPassword, setShowPassword] = useState(false);
   const inputType = type === 'password' && showPassword ? 'text' : type;
 
@@ -30,14 +24,14 @@ export function WalletInput({
         {required && <span className="text-[#00FFA3]">*</span>}
       </label>
       <div className="relative">
-        <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg blur-sm"></div>
+        <div className="pointer-events-none absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg blur-sm"></div>
         <div className="relative">
           <input
             type={inputType}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
+            ref={ref}
+            onChange={(e) => onChange?.(e.target.value)}
             className="w-full bg-white/5 backdrop-blur-lg border border-white/10 focus:border-[#00FFA3] text-white px-4 py-3 rounded-lg outline-none transition-all placeholder:text-gray-500"
+            {...props}
           />
           {type === 'password' && (
             <button
@@ -58,4 +52,4 @@ export function WalletInput({
       )}
     </div>
   );
-}
+});
