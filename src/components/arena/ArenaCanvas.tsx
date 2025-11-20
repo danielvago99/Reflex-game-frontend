@@ -82,6 +82,12 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
   const appInitializedRef = useRef(false);
+  const isActiveRef = useRef(isActive);
+  const targetSpawnCountRef = useRef(0);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -162,6 +168,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     const app = globalPixiApp!;
     hasNotifiedTargetRef.current = false;
+    targetSpawnCountRef.current = 0;
 
     // Clear existing shapes
     shapesRef.current.forEach(shape => {
@@ -174,31 +181,33 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       setTimeout(() => spawnShape(app, false), i * 150);
     }
 
-    // Spawn target shape after 1-3 seconds
-    const targetDelay = 1000 + Math.random() * 1000;
+    // Spawn target shape after 1-2 seconds
+    const targetDelay = 1000 + Math.random() * 1500;
     targetTimerRef.current = window.setTimeout(() => {
+      targetSpawnCountRef.current += 1;
       spawnShape(app, true);
     }, targetDelay);
 
     // Continue spawning random shapes
-    const spawnInterval = setInterval(() => {
+    const spawnInterval = window.setInterval(() => {
       if (Math.random() > 0.2) { // 80% chance to spawn
         spawnShape(app, false);
       }
     }, 500);
-
+    spawnIntervalRef.current = spawnInterval;
     return () => {
       if (targetTimerRef.current !== null) {
-        clearTimeout(targetTimerRef.current);
+        window.clearTimeout(targetTimerRef.current);
         targetTimerRef.current = null;
       }
 
       if (spawnIntervalRef.current !== null) {
-        clearInterval(spawnIntervalRef.current);
+        window.clearInterval(spawnIntervalRef.current);
         spawnIntervalRef.current = null;
       }
     };
-  }, [isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, targetShape, targetColor]);
 
   // Convert hex color to number
   const hexToNumber = (hex: string): number => {
@@ -308,8 +317,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     }, 30);
 
     // Schedule removal after 2-4 seconds
-    setTimeout(() => {
-      const fadeOut = setInterval(() => {
+    window.setTimeout(() => {
+      const fadeOut = window.setInterval(() => {
         graphics.alpha -= 0.05;
         if (graphics.alpha <= 0) {
           clearInterval(fadeOut);
@@ -317,10 +326,21 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
           shapesRef.current = shapesRef.current.filter(s => s !== shape);
           
           // If this is the target shape, notify parent
-          if (shouldBeTarget && hasNotifiedTargetRef.current && onTargetDisappeared) {
-            hasNotifiedTargetRef.current = false;
-            onTargetDisappeared();
-            currentTargetRef.current = null;
+                    if (shouldBeTarget) {
+            if (hasNotifiedTargetRef.current && onTargetDisappeared) {
+              hasNotifiedTargetRef.current = false;
+              onTargetDisappeared();
+              currentTargetRef.current = null;
+            }
+
+            if (isActiveRef.current && targetSpawnCountRef.current < 2) {
+              targetSpawnCountRef.current += 1;
+
+              const retryDelay = 800 + Math.random() * 700;
+              targetTimerRef.current = window.setTimeout(() => {
+                spawnShape(app, true);
+              }, retryDelay);
+            }
           }
         }
       }, 30);
