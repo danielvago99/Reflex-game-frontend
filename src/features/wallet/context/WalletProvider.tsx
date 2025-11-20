@@ -25,6 +25,7 @@ interface WalletContextValue {
   generateSeed: () => string[];
   getSeed: () => string[];
   setPassword: (password: string, biometric: boolean) => void;
+  getVaultStatus: () => { hasSeed: boolean; hasPassword: boolean; biometricEnabled: boolean };
   encryptAndStore: () => Promise<EncryptedWalletRecord>;
   unlock: (password: string) => Promise<string[]>;
   importFromSeed: (seedPhrase: string[], password: string, biometric?: boolean) => Promise<EncryptedWalletRecord>;
@@ -53,6 +54,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const generateSeed = () => {
     const seed = generateSeedPhrase();
+    vaultRef.current = createEmptyVault();
     vaultRef.current.seed = seed;
     return seed;
   };
@@ -63,6 +65,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     vaultRef.current.password = password;
     vaultRef.current.biometric = biometricEnabled;
   };
+
+  const getVaultStatus = () => ({
+    hasSeed: vaultRef.current.seed.length > 0,
+    hasPassword: Boolean(vaultRef.current.password),
+    biometricEnabled: vaultRef.current.biometric
+  });
 
   const persistVaultToStorage = async (seedPhrase: string[], password: string, biometricEnabled: boolean) => {
     const encrypted = await encryptSeedPhrase(seedPhrase, password);
@@ -101,8 +109,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const encryptAndStore = async () => {
-    if (!vaultRef.current.seed.length || !vaultRef.current.password) {
-      throw new Error('Wallet vault is empty');
+    const { hasSeed, hasPassword } = getVaultStatus();
+
+    if (!hasSeed && !hasPassword) {
+      throw new Error('Cannot encrypt wallet: seed phrase and password are missing');
+    }
+
+    if (!hasSeed) {
+      throw new Error('Cannot encrypt wallet: seed phrase was not generated');
+    }
+
+    if (!hasPassword) {
+      throw new Error('Cannot encrypt wallet: password was not set');
     }
 
     return persistVaultToStorage(vaultRef.current.seed, vaultRef.current.password, vaultRef.current.biometric);
@@ -194,6 +212,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       generateSeed,
       getSeed,
       setPassword,
+      getVaultStatus,
       encryptAndStore,
       unlock,
       importFromSeed,
