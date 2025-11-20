@@ -74,6 +74,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setAllPlayerTimes([null, null, null]);
     setAllOpponentTimes([null, null, null]);
     setRoundResolved(false);
+    startRound();
   };
 
   // Players (get from profile in real app)
@@ -153,24 +154,24 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       return;
     }
 
-    // 2) Only player reacted → wait max 2 seconds for opponent
+    // 2) Only player reacted → wait max 1 second for opponent
     if (playerReactionTime !== null && opponentReactionTime === null) {
       const timer = setTimeout(() => {
         if (!roundResolved) {
           handleRoundComplete(playerReactionTime);
         }
-      }, 2000); // wait 2 seconds
+      }, 1000); // wait 1 second
 
       return () => clearTimeout(timer);
     }
 
-    // 3) Only opponent reacted → wait max 2 seconds for player
+    // 3) Only opponent reacted → wait max 1 second for player
     if (playerReactionTime === null && opponentReactionTime !== null) {
       const timer = setTimeout(() => {
         if (!roundResolved) {
           handleRoundComplete(999999); // player did not react
         }
-      }, 2000); // wait 2 seconds
+      }, 1000); // wait 1 second
 
       return () => clearTimeout(timer);
     }
