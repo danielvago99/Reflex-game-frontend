@@ -7,6 +7,15 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProps) {
+    const handleConnectWallet = () => {
+    if (onWalletConnect) {
+      onWalletConnect('DemoWalletPublicKey123456789', 'Phantom');
+      return;
+    }
+
+    onNavigate('dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
       
@@ -69,7 +78,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         {/* Buttons */}
         <div className="w-full space-y-3 max-w-xs mx-auto">
           <button
-            onClick={() => onNavigate('dashboard')}
+            onClick={handleConnectWallet}
             className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             <Wallet className="w-5 h-5" />
