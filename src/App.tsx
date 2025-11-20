@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AppProviders } from './app/providers/AppProviders';
@@ -25,6 +25,12 @@ const RewardsRoute = lazy(() => import('./features/auth/routes/RewardsRoute'));
 const DailyChallengeRoute = lazy(() => import('./features/auth/routes/DailyChallengeRoute'));
 
 export default function App() {
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+
+  if (showLoadingScreen) {
+    return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />;
+  }
+
   return (
     <BrowserRouter>
       <AppProviders>
