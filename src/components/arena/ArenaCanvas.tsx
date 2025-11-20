@@ -77,7 +77,8 @@ function getPixiApp(width: number, height: number): Promise<PIXI.Application> {
 export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shapesRef = useRef<Shape[]>([]);
-  const targetTimerRef = useRef<NodeJS.Timeout>();
+  const targetTimerRef = useRef<number | null>(null);
+  const spawnIntervalRef = useRef<number | null>(null);
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
   const appInitializedRef = useRef(false);
@@ -175,7 +176,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     // Spawn target shape after 1-3 seconds
     const targetDelay = 1000 + Math.random() * 1000;
-    targetTimerRef.current = setTimeout(() => {
+    targetTimerRef.current = window.setTimeout(() => {
       spawnShape(app, true);
     }, targetDelay);
 
@@ -187,8 +188,15 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     }, 500);
 
     return () => {
-      clearTimeout(targetTimerRef.current);
-      clearInterval(spawnInterval);
+      if (targetTimerRef.current !== null) {
+        clearTimeout(targetTimerRef.current);
+        targetTimerRef.current = null;
+      }
+
+      if (spawnIntervalRef.current !== null) {
+        clearInterval(spawnIntervalRef.current);
+        spawnIntervalRef.current = null;
+      }
     };
   }, [isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared]);
 
