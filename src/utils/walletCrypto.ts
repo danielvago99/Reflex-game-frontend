@@ -35,11 +35,7 @@ async function getDb() {
       }
 
       if (oldVersion < 2) {
-        // Normalize existing wallet records to include metadata fields
-        const walletStore = db.transaction?.objectStore(WALLET_STORE);
-        if (walletStore) {
-          // Placeholder to keep migration hook; actual migration handled at runtime
-        }
+        // Placeholder to keep migration hook; actual migration handled at runtime
       }
     }
   });

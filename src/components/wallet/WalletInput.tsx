@@ -2,16 +2,14 @@ import { Eye, EyeOff } from 'lucide-react';
 import type { InputHTMLAttributes } from 'react';
 import { forwardRef, useState } from 'react';
 
-interface WalletInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type'> {
+interface WalletInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
-  type?: 'text' | 'password' | 'number';
   error?: string;
   required?: boolean;
-  onChange?: (value: string) => void;
 }
 
 export const WalletInput = forwardRef<HTMLInputElement, WalletInputProps>(function WalletInput(
-  { label, type = 'text', error, required = false, onChange, ...props },
+  { label, type = 'text', error, required = false, className, onChange, ...props },
   ref
 ) {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,8 +27,8 @@ export const WalletInput = forwardRef<HTMLInputElement, WalletInputProps>(functi
           <input
             type={inputType}
             ref={ref}
-            onChange={(e) => onChange?.(e.target.value)}
-            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 focus:border-[#00FFA3] text-white px-4 py-3 rounded-lg outline-none transition-all placeholder:text-gray-500"
+            onChange={onChange}
+            className={`w-full bg-white/5 backdrop-blur-lg border border-white/10 focus:border-[#00FFA3] text-white px-4 py-3 rounded-lg outline-none transition-all placeholder:text-gray-500${className ? ` ${className}` : ''}`}
             {...props}
           />
           {type === 'password' && (

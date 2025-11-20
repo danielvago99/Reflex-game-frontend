@@ -107,7 +107,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
             label="Recipient Address"
             type="text"
             value={recipientAddress}
-            onChange={setRecipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
             placeholder="Enter Solana address"
             error={errors.address}
             required
