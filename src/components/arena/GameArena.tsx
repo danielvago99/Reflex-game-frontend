@@ -49,6 +49,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [allPlayerTimes, setAllPlayerTimes] = useState<(number | null)[]>([null, null, null]);
   const [allOpponentTimes, setAllOpponentTimes] = useState<(number | null)[]>([null, null, null]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [roundResolved, setRoundResolved] = useState(false);
 
   const TOTAL_ROUNDS = 3;
   const MAX_PAUSES = 3;
@@ -72,6 +73,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setShowFinalResults(false);
     setAllPlayerTimes([null, null, null]);
     setAllOpponentTimes([null, null, null]);
+    setRoundResolved(false);
   };
 
   // Players (get from profile in real app)
@@ -129,31 +131,55 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   };
 
   const handleReact = () => {
-    if (gameState !== 'playing' || playerReactionTime !== null) return;
+    if (gameState !== 'playing' || playerReactionTime !== null || roundResolved) return;
 
-    // Check if target is present
+    // Early click = instant loss time
     if (!isTargetPresent || !targetAppearTime) {
-      // Player clicked too early - they lose!
-      setPlayerReactionTime(999999); // Set a very high time
-      setRoundResult('lose');
-      
-      // Wait a bit then show results
-      setTimeout(() => {
-        handleRoundComplete(999999);
-      }, 500);
+      const loseTime = 999999;
+      setPlayerReactionTime(loseTime);
       return;
     }
 
     const reactionTime = Date.now() - targetAppearTime;
     setPlayerReactionTime(reactionTime);
-
-    // Wait a bit then show results
-    setTimeout(() => {
-      handleRoundComplete(reactionTime);
-    }, 500);
   };
 
+    useEffect(() => {
+    if (roundResolved || gameState !== 'playing') return;
+
+    // 1) Both players reacted → resolve immediately
+    if (playerReactionTime !== null && opponentReactionTime !== null) {
+      handleRoundComplete(playerReactionTime);
+      return;
+    }
+
+    // 2) Only player reacted → wait max 2 seconds for opponent
+    if (playerReactionTime !== null && opponentReactionTime === null) {
+      const timer = setTimeout(() => {
+        if (!roundResolved) {
+          handleRoundComplete(playerReactionTime);
+        }
+      }, 2000); // wait 2 seconds
+
+      return () => clearTimeout(timer);
+    }
+
+    // 3) Only opponent reacted → wait max 2 seconds for player
+    if (playerReactionTime === null && opponentReactionTime !== null) {
+      const timer = setTimeout(() => {
+        if (!roundResolved) {
+          handleRoundComplete(999999); // player did not react
+        }
+      }, 2000); // wait 2 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [playerReactionTime, opponentReactionTime, roundResolved, gameState]);
+
   const handleRoundComplete = (playerTime: number) => {
+    if (roundResolved) return;
+    setRoundResolved(true);
+
     const opponentTime = opponentReactionTime || 999999;
 
     // Determine winner
@@ -189,6 +215,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       // Skip countdown for rounds 2 and 3, go directly to playing
       setGameState('playing');
       startRound();
+      setRoundResolved(false);
     } else {
       // Game over - go to results
       setShowFinalResults(true);
