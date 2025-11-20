@@ -5,15 +5,15 @@
  * for secure, non-custodial Web3 wallet creation.
  */
 
-import * as bip39 from 'bip39';
+import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39';
+import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
 import { Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
 
 /**
  * Generate a 12-word BIP-39 mnemonic seed phrase
  */
 export function generateSeedPhrase(): string[] {
-  const mnemonic = bip39.generateMnemonic(128); // 128 bits = 12 words
+  const mnemonic = generateMnemonic(englishWordlist, 128); // 128 bits = 12 words
   return mnemonic.split(' ');
 }
 
@@ -22,7 +22,7 @@ export function generateSeedPhrase(): string[] {
  */
 export function validateSeedPhrase(seedPhrase: string[]): boolean {
   const mnemonic = seedPhrase.join(' ');
-  return bip39.validateMnemonic(mnemonic);
+  return validateMnemonic(mnemonic, englishWordlist);
 }
 
 /**
@@ -30,7 +30,7 @@ export function validateSeedPhrase(seedPhrase: string[]): boolean {
  */
 export async function deriveSolanaKeypair(seedPhrase: string[]): Promise<Keypair> {
   const mnemonic = seedPhrase.join(' ');
-  const seed = await bip39.mnemonicToSeed(mnemonic);
+  const seed = await mnemonicToSeed(mnemonic);
   
   // Use first 32 bytes for Solana keypair
   const keypair = Keypair.fromSeed(seed.slice(0, 32));

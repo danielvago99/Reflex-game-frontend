@@ -98,7 +98,7 @@ export default function App() {
   const handleStartWalletCreation = () => {
     // Generate real BIP-39 seed phrase
     const newSeedPhrase = generateSeedPhrase();
-    setWalletData({ ...walletData, seedPhrase: newSeedPhrase });
+    setWalletData((prev) => ({ ...prev, seedPhrase: newSeedPhrase }));
     setCurrentScreen('set-password');
   };
 
@@ -138,7 +138,7 @@ export default function App() {
       case 'set-password':
         return <SetPasswordScreen
           onContinue={(password, biometric) => {
-            setWalletData({ ...walletData, password, biometric });
+            setWalletData((prev) => ({ ...prev, password, biometric }));
             setCurrentScreen('seed-display');
           }}
           onBack={() => setCurrentScreen('create-wallet')}

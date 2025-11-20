@@ -31,7 +31,7 @@ import { ENV } from '../config/env';
 //   sendAndConfirmTransaction
 // } from '@solana/web3.js';
 
-interface WalletKeypair {
+export interface WalletKeypair {
   publicKey: string;
   secretKey: Uint8Array;
 }
