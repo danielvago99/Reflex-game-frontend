@@ -1,146 +1,72 @@
 /**
  * Wallet Cryptography Utilities
- * 
- * Implements BIP-39 seed phrase generation and AES-GCM encryption
- * for secure, non-custodial Web3 wallet creation.
  */
-
 import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39';
 import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
 import { Keypair } from '@solana/web3.js';
+import { openDB } from 'idb';
 
-/**
- * Generate a 12-word BIP-39 mnemonic seed phrase
- */
+const DB_NAME = 'reflex_wallet_secure';
+const WALLET_STORE = 'wallet';
+const ATTEMPT_STORE = 'attempts';
+const ACTIVE_KEY = 'active_wallet';
+const MAX_UNLOCK_ATTEMPTS = 5;
+
+export interface EncryptedWalletRecord {
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  publicKey: string;
+  createdAt: string;
+  version: '2.0';
+}
+
+async function getDb() {
+  return openDB(DB_NAME, 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(WALLET_STORE)) {
+        db.createObjectStore(WALLET_STORE);
+      }
+      if (!db.objectStoreNames.contains(ATTEMPT_STORE)) {
+        db.createObjectStore(ATTEMPT_STORE);
+      }
+    }
+  });
+}
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+const toBase64 = (data: ArrayBuffer | Uint8Array) => {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return btoa(String.fromCharCode(...bytes));
+};
+
+const fromBase64 = (value: string) => new Uint8Array(atob(value).split('').map((char) => char.charCodeAt(0)));
+
 export function generateSeedPhrase(): string[] {
-  const mnemonic = generateMnemonic(englishWordlist, 128); // 128 bits = 12 words
+  const mnemonic = generateMnemonic(englishWordlist, 128);
   return mnemonic.split(' ');
 }
 
-/**
- * Validate a BIP-39 mnemonic seed phrase
- */
 export function validateSeedPhrase(seedPhrase: string[]): boolean {
-  const mnemonic = seedPhrase.join(' ');
-  return validateMnemonic(mnemonic, englishWordlist);
+  return validateMnemonic(seedPhrase.join(' '), englishWordlist);
 }
 
-/**
- * Derive Solana Keypair from BIP-39 seed phrase
- */
 export async function deriveSolanaKeypair(seedPhrase: string[]): Promise<Keypair> {
   const mnemonic = seedPhrase.join(' ');
   const seed = await mnemonicToSeed(mnemonic);
-  
-  // Use first 32 bytes for Solana keypair
-  const keypair = Keypair.fromSeed(seed.slice(0, 32));
-  return keypair;
+  return Keypair.fromSeed(seed.slice(0, 32));
 }
 
-/**
- * Encrypt seed phrase with AES-GCM using password
- */
-export async function encryptSeedPhrase(
-  seedPhrase: string[],
-  password: string
-): Promise<string> {
-  const mnemonic = seedPhrase.join(' ');
-  const encoder = new TextEncoder();
-  const data = encoder.encode(mnemonic);
-
-  // Derive encryption key from password using PBKDF2
-  const passwordKey = await deriveKey(password);
-
-  // Generate random IV (Initialization Vector)
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-
-  // Encrypt with AES-GCM
-  const encryptedData = await crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv: iv,
-    },
-    passwordKey,
-    data
-  );
-
-  // Combine IV and encrypted data
-  const combined = new Uint8Array(iv.length + encryptedData.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encryptedData), iv.length);
-
-  // Convert to base64 for storage
-  return btoa(String.fromCharCode(...combined));
-}
-
-/**
- * Decrypt seed phrase with AES-GCM using password
- */
-export async function decryptSeedPhrase(
-  encryptedData: string,
-  password: string
-): Promise<string[]> {
-  try {
-    // Decode from base64
-    const combined = new Uint8Array(
-      atob(encryptedData)
-        .split('')
-        .map((char) => char.charCodeAt(0))
-    );
-
-    // Extract IV and encrypted data
-    const iv = combined.slice(0, 12);
-    const data = combined.slice(12);
-
-    // Derive encryption key from password
-    const passwordKey = await deriveKey(password);
-
-    // Decrypt with AES-GCM
-    const decryptedData = await crypto.subtle.decrypt(
-      {
-        name: 'AES-GCM',
-        iv: iv,
-      },
-      passwordKey,
-      data
-    );
-
-    // Convert to string and split into words
-    const decoder = new TextDecoder();
-    const mnemonic = decoder.decode(decryptedData);
-    return mnemonic.split(' ');
-  } catch (error) {
-    throw new Error('Invalid password or corrupted data');
-  }
-}
-
-/**
- * Derive AES key from password using PBKDF2
- */
-async function deriveKey(password: string): Promise<CryptoKey> {
-  const encoder = new TextEncoder();
-  const passwordBuffer = encoder.encode(password);
-
-  // Import password as key material
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    passwordBuffer,
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey']
-  );
-
-  // Use a fixed salt for deterministic key derivation
-  // In production, you might want to store a unique salt per wallet
-  const salt = encoder.encode('reflex-wallet-salt-v1');
-
-  // Derive AES-GCM key
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256',
+      salt,
+      iterations: 200_000,
+      hash: 'SHA-256'
     },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
@@ -149,9 +75,50 @@ async function deriveKey(password: string): Promise<CryptoKey> {
   );
 }
 
-/**
- * Calculate password strength (0-100)
- */
+export async function encryptSeedPhrase(seedPhrase: string[], password: string): Promise<EncryptedWalletRecord> {
+  const mnemonic = seedPhrase.join(' ');
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    key,
+    encoder.encode(mnemonic)
+  );
+
+  return {
+    ciphertext: toBase64(ciphertext),
+    iv: toBase64(iv),
+    salt: toBase64(salt),
+    publicKey: '',
+    createdAt: new Date().toISOString(),
+    version: '2.0'
+  };
+}
+
+export async function decryptSeedPhrase(record: EncryptedWalletRecord, password: string): Promise<string[]> {
+  try {
+    const salt = fromBase64(record.salt);
+    const iv = fromBase64(record.iv);
+    const key = await deriveKey(password, salt);
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv
+      },
+      key,
+      fromBase64(record.ciphertext)
+    );
+    const mnemonic = decoder.decode(decrypted);
+    return mnemonic.split(' ');
+  } catch (error) {
+    throw new Error('Invalid password or corrupted data');
+  }
+}
+
 export function getPasswordStrength(password: string): {
   score: number;
   level: 'weak' | 'medium' | 'strong' | 'very-strong';
@@ -160,26 +127,19 @@ export function getPasswordStrength(password: string): {
   let score = 0;
   const feedback: string[] = [];
 
-  // Length check
   if (password.length >= 8) score += 20;
   if (password.length >= 12) score += 20;
   if (password.length >= 16) score += 10;
   else if (password.length < 8) feedback.push('Use at least 8 characters');
-
-  // Character variety
   if (/[a-z]/.test(password)) score += 10;
   else feedback.push('Add lowercase letters');
-  
   if (/[A-Z]/.test(password)) score += 10;
   else feedback.push('Add uppercase letters');
-  
   if (/[0-9]/.test(password)) score += 15;
   else feedback.push('Add numbers');
-  
   if (/[^a-zA-Z0-9]/.test(password)) score += 15;
   else feedback.push('Add special characters');
 
-  // Determine level
   let level: 'weak' | 'medium' | 'strong' | 'very-strong';
   if (score < 40) level = 'weak';
   else if (score < 60) level = 'medium';
@@ -189,67 +149,45 @@ export function getPasswordStrength(password: string): {
   return { score, level, feedback };
 }
 
-/**
- * Store encrypted wallet in localStorage
- */
-export function storeEncryptedWallet(encryptedSeed: string, publicKey: string): void {
-  const walletData = {
-    encryptedSeed,
-    publicKey,
-    createdAt: new Date().toISOString(),
-    version: '1.0',
-  };
-  
-  localStorage.setItem('reflex_wallet', JSON.stringify(walletData));
+export async function storeEncryptedWallet(record: EncryptedWalletRecord): Promise<void> {
+  const db = await getDb();
+  await db.put(WALLET_STORE, record, ACTIVE_KEY);
 }
 
-/**
- * Retrieve encrypted wallet from localStorage
- */
-export function getEncryptedWallet(): {
-  encryptedSeed: string;
-  publicKey: string;
-  createdAt: string;
-} | null {
-  const data = localStorage.getItem('reflex_wallet');
-  if (!data) return null;
-  
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
+export async function getEncryptedWallet(): Promise<EncryptedWalletRecord | null> {
+  const db = await getDb();
+  return (await db.get(WALLET_STORE, ACTIVE_KEY)) || null;
 }
 
-/**
- * Check if wallet exists
- */
-export function hasWallet(): boolean {
-  return !!localStorage.getItem('reflex_wallet');
+export async function hasWallet(): Promise<boolean> {
+  const db = await getDb();
+  const record = await db.get(WALLET_STORE, ACTIVE_KEY);
+  return !!record;
 }
 
-/**
- * Delete wallet from localStorage
- */
-export function deleteWallet(): void {
-  localStorage.removeItem('reflex_wallet');
-  localStorage.removeItem('unlock_attempts');
+export async function deleteWallet(): Promise<void> {
+  const db = await getDb();
+  await db.delete(WALLET_STORE, ACTIVE_KEY);
+  await db.delete(ATTEMPT_STORE, ACTIVE_KEY);
 }
 
-/**
- * Track unlock attempts
- */
-export function getUnlockAttempts(): number {
-  const attempts = localStorage.getItem('unlock_attempts');
-  return attempts ? parseInt(attempts, 10) : 0;
+export async function getUnlockAttempts(): Promise<number> {
+  const db = await getDb();
+  return (await db.get(ATTEMPT_STORE, ACTIVE_KEY)) || 0;
 }
 
-export function incrementUnlockAttempts(): number {
-  const attempts = getUnlockAttempts() + 1;
-  localStorage.setItem('unlock_attempts', attempts.toString());
-  return attempts;
+export async function incrementUnlockAttempts(): Promise<number> {
+  const db = await getDb();
+  const next = (await getUnlockAttempts()) + 1;
+  await db.put(ATTEMPT_STORE, next, ACTIVE_KEY);
+  return next;
 }
 
-export function resetUnlockAttempts(): void {
-  localStorage.removeItem('unlock_attempts');
+export async function resetUnlockAttempts(): Promise<void> {
+  const db = await getDb();
+  await db.put(ATTEMPT_STORE, 0, ACTIVE_KEY);
+}
+
+export function isUnlockBlocked(attempts: number): boolean {
+  return attempts >= MAX_UNLOCK_ATTEMPTS;
 }
