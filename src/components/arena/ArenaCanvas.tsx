@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as PIXI from 'pixi.js';
 
 interface ArenaCanvasProps {
@@ -17,62 +17,7 @@ interface Shape {
 }
 
 // Module-level singleton - create app instance immediately
-let globalPixiApp: PIXI.Application | undefined;
-let initPromise: Promise<PIXI.Application> | undefined;
-let isInitialized = false;
-
-// Create or get the global PixiJS application
-function getPixiApp(width: number, height: number): Promise<PIXI.Application> {
-  // Return existing initialized app
-  if (globalPixiApp && isInitialized) {
-    return Promise.resolve(globalPixiApp);
-  }
-
-  // Wait for pending initialization
-  if (initPromise) {
-    return initPromise;
-  }
-
-  // Only create if it doesn't exist
-  if (!globalPixiApp) {
-    try {
-      globalPixiApp = new PIXI.Application();
-    } catch (err) {
-      console.error('Failed to create PixiJS Application:', err);
-      throw err;
-    }
-  }
-
-  // Only initialize if not already initialized
-  if (!isInitialized) {
-    initPromise = globalPixiApp.init({
-      width,
-      height,
-      backgroundColor: 0x000000,
-      backgroundAlpha: 0,
-      antialias: true,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
-      preference: 'webgl', // Prefer WebGL but will fallback to canvas
-    }).then(() => {
-      const app = globalPixiApp!;
-      initPromise = undefined;
-      isInitialized = true;
-      console.log('PixiJS initialized successfully with renderer:', app.renderer.type);
-      return app;
-    }).catch((err) => {
-      console.error('Failed to initialize PixiJS:', err);
-      initPromise = undefined;
-      globalPixiApp = undefined;
-      isInitialized = false;
-      throw err;
-    });
-
-    return initPromise;
-  }
-
-  return Promise.resolve(globalPixiApp);
-}
+let globalPixiApp: PIXI.Application | null = null;
 
 export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +26,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const spawnIntervalRef = useRef<number | null>(null);
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
-  const appInitializedRef = useRef(false);
+  const [isAppReady, setIsAppReady] = useState(false);
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
 
@@ -90,83 +35,74 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   }, [isActive]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
     const container = containerRef.current;
+    if (!container) return;
+
+    let destroyed = false;
+    let resizeAttached = false;
+    const app = new PIXI.Application();
+
+    const handleResize = () => {
+      app.renderer.resize(container.clientWidth, container.clientHeight);
+    };
     
-    // Calculate responsive dimensions - mobile-first
-    const getCanvasDimensions = () => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      // Mobile: maximize use of space, keep simple aspect ratio
-      if (viewportWidth < 640) { // < sm
-        const width = Math.min(viewportWidth - 24, 360); // 12px padding each side
-        return {
-          width,
-          height: Math.floor(width * 0.75) // 4:3 aspect ratio
-        };
-      } else if (viewportWidth < 768) { // sm to md
-        return {
-          width: Math.min(viewportWidth - 48, 560),
-          height: 380
-        };
-      } else if (viewportWidth < 1024) { // md to lg
-        return {
-          width: 680,
-          height: 450
-        };
-      } else {
-        // Desktop
-        return {
-          width: 800,
-          height: 500
-        };
-      }
-    };
-
-    const { width, height } = getCanvasDimensions();
-
-    let mounted = true;
-
-    const initializePixi = async () => {
+    const initApp = async () => {
       try {
-        const app = await getPixiApp(width, height);
+          await app.init({
+          resizeTo: container,
+          backgroundAlpha: 0,
+          antialias: true,
+        });
 
-        if (!mounted || !containerRef.current) return;
-
-        // Add canvas to container if not already present
-        if (app.canvas && !containerRef.current.contains(app.canvas)) {
-          containerRef.current.appendChild(app.canvas);
+        if (destroyed) {
+          app.destroy(true, { children: true });
+          return;
         }
-        
-        appInitializedRef.current = true;
-      } catch (err) {
-        console.error('Failed to setup PixiJS:', err);
-      }
+
+        globalPixiApp = app;
+        container.appendChild(app.canvas);
+        setIsAppReady(true);
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        resizeAttached = true;
+      } catch (error) {
+        console.error('Failed to initialize PixiJS application:', error);
+          }
     };
 
-    initializePixi();
+    initApp();
 
     return () => {
-      mounted = false;
-      // Don't destroy the global app, just remove canvas from this container
-      if (containerRef.current && globalPixiApp?.canvas) {
-        if (containerRef.current.contains(globalPixiApp.canvas)) {
-          containerRef.current.removeChild(globalPixiApp.canvas);
-        }
+      destroyed = true;
+
+      if (resizeAttached) {
+        window.removeEventListener('resize', handleResize);
       }
+
+      if (app.canvas && container.contains(app.canvas)) {
+        container.removeChild(app.canvas);
+      }
+
+      app.destroy(true, { children: true });
+
+      if (globalPixiApp === app) {
+        globalPixiApp = null;
+      }
+
+      setIsAppReady(false);
     };
   }, []);
 
   // Game logic - spawn shapes when active
   useEffect(() => {
-    if (!isActive || !appInitializedRef.current) {
+    if (!isActive || !isAppReady) {
       hasNotifiedTargetRef.current = false;
       return;
     }
 
-    const app = globalPixiApp!;
+    const app = globalPixiApp;
+    if (!app) return;
     hasNotifiedTargetRef.current = false;
     targetSpawnCountRef.current = 0;
 
@@ -206,8 +142,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
         spawnIntervalRef.current = null;
       }
     };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, targetShape, targetColor]);
+  }, [isActive, isAppReady, targetShape, targetColor]);
 
   // Convert hex color to number
   const hexToNumber = (hex: string): number => {
@@ -257,8 +192,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
     if (!app.stage) return;
 
-    const width = app.screen.width;
-    const height = app.screen.height;
+    const width = app.renderer.width;
+    const height = app.renderer.height;
 
     // Random position with padding
     const padding = 80;
@@ -326,7 +261,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
           shapesRef.current = shapesRef.current.filter(s => s !== shape);
           
           // If this is the target shape, notify parent
-                    if (shouldBeTarget) {
+            if (shouldBeTarget) {
             if (hasNotifiedTargetRef.current && onTargetDisappeared) {
               hasNotifiedTargetRef.current = false;
               onTargetDisappeared();
