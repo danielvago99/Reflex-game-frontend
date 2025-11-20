@@ -35,11 +35,7 @@ async function getDb() {
       }
 
       if (oldVersion < 2) {
-        // Normalize existing wallet records to include metadata fields
-        const walletStore = db.transaction?.objectStore(WALLET_STORE);
-        if (walletStore) {
-          // Placeholder to keep migration hook; actual migration handled at runtime
-        }
+        // Placeholder to keep migration hook; actual migration handled at runtime
       }
     }
   });
@@ -75,7 +71,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt.buffer,
       iterations: 200_000,
       hash: 'SHA-256'
     },

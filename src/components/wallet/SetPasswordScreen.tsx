@@ -117,7 +117,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
                 label="Password"
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={setPassword}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
                 error={errors.password}
                 required
@@ -136,7 +136,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
                 label="Confirm Password"
                 type={showConfirm ? "text" : "password"}
                 value={confirmPassword}
-                onChange={setConfirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
                 error={errors.confirm}
                 required
