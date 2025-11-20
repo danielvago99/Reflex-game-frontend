@@ -109,7 +109,7 @@
 **Appears:** After each round completes
 
 **Features:**
-- Result badge (Trophy for win, Zap for lose/tie)
+- Result badge (Trophy for win, Zap for lose)
 - Large title: "ROUND WIN!" / "ROUND LOST" / "ROUND TIE!"
 - Motivational message
 - Reaction time comparison:
@@ -236,7 +236,7 @@
 - `playerScore`: Number
 - `opponentScore`: Number
 - `timeLeft`: Number (0-10 seconds)
-- `roundResult`: 'win' | 'lose' | 'tie' | null
+- `roundResult`: 'win' | 'lose' | null
 - `reactionLog`: String array
 
 ### Callbacks

@@ -112,7 +112,7 @@ onRoundComplete('player', 245, 312); // winner, playerTime, opponentTime
 interface ArenaCanvasProps {
   isActive: boolean;  // true when game should run
   onRoundComplete: (
-    winner: 'player' | 'opponent' | 'tie',
+    winner: 'player' | 'opponent',
     playerTime: number,        // milliseconds
     opponentTime: number       // milliseconds
   ) => void;

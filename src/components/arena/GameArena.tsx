@@ -41,7 +41,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [showHowToPlay, setShowHowToPlay] = useState(true);
   const [playerReactionTime, setPlayerReactionTime] = useState<number | null>(null);
   const [opponentReactionTime, setOpponentReactionTime] = useState<number | null>(null);
-  const [roundResult, setRoundResult] = useState<'win' | 'lose' | 'tie' | null>(null);
+  const [roundResult, setRoundResult] = useState<'win' | 'lose' | null>(null);
   const [currentTarget, setCurrentTarget] = useState<Target | null>(null);
   const [targetAppearTime, setTargetAppearTime] = useState<number | null>(null);
   const [isTargetPresent, setIsTargetPresent] = useState(false);
@@ -125,7 +125,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     // Simulate opponent reaction (AI opponent)
     const opponentDelay = 200 + Math.random() * 300; // 200-500ms
     setTimeout(() => {
-      setOpponentReactionTime(Math.round(opponentDelay));
+      setOpponentReactionTime(Math.floor(opponentDelay));
     }, opponentDelay);
   };
 
@@ -187,20 +187,14 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
     const opponentTime = opponentReactionTime || 999999;
 
-    // Determine winner
-    let winner: 'player' | 'opponent' | 'tie';
+ 
     if (playerTime < opponentTime) {
-      winner = 'player';
       setPlayerScore(prev => prev + 1);
       setRoundResult('win');
-    } else if (playerTime > opponentTime) {
-      winner = 'opponent';
+    } else {
       setOpponentScore(prev => prev + 1);
       setRoundResult('lose');
       setLossReason(prev => prev ?? 'slower');
-    } else {
-      winner = 'tie';
-      setRoundResult('tie');
     }
 
     setGameState('result');

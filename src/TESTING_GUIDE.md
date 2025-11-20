@@ -58,7 +58,7 @@
 
 #### 4. Round Result Modal
 - [ ] Modal appears after round
-- [ ] Shows correct result (win/lose/tie)
+- [ ] Shows correct result (win/lose)
 - [ ] Icon animates (rotate + scale)
 - [ ] Reaction times correct
 - [ ] Time difference calculated
@@ -156,13 +156,13 @@
 #### 3. Scores
 - [ ] Player wins all 7 rounds (7:0)
 - [ ] Opponent wins all 7 rounds (0:7)
-- [ ] Tie game (0:0 after tie rounds)
+- [ ] No tie state (equal times resolve to a winner)
 - [ ] Close game (4:3, 5:2, etc.)
 
 #### 4. Reaction Times
 - [ ] Very fast times (50-100ms)
 - [ ] Very slow times (5000ms+)
-- [ ] Identical times (tie)
+- [ ] Identical times resolve to a winner
 - [ ] Time difference > 1000ms
 
 ---

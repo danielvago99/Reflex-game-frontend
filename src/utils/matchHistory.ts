@@ -3,7 +3,7 @@
 export interface MatchRecord {
   id: string;
   matchType: 'ranked' | 'friend' | 'bot'; // Only ranked and friend count for daily challenges
-  result: 'win' | 'loss' | 'tie';
+  result: 'win' | 'loss';
   stakeAmount: number;
   profit: number; // Net profit/loss (after platform fee)
   timestamp: number;
@@ -84,14 +84,10 @@ export function getRecentMatches(limit: number = 5): Array<{
       resultStr = match.matchType === 'bot' ? 'Practice Win' : 'Victory';
       color = '#00FFA3';
       amountStr = match.stakeAmount > 0 ? `+${match.profit.toFixed(4)} SOL` : 'Free Play';
-    } else if (match.result === 'loss') {
+    } else {
       resultStr = match.matchType === 'bot' ? 'Practice Loss' : 'Defeat';
       color = '#FF4444';
       amountStr = match.stakeAmount > 0 ? `-${match.stakeAmount.toFixed(4)} SOL` : 'Free Play';
-    } else {
-      resultStr = 'Tie';
-      color = '#FFD93D';
-      amountStr = match.stakeAmount > 0 ? `${match.stakeAmount.toFixed(4)} SOL` : 'Free Play';
     }
     
     // Add match type indicator
@@ -119,7 +115,6 @@ export function getMatchStats() {
   const totalMatches = history.length;
   const wins = history.filter(m => m.result === 'win').length;
   const losses = history.filter(m => m.result === 'loss').length;
-  const ties = history.filter(m => m.result === 'tie').length;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
   
   // Only ranked and friend matches
@@ -134,7 +129,6 @@ export function getMatchStats() {
     totalMatches,
     wins,
     losses,
-    ties,
     winRate,
     totalEarnings,
     rankedCount: rankedMatches.length

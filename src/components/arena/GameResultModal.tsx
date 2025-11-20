@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Trophy, Target, Clock, Home, RotateCcw, Coins, X, Zap, Flame } from 'lucide-react';
+import { Trophy, Target, Clock, Home, RotateCcw, Coins, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
@@ -29,7 +29,10 @@ export function GameResultModal({
   onBackToMenu
 }: GameResultModalProps) {
   const playerWon = playerScore > opponentScore;
-  const isTie = playerScore === opponentScore;
+  const totalPot = stakeAmount * 2;
+  const platformFee = totalPot * 0.15;
+  const winnerPayout = totalPot - platformFee;
+  const netProfit = winnerPayout - stakeAmount;
   const [challengeUpdate, setChallengeUpdate] = useState<{
     newProgress: number;
     dailyCompleted: boolean;
@@ -43,14 +46,10 @@ export function GameResultModal({
   // Record match completion for daily challenge and match history
   useEffect(() => {
     // Determine match result
-    const matchResult: 'win' | 'loss' | 'tie' = isTie ? 'tie' : (playerWon ? 'win' : 'loss');
+    const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
     
     // Calculate profit/loss
-    const totalPot = stakeAmount * 2;
-    const platformFee = totalPot * 0.15;
-    const winnerPayout = totalPot - platformFee;
-    const netProfit = winnerPayout - stakeAmount;
-    const profit = playerWon ? netProfit : (isTie ? 0 : -stakeAmount);
+    const profit = playerWon ? netProfit : -stakeAmount;
     
     // Add to match history
     addMatchToHistory({
@@ -97,7 +96,7 @@ export function GameResultModal({
         );
       }
     }
-  }, [playerScore, opponentScore, stakeAmount, matchType, playerWon, isTie]);
+  }, [playerScore, opponentScore, stakeAmount, matchType, playerWon]);
 
   // Calculate average reaction time (exclude null values)
   const validPlayerTimes = playerTimes.filter((t): t is number => t !== null && t < 999999);
@@ -124,8 +123,6 @@ export function GameResultModal({
           <div className={`absolute -inset-2 rounded-3xl blur-2xl ${
             playerWon 
               ? 'bg-gradient-to-r from-[#00FFA3]/40 to-[#06B6D4]/40'
-              : isTie
-              ? 'bg-gradient-to-r from-purple-500/40 to-cyan-500/40'
               : 'bg-gradient-to-r from-red-500/40 to-red-600/40'
           } animate-pulse`}></div>
 
@@ -145,16 +142,6 @@ export function GameResultModal({
                   </h2>
                   <p className="text-gray-400">You dominated the arena</p>
                 </>
-              ) : isTie ? (
-                <>
-                  <div className="mb-4">
-                    <div className="bg-purple-500/20 p-6 rounded-full inline-block border-4 border-purple-500/30">
-                      <Target className="w-16 h-16 text-purple-400" strokeWidth={2.5} />
-                    </div>
-                  </div>
-                  <h2 className="text-4xl text-purple-400 mb-2">Draw!</h2>
-                  <p className="text-gray-400">Evenly matched</p>
-                </>
               ) : (
                 <>
                   <div className="mb-4">
@@ -169,7 +156,7 @@ export function GameResultModal({
             </div>
 
             {/* SOL Earnings/Loss - Only for ranked matches */}
-            {isRanked && !isTie && (
+            {isRanked && (
               <div className={`mb-6 p-5 rounded-2xl border ${
                 playerWon
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
@@ -201,21 +188,6 @@ export function GameResultModal({
               </div>
             )}
 
-            {/* Tie - Stakes returned */}
-            {isRanked && isTie && (
-              <div className="mb-6 p-5 rounded-2xl border bg-purple-500/10 border-purple-500/30">
-                <div className="flex items-center gap-3">
-                  <Coins className="w-6 h-6 text-purple-400" />
-                  <div>
-                    <p className="text-sm text-gray-400">Stakes Returned</p>
-                    <p className="text-3xl text-purple-400">
-                      {stakeAmount.toFixed(2)} SOL
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Score */}
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 mb-6">
               <div className="text-center mb-4">
@@ -225,7 +197,7 @@ export function GameResultModal({
                     {playerScore}
                   </div>
                   <div className="text-2xl text-gray-600">-</div>
-                  <div className={`text-3xl ${!playerWon && !isTie ? 'text-red-400' : 'text-white'}`}>
+                  <div className={`text-3xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
                     {opponentScore}
                   </div>
                 </div>
@@ -240,9 +212,7 @@ export function GameResultModal({
                       playerTimes[round] !== null && opponentTimes[round] !== null
                         ? playerTimes[round]! < opponentTimes[round]!
                           ? 'bg-gradient-to-t from-[#00FFA3] to-[#06B6D4]'
-                          : playerTimes[round]! > opponentTimes[round]!
-                          ? 'bg-red-500'
-                          : 'bg-purple-500'
+                          : 'bg-red-500'
                         : 'bg-white/10'
                     }`}
                   ></div>

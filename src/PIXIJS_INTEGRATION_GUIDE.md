@@ -22,7 +22,7 @@ Your Web3 Game Arena is ready! The UI is complete with all the features you requ
 - ✅ `BottomBar.tsx` - Controls and reaction log
 - ✅ `PauseMenu.tsx` - Pause overlay
 - ✅ `CountdownOverlay.tsx` - 3-2-1-React countdown
-- ✅ `RoundResultModal.tsx` - Win/lose/tie modal
+- ✅ `RoundResultModal.tsx` - Win/lose modal
 
 ### 3. **Game Flow**
 ```
@@ -65,7 +65,7 @@ import * as PIXI from 'pixi.js';
 
 interface ArenaCanvasProps {
   isActive: boolean;
-  onRoundComplete: (winner: 'player' | 'opponent' | 'tie', playerTime: number, opponentTime: number) => void;
+  onRoundComplete: (winner: 'player' | 'opponent', playerTime: number, opponentTime: number) => void;
 }
 
 export function ArenaCanvas({ isActive, onRoundComplete }: ArenaCanvasProps) {
@@ -214,7 +214,7 @@ When a round is complete, call `onRoundComplete`:
 
 ```typescript
 onRoundComplete(
-  winner,              // 'player' | 'opponent' | 'tie'
+  winner,              // 'player' | 'opponent'
   playerReactionTime,  // number in milliseconds
   opponentReactionTime // number in milliseconds
 );

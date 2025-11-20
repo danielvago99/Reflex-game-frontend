@@ -61,7 +61,7 @@ export function GameArenaScreen({ onNavigate }) {
 - playerScore: number
 - opponentScore: number
 - timeLeft: number (0-10)
-- roundResult: 'win' | 'lose' | 'tie' | null
+- roundResult: 'win' | 'lose' | null
 - playerReactionTime: number | null
 - opponentReactionTime: number | null
 - reactionLog: string[]
@@ -123,7 +123,7 @@ export function GameArenaScreen({ onNavigate }) {
 ```typescript
 - isActive: boolean           // true when game should run
 - onRoundComplete: (          // callback when finished
-    winner: 'player' | 'opponent' | 'tie',
+    winner: 'player' | 'opponent',
     playerTime: number,
     opponentTime: number
   ) => void
@@ -239,7 +239,7 @@ useEffect(() => {
 
 **Props:**
 ```typescript
-- result: 'win' | 'lose' | 'tie'
+- result: 'win' | 'lose'
 - playerReactionTime: number | null
 - opponentReactionTime: number | null
 - onNext: () => void
@@ -289,7 +289,7 @@ ArenaCanvas (PixiJS game)
         └─> Calculate reaction time
               └─> onRoundComplete(winner, time1, time2)
                     └─> GameArena updates scores
-                          └─> roundResult = 'win'/'lose'/'tie'
+                          └─> roundResult = 'win'/'lose'
                                 └─> RoundResultModal renders
 ```
 
@@ -342,7 +342,7 @@ BottomBar
 - onQuit (callback)
 
 **To RoundResultModal:**
-- result (reactive: 'win'/'lose'/'tie')
+- result (reactive: 'win'/'lose')
 - playerReactionTime, opponentReactionTime (reactive)
 - onNext (callback)
 - currentRound, totalRounds (reactive)

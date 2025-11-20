@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 interface RoundResultModalProps {
-  result: 'win' | 'lose' | 'tie';
+  result: 'win' | 'lose';
   playerReactionTime: number | null;
   opponentReactionTime: number | null;
   onNext: () => void;
@@ -23,8 +23,7 @@ export function RoundResultModal({
 }: RoundResultModalProps) {
   const [countdown, setCountdown] = useState(5);
   const isWin = result === 'win';
-  const isTie = result === 'tie';
-
+  
   // Auto-dismiss after 5 seconds
   useEffect(() => {
     const countdownInterval = setInterval(() => {
@@ -61,13 +60,6 @@ export function RoundResultModal({
       glow: 'from-pink-500 to-purple-500',
       icon: Zap,
       message: 'Close one! Try again 💪',
-    },
-    tie: {
-      title: 'ROUND TIE!',
-      color: 'from-purple-400 to-cyan-400',
-      glow: 'from-purple-500 to-cyan-500',
-      icon: Zap,
-      message: 'Perfectly matched! 🎯',
     },
   };
 
@@ -164,16 +156,16 @@ export function RoundResultModal({
 
             {/* Opponent time */}
             <div className="relative">
-              <div className={`absolute -inset-1 bg-gradient-to-r ${!isWin && !isTie ? 'from-pink-500/30 to-purple-500/30' : 'from-white/10 to-white/10'} rounded-xl blur-sm`}></div>
+              <div className={`absolute -inset-1 bg-gradient-to-r ${!isWin ? 'from-pink-500/30 to-purple-500/30' : 'from-white/10 to-white/10'} rounded-xl blur-sm`}></div>
               <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${!isWin && !isTie ? 'bg-pink-400' : 'bg-gray-400'}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${!isWin ? 'bg-pink-400' : 'bg-gray-400'}`}></div>
                     <span className="text-gray-300 font-semibold">Opponent</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className={`w-4 h-4 ${!isWin && !isTie ? 'text-pink-400' : 'text-gray-400'}`} />
-                    <span className={`text-2xl font-bold font-mono ${!isWin && !isTie ? 'text-pink-400' : 'text-white'}`}>
+                    <Clock className={`w-4 h-4 ${!isWin ? 'text-pink-400' : 'text-gray-400'}`} />
+                    <span className={`text-2xl font-bold font-mono ${!isWin ? 'text-pink-400' : 'text-white'}`}>
                       {opponentReactionTime}ms
                     </span>
                   </div>
