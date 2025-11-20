@@ -50,6 +50,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [allOpponentTimes, setAllOpponentTimes] = useState<(number | null)[]>([null, null, null]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [roundResolved, setRoundResolved] = useState(false);
+  const [lossReason, setLossReason] = useState<'early-click' | 'no-reaction' | 'slower' | null>(null);
 
   const TOTAL_ROUNDS = 3;
   const MAX_PAUSES = 3;
@@ -74,6 +75,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setAllPlayerTimes([null, null, null]);
     setAllOpponentTimes([null, null, null]);
     setRoundResolved(false);
+    setLossReason(null);
     startRound();
   };
 
@@ -137,6 +139,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     // Early click = instant loss time
     if (!isTargetPresent || !targetAppearTime) {
       const loseTime = 999999;
+      setLossReason('early-click');
       setPlayerReactionTime(loseTime);
       return;
     }
@@ -145,7 +148,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setPlayerReactionTime(reactionTime);
   };
 
-    useEffect(() => {
+  useEffect(() => {
     if (roundResolved || gameState !== 'playing') return;
 
     // 1) Both players reacted → resolve immediately
@@ -169,6 +172,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     if (playerReactionTime === null && opponentReactionTime !== null) {
       const timer = setTimeout(() => {
         if (!roundResolved) {
+          setLossReason('no-reaction');
           handleRoundComplete(999999); // player did not react
         }
       }, 1000); // wait 1 second
@@ -193,6 +197,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       winner = 'opponent';
       setOpponentScore(prev => prev + 1);
       setRoundResult('lose');
+      setLossReason(prev => prev ?? 'slower');
     } else {
       winner = 'tie';
       setRoundResult('tie');
@@ -217,6 +222,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       setGameState('playing');
       startRound();
       setRoundResolved(false);
+      setLossReason(null); // reset reason for new round
     } else {
       // Game over - go to results
       setShowFinalResults(true);
@@ -374,6 +380,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           result={roundResult}
           playerReactionTime={playerReactionTime}
           opponentReactionTime={opponentReactionTime}
+          lossReason={lossReason}
           onNext={handleNextRound}
           currentRound={currentRound}
           totalRounds={TOTAL_ROUNDS}

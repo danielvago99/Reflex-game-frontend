@@ -9,6 +9,7 @@ interface RoundResultModalProps {
   onNext: () => void;
   currentRound: number;
   totalRounds: number;
+  lossReason?: 'early-click' | 'no-reaction' | 'slower' | null;
 }
 
 export function RoundResultModal({
@@ -18,6 +19,7 @@ export function RoundResultModal({
   onNext,
   currentRound,
   totalRounds,
+  lossReason,
 }: RoundResultModalProps) {
   const [countdown, setCountdown] = useState(5);
   const isWin = result === 'win';
@@ -72,6 +74,16 @@ export function RoundResultModal({
   const config = resultConfig[result];
   const Icon = config.icon;
 
+  let message = config.message;
+
+  if (result === 'lose') {
+    if (lossReason === 'early-click') {
+      message = 'Round lost: you clicked before the target appeared.';
+    } else if (lossReason === 'no-reaction') {
+      message = 'Round lost: you did not react in time.';
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -121,7 +133,7 @@ export function RoundResultModal({
             transition={{ delay: 0.4 }}
             className="text-center text-gray-300 mb-8 text-lg"
           >
-            {config.message}
+            {message}
           </motion.p>
 
           {/* Reaction times */}
