@@ -3,6 +3,7 @@
  */
 import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39';
 import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
+import { hash, ArgonType } from 'argon2-browser';
 import { Keypair } from '@solana/web3.js';
 import { openDB } from 'idb';
 
@@ -12,6 +13,11 @@ const WALLET_STORE = 'wallet';
 const ATTEMPT_STORE = 'attempts';
 const ACTIVE_KEY = 'active_wallet';
 const MAX_UNLOCK_ATTEMPTS = 5;
+
+export const ARGON2_TIME_COST = 3;
+export const ARGON2_MEMORY_COST = 65_536; // KiB (64 MB)
+export const ARGON2_PARALLELISM = 1;
+export const ARGON2_HASH_LENGTH = 32; // bytes
 
 export interface EncryptedWalletRecord {
   ciphertext: string;
@@ -85,18 +91,22 @@ function normalizeSalt(salt: SaltSource): Uint8Array {
   return salt instanceof Uint8Array ? salt : new Uint8Array(salt);
 }
 
-async function deriveKey(password: string, salt: SaltSource): Promise<CryptoKey> {
+async function deriveKeyArgon2id(password: string, salt: SaltSource): Promise<CryptoKey> {
   const cryptoApi = getWebCrypto();
-  const keyMaterial = await cryptoApi.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   const saltBytes = normalizeSalt(salt);
-  return cryptoApi.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt: saltBytes,
-      iterations: 200_000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
+  const { hash: derivedBytes } = await hash({
+    pass: password,
+    salt: saltBytes,
+    type: ArgonType.Argon2id,
+    time: ARGON2_TIME_COST,
+    mem: ARGON2_MEMORY_COST,
+    parallelism: ARGON2_PARALLELISM,
+    hashLen: ARGON2_HASH_LENGTH
+  });
+
+  return cryptoApi.subtle.importKey(
+    'raw',
+    derivedBytes,
     { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt']
@@ -108,7 +118,7 @@ export async function encryptSeedPhrase(seedPhrase: string[], password: string):
   const mnemonic = seedPhrase.join(' ');
   const salt = cryptoApi.getRandomValues(new Uint8Array(16));
   const iv = cryptoApi.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(password, salt);
+  const key = await deriveKeyArgon2id(password, salt);
   const ciphertext = await cryptoApi.subtle.encrypt(
     {
       name: 'AES-GCM',
@@ -133,7 +143,7 @@ export async function decryptSeedPhrase(record: EncryptedWalletRecord, password:
     const cryptoApi = getWebCrypto();
     const salt = fromBase64(record.salt);
     const iv = fromBase64(record.iv);
-    const key = await deriveKey(password, salt);
+    const key = await deriveKeyArgon2id(password, salt);
     const decrypted = await cryptoApi.subtle.decrypt(
       {
         name: 'AES-GCM',
@@ -244,3 +254,6 @@ export async function resetUnlockAttempts(): Promise<void> {
 export function isUnlockBlocked(attempts: number): boolean {
   return attempts >= MAX_UNLOCK_ATTEMPTS;
 }
+
+// Argon2id is the sole KDF used for wallet protection; adjust the Argon2 constants above to tune security vs. performance.
+// PBKDF2 support was removed; all wallets are derived exclusively with Argon2id parameters defined in this module.
