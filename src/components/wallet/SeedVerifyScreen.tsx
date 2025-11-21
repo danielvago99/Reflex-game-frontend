@@ -17,6 +17,14 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
   const [showError, setShowError] = useState(false);
 
   useEffect(() => {
+    if (!seedPhrase.length) {
+      setRandomIndices([]);
+      setSelectedWords({});
+      setShuffledOptions([]);
+      setVerified(false);
+      return;
+    }
+
     // Pick 3 random indices for verification
     const indices: number[] = [];
     while (indices.length < 3) {
@@ -45,8 +53,13 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
   };
 
   const handleVerify = () => {
+    if (!seedPhrase.length || !randomIndices.length) {
+      setShowError(true);
+      return;
+    }
+
     const isCorrect = randomIndices.every(index => selectedWords[index] === seedPhrase[index]);
-    
+
     if (isCorrect) {
       setVerified(true);
       setTimeout(() => {
@@ -58,8 +71,8 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
     }
   };
 
-  const isCorrect = randomIndices.every(index => selectedWords[index] === seedPhrase[index]);
-  const allSelected = randomIndices.every(index => selectedWords[index]);
+  const isCorrect = randomIndices.length > 0 && randomIndices.every(index => selectedWords[index] === seedPhrase[index]);
+  const allSelected = seedPhrase.length > 0 && randomIndices.length > 0 && randomIndices.every(index => selectedWords[index]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
