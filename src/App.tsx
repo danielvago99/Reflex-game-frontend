@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AppProviders } from './app/providers/AppProviders';
@@ -25,16 +25,10 @@ const RewardsRoute = lazy(() => import('./features/auth/routes/RewardsRoute'));
 const DailyChallengeRoute = lazy(() => import('./features/auth/routes/DailyChallengeRoute'));
 
 export default function App() {
-  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
-
-  if (showLoadingScreen) {
-    return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />;
-  }
-
   return (
     <BrowserRouter>
       <AppProviders>
-        <Suspense fallback={<LoadingScreen onComplete={() => undefined} />}>        
+        <Suspense fallback={<LoadingScreen onComplete={() => undefined} />}>
           <Routes>
             <Route path="/" element={<WelcomeRoute />} />
             <Route path="/wallet/create" element={<CreateWalletRoute />} />
@@ -46,7 +40,7 @@ export default function App() {
             <Route path="/wallet/balance" element={<BalanceCheckRoute />} />
             <Route path="/wallet/import" element={<ImportWalletRoute />} />
             <Route path="/wallet/unlock" element={<UnlockWalletRoute />} />
-            <Route element={<RouteGuard />}> 
+            <Route element={<RouteGuard />}>
               <Route path="/dashboard" element={<DashboardRoute />} />
               <Route path="/lobby" element={<LobbyRoute />} />
               <Route path="/arena" element={<ArenaRoute />} />

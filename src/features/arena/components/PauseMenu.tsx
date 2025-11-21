@@ -1,6 +1,6 @@
 import { Play, LogOut, AlertTriangle, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface PauseMenuProps {
   onResume: () => void;
@@ -25,6 +25,7 @@ export function PauseMenu({
   const isPauseLimited = isRanked || stakeAmount > 0;
   const [timeRemaining, setTimeRemaining] = useState(10);
   const pausesRemaining = maxPauses - pausesUsed;
+  const resumeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Auto-resume countdown for ranked/friend matches
   useEffect(() => {
@@ -47,6 +48,20 @@ export function PauseMenu({
 
     return () => clearInterval(interval);
   }, [isPauseLimited, onResume, onAutoResume]);
+
+  useEffect(() => {
+    resumeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onResume();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onResume]);
 
   return (
     <motion.div
@@ -178,6 +193,7 @@ export function PauseMenu({
             <div className="space-y-2 sm:space-y-3">
               {/* Resume button */}
               <button
+                ref={resumeButtonRef}
                 onClick={onResume}
                 className="group relative w-full px-6 py-3.5 sm:py-4 rounded-xl overflow-hidden transition-all active:scale-95 sm:hover:scale-105 min-h-[52px]"
                 aria-label="Resume game"

@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react';
 import {
   deriveSolanaKeypair,
   encryptSeedPhrase,
@@ -22,6 +31,7 @@ interface WalletContextValue {
   provider?: string;
   biometric: boolean;
   hasStoredWallet: boolean;
+  status: 'loading' | 'onboarding' | 'locked' | 'unlocked';
   generateSeed: () => string[];
   getSeed: () => string[];
   setPassword: (password: string, biometric: boolean) => void;
@@ -31,26 +41,112 @@ interface WalletContextValue {
   importFromSeed: (seedPhrase: string[], password: string, biometric?: boolean) => Promise<EncryptedWalletRecord>;
   importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<string[]>;
   connectExternalWallet: (address: string, provider: string) => void;
+  lock: () => void;
   logout: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
 const createEmptyVault = () => ({ seed: [] as string[], password: '', biometric: false });
+const VAULT_CLEAR_DELAY_MS = 5000;
+const IDLE_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState('');
   const [biometric, setBiometric] = useState(false);
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [hasStoredWalletState, setHasStoredWallet] = useState(false);
+  const [status, setStatus] = useState<WalletContextValue['status']>('loading');
   const vaultRef = useRef(createEmptyVault());
+  const vaultClearTimerRef = useRef<number | null>(null);
+  const idleTimerRef = useRef<number | null>(null);
+
+  const clearVaultRef = useCallback(() => {
+    vaultRef.current = createEmptyVault();
+  }, []);
+
+  const scheduleVaultClear = useCallback(
+    (delayMs: number = 0) => {
+      if (vaultClearTimerRef.current) {
+        clearTimeout(vaultClearTimerRef.current);
+      }
+      vaultClearTimerRef.current = window.setTimeout(() => {
+        clearVaultRef();
+        vaultClearTimerRef.current = null;
+      }, delayMs);
+    },
+    [clearVaultRef]
+  );
+
+  const lock = useCallback(() => {
+    clearVaultRef();
+    setAddress('');
+    setProvider(undefined);
+    setBiometric(false);
+    setStatus(prev => (prev === 'loading' ? prev : hasStoredWalletState ? 'locked' : 'onboarding'));
+  }, [clearVaultRef, hasStoredWalletState]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+
+    if (status !== 'unlocked') return;
+
+    idleTimerRef.current = window.setTimeout(() => {
+      lock();
+    }, IDLE_LOCK_TIMEOUT_MS);
+  }, [lock, status]);
 
   useEffect(() => {
-    hasWallet().then(setHasStoredWallet).catch(() => setHasStoredWallet(false));
-    return () => {
-      vaultRef.current = createEmptyVault();
+    let isMounted = true;
+    hasWallet()
+      .then(hasStored => {
+        if (!isMounted) return;
+        setHasStoredWallet(hasStored);
+        setStatus(hasStored ? 'locked' : 'onboarding');
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setHasStoredWallet(false);
+        setStatus('onboarding');
+      });
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        lock();
+      }
     };
-  }, []);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      isMounted = false;
+      if (vaultClearTimerRef.current) {
+        clearTimeout(vaultClearTimerRef.current);
+      }
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearVaultRef();
+    };
+  }, [clearVaultRef, lock]);
+
+  useEffect(() => {
+    const handleActivity = () => resetIdleTimer();
+    window.addEventListener('pointerdown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+
+    return () => {
+      window.removeEventListener('pointerdown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, [resetIdleTimer]);
+
+  useEffect(() => {
+    resetIdleTimer();
+  }, [status, resetIdleTimer]);
 
   const generateSeed = () => {
     const seed = generateSeedPhrase();
@@ -104,7 +200,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(record.publicKey);
     setBiometric(Boolean(record.biometricEnabled && record.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = createEmptyVault();
+    scheduleVaultClear();
+    setStatus('unlocked');
     return record;
   };
 
@@ -145,6 +242,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const publicKey = record.publicKey || keypair.publicKey.toBase58();
       setAddress(publicKey);
       setBiometric(Boolean(record.biometricEnabled && record.biometricCredentialId));
+      setStatus('unlocked');
+      scheduleVaultClear(VAULT_CLEAR_DELAY_MS);
       return seed;
     } catch (error) {
       const next = await incrementUnlockAttempts();
@@ -187,20 +286,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(publicKey);
     setBiometric(Boolean(normalized.biometricEnabled && normalized.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = createEmptyVault();
+    scheduleVaultClear();
+    setStatus('unlocked');
     return seed;
   };
 
   const connectExternalWallet = (walletAddress: string, walletProvider: string) => {
     setAddress(walletAddress);
     setProvider(walletProvider);
+    setStatus('unlocked');
   };
 
   const logout = async () => {
-    setAddress('');
-    setProvider(undefined);
-    setBiometric(false);
-    vaultRef.current = createEmptyVault();
+    lock();
   };
 
   const value = useMemo<WalletContextValue>(
@@ -209,6 +307,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       provider,
       biometric,
       hasStoredWallet: hasStoredWalletState,
+      status,
       generateSeed,
       getSeed,
       setPassword,
@@ -218,9 +317,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       importFromSeed,
       importFromKeystore,
       connectExternalWallet,
+      lock,
       logout
     }),
-    [address, biometric, hasStoredWalletState, provider]
+    [address, biometric, hasStoredWalletState, lock, provider, status]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

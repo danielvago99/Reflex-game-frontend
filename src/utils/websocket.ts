@@ -3,15 +3,25 @@
  */
 import { z } from 'zod';
 import { ENV } from '../config/env';
-import type { WSMessage, WSMessageType } from '../types/api';
+import type { WSMessage, WSMessageType, WSPayloadMap } from '../types/api';
 
-const MessageSchema = z.object({
-  type: z.string(),
-  payload: z.unknown(),
-  timestamp: z.number().optional()
-});
+const timestampSchema = z.number().int().nonnegative();
+const KNOWN_MESSAGE_TYPES: WSMessageType[] = [
+  'lobby:update',
+  'lobby:player_joined',
+  'lobby:player_left',
+  'game:start',
+  'game:countdown',
+  'game:show_button',
+  'game:player_clicked',
+  'game:result',
+  'game:end',
+  'error',
+  'ping',
+  'pong'
+];
 
-type MessageHandler = (message: WSMessage) => void;
+type MessageHandler<T extends WSMessageType = WSMessageType> = (message: WSMessage<T>) => void;
 type ErrorHandler = (error: Event) => void;
 type ConnectionHandler = () => void;
 
@@ -27,6 +37,7 @@ class WebSocketService {
   private heartbeatInterval: number | null = null;
   private isIntentionalClose = false;
   private visibilityListenerAttached = false;
+  private backoffTimer: number | null = null;
 
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -38,6 +49,7 @@ class WebSocketService {
         }
 
         const url = token ? `${ENV.WS_URL}?token=${token}` : ENV.WS_URL;
+        this.isIntentionalClose = false;
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
@@ -48,12 +60,12 @@ class WebSocketService {
         };
 
         this.ws.onmessage = (event) => {
-          const parsed = MessageSchema.safeParse(JSON.parse(event.data));
-          if (!parsed.success) {
+          const parsed = this.parseIncomingMessage(event.data);
+          if (!parsed) {
             console.error('[WebSocket] Invalid message schema');
             return;
           }
-          this.handleMessage(parsed.data as WSMessage);
+          this.handleMessage(parsed);
         };
 
         this.ws.onerror = (error) => {
@@ -67,6 +79,9 @@ class WebSocketService {
 
           if (!this.isIntentionalClose) {
             this.attemptReconnect(token);
+          } else {
+            this.reconnectAttempts = 0;
+            this.isIntentionalClose = false;
           }
         };
 
@@ -89,13 +104,17 @@ class WebSocketService {
   disconnect(): void {
     this.isIntentionalClose = true;
     this.stopHeartbeat();
+    if (this.backoffTimer) {
+      clearTimeout(this.backoffTimer);
+      this.backoffTimer = null;
+    }
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
   }
 
-  send<T>(type: WSMessageType, payload: T): void {
+  send<T extends WSMessageType>(type: T, payload: WSPayloadMap[T]): boolean {
     const message: WSMessage<T> = {
       type,
       payload,
@@ -103,18 +122,23 @@ class WebSocketService {
     };
 
     if (ENV.USE_MOCK_DATA || !ENV.ENABLE_WEBSOCKET) {
-      return;
+      console.info('[WebSocket][mock] send', message);
+      return true;
     }
 
-    const validation = MessageSchema.safeParse(message);
-    if (!validation.success) {
+    const validation = this.validateOutgoingMessage(message);
+    if (!validation) {
       console.error('[WebSocket] Outgoing message failed validation');
-      return;
+      return false;
     }
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
+      return true;
     }
+
+    console.warn('[WebSocket] Tried to send while socket closed');
+    return false;
   }
 
   on(type: WSMessageType, handler: MessageHandler): () => void {
@@ -157,7 +181,11 @@ class WebSocketService {
     const jitter = Math.random() * 200;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1) + jitter;
 
-    window.setTimeout(() => {
+    if (this.backoffTimer) {
+      clearTimeout(this.backoffTimer);
+    }
+
+    this.backoffTimer = window.setTimeout(() => {
       this.connect(token).catch(() => undefined);
     }, delay);
   }
@@ -185,6 +213,40 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
+
+  private validateOutgoingMessage<T extends WSMessageType>(message: WSMessage<T>): boolean {
+    const schema = z.object({
+      type: z.string(),
+      timestamp: timestampSchema,
+      payload: z.any()
+    });
+    return schema.safeParse(message).success;
+  }
+
+  private parseIncomingMessage(eventData: string): WSMessage | null {
+    try {
+      const parsed = JSON.parse(eventData) as Partial<WSMessage>;
+      if (!parsed || typeof parsed.type !== 'string') return null;
+      if (!this.isKnownType(parsed.type)) return null;
+
+      const timestamp = parsed.timestamp && timestampSchema.safeParse(parsed.timestamp).success
+        ? parsed.timestamp
+        : Date.now();
+
+      return {
+        type: parsed.type as WSMessageType,
+        payload: (parsed as WSMessage).payload,
+        timestamp
+      };
+    } catch (error) {
+      console.error('[WebSocket] Failed to parse message', error);
+      return null;
+    }
+  }
+
+  private isKnownType(value: string): value is WSMessageType {
+    return KNOWN_MESSAGE_TYPES.includes(value as WSMessageType);
   }
 }
 
