@@ -4,27 +4,37 @@ import { FuturisticBackground } from './FuturisticBackground';
 
 interface LoadingScreenProps {
   onComplete: () => void;
+  isStatic?: boolean;
+  isReady?: boolean;
 }
 
-export function LoadingScreen({ onComplete }: LoadingScreenProps) {
-  const [progress, setProgress] = useState(0);
+export function LoadingScreen({ onComplete, isStatic = false, isReady = false }: LoadingScreenProps) {
+  const [progress, setProgress] = useState(isStatic ? 100 : 0);
 
   useEffect(() => {
-    // Animate progress bar - 3 second duration
+    if (isStatic) {
+      setProgress(100);
+      return;
+    }
+
+    // Animate progress bar toward 95% while waiting for lazy routes
     const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          // Wait a moment before transitioning
-          setTimeout(() => onComplete(), 500);
-          return 100;
-        }
-        return prev + 1.33; // ~75 intervals for 3 seconds (100/75 = 1.33)
-      });
-    }, 40); // 40ms * 75 intervals = 3000ms (3 seconds)
+      setProgress(prev => Math.min(prev + 1.33, 95));
+    }, 40);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [isStatic]);
+
+  useEffect(() => {
+    if (isStatic || !isReady) {
+      return;
+    }
+
+    setProgress(100);
+    const timeout = setTimeout(() => onComplete(), 300);
+
+    return () => clearTimeout(timeout);
+  }, [isReady, isStatic, onComplete]);
 
   return (
     <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
