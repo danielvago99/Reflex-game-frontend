@@ -3,8 +3,15 @@
  */
 import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39';
 import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
+import { argon2idAsync } from '@noble/hashes/argon2';
 import { Keypair } from '@solana/web3.js';
 import { openDB } from 'idb';
+
+// Argon2id is the sole KDF for wallet encryption; tweak the parameters below to strengthen or relax derivation cost.
+export const ARGON2_TIME_COST = 3;
+export const ARGON2_MEMORY_COST = 65_536; // KiB (64 MiB)
+export const ARGON2_PARALLELISM = 1;
+export const ARGON2_HASH_LENGTH = 32; // bytes
 
 const DB_NAME = 'reflex_wallet_secure';
 const DB_VERSION = 2;
@@ -85,22 +92,18 @@ function normalizeSalt(salt: SaltSource): Uint8Array {
   return salt instanceof Uint8Array ? salt : new Uint8Array(salt);
 }
 
-async function deriveKey(password: string, salt: SaltSource): Promise<CryptoKey> {
+// Derive an AES-GCM key from the password using Argon2id and the tunable parameters above.
+async function deriveKeyArgon2id(password: string, salt: SaltSource): Promise<CryptoKey> {
   const cryptoApi = getWebCrypto();
-  const keyMaterial = await cryptoApi.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   const saltBytes = normalizeSalt(salt);
-  return cryptoApi.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt: saltBytes,
-      iterations: 200_000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
+  const keyBytes = await argon2idAsync(password, saltBytes, {
+    t: ARGON2_TIME_COST,
+    m: ARGON2_MEMORY_COST,
+    p: ARGON2_PARALLELISM,
+    dkLen: ARGON2_HASH_LENGTH
+  });
+
+  return cryptoApi.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
 export async function encryptSeedPhrase(seedPhrase: string[], password: string): Promise<EncryptedWalletRecord> {
@@ -108,7 +111,7 @@ export async function encryptSeedPhrase(seedPhrase: string[], password: string):
   const mnemonic = seedPhrase.join(' ');
   const salt = cryptoApi.getRandomValues(new Uint8Array(16));
   const iv = cryptoApi.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(password, salt);
+  const key = await deriveKeyArgon2id(password, salt);
   const ciphertext = await cryptoApi.subtle.encrypt(
     {
       name: 'AES-GCM',
@@ -133,7 +136,7 @@ export async function decryptSeedPhrase(record: EncryptedWalletRecord, password:
     const cryptoApi = getWebCrypto();
     const salt = fromBase64(record.salt);
     const iv = fromBase64(record.iv);
-    const key = await deriveKey(password, salt);
+    const key = await deriveKeyArgon2id(password, salt);
     const decrypted = await cryptoApi.subtle.decrypt(
       {
         name: 'AES-GCM',
