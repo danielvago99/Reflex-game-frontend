@@ -299,6 +299,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     lock();
+    setStatus('onboarding');
   };
 
   const value = useMemo<WalletContextValue>(
