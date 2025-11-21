@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SeedVerifyScreen } from '../../../components/wallet/SeedVerifyScreen';
 import { useWallet } from '../context/WalletProvider';
@@ -6,13 +6,18 @@ import { useWallet } from '../context/WalletProvider';
 export default function SeedVerifyRoute() {
   const navigate = useNavigate();
   const { getSeed } = useWallet();
-  const seedPhrase = getSeed();
+  const [seedPhrase, setSeedPhrase] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!seedPhrase.length) {
+    const seed = getSeed();
+
+    if (!seed.length) {
       navigate('/wallet/create', { replace: true });
+      return;
     }
-  }, [seedPhrase, navigate]);
+
+    setSeedPhrase(seed);
+  }, [getSeed, navigate]);
 
   return (
     <SeedVerifyScreen

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SeedDisplayScreen } from '../../../components/wallet/SeedDisplayScreen';
 import { useWallet } from '../context/WalletProvider';
@@ -6,13 +6,18 @@ import { useWallet } from '../context/WalletProvider';
 export default function SeedDisplayRoute() {
   const navigate = useNavigate();
   const { getSeed, address } = useWallet();
-  const seed = getSeed();
+  const [seed, setSeed] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!seed.length) {
+    const currentSeed = getSeed();
+
+    if (!currentSeed.length) {
       navigate('/wallet/create', { replace: true });
+      return;
     }
-  }, [seed, navigate]);
+
+    setSeed(currentSeed);
+  }, [getSeed, navigate]);
 
   return (
     <SeedDisplayScreen

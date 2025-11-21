@@ -148,25 +148,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     resetIdleTimer();
   }, [status, resetIdleTimer]);
 
-  const generateSeed = () => {
+  const generateSeed = useCallback(() => {
     const seed = generateSeedPhrase();
     vaultRef.current = createEmptyVault();
     vaultRef.current.seed = seed;
     return seed;
-  };
+  }, []);
 
-  const getSeed = () => [...vaultRef.current.seed];
+  const getSeed = useCallback(() => [...vaultRef.current.seed], []);
 
-  const setPassword = (password: string, biometricEnabled: boolean) => {
+  const setPassword = useCallback((password: string, biometricEnabled: boolean) => {
     vaultRef.current.password = password;
     vaultRef.current.biometric = biometricEnabled;
-  };
+  }, []);
 
-  const getVaultStatus = () => ({
+  const getVaultStatus = useCallback(() => ({
     hasSeed: vaultRef.current.seed.length > 0,
     hasPassword: Boolean(vaultRef.current.password),
     biometricEnabled: vaultRef.current.biometric
-  });
+  }), []);
 
   const persistVaultToStorage = async (seedPhrase: string[], password: string, biometricEnabled: boolean) => {
     const encrypted = await encryptSeedPhrase(seedPhrase, password);
@@ -299,6 +299,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     lock();
+    setStatus('onboarding');
   };
 
   const value = useMemo<WalletContextValue>(
