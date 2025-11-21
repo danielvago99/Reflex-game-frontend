@@ -4,6 +4,7 @@
 import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39';
 import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
 import { hash, ArgonType } from 'argon2-browser';
+import wasmURL from 'argon2-browser/dist/argon2.wasm?url';
 import { Keypair } from '@solana/web3.js';
 import { openDB } from 'idb';
 
@@ -101,7 +102,8 @@ async function deriveKeyArgon2id(password: string, salt: SaltSource): Promise<Cr
     time: ARGON2_TIME_COST,
     mem: ARGON2_MEMORY_COST,
     parallelism: ARGON2_PARALLELISM,
-    hashLen: ARGON2_HASH_LENGTH
+    hashLen: ARGON2_HASH_LENGTH,
+    wasmURL
   });
 
   return cryptoApi.subtle.importKey(
