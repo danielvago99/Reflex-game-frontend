@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { Trophy, Target, Clock, Home, RotateCcw, Coins, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
-import { addMatchToHistory } from '../../utils/matchHistory';
+import { recordMatchCompletion, getDailyChallengeInfo } from '../../../utils/dailyChallenge';
+import { addMatchToHistory } from '../../../utils/matchHistory';
 import { toast } from 'sonner';
 
 interface GameResultModalProps {

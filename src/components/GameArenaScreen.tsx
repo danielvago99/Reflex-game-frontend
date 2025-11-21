@@ -1,4 +1,4 @@
-import { GameArena } from './arena/GameArena';
+import { GameArena } from '../features/arena/components/GameArena';
 
 interface GameArenaScreenProps {
   onNavigate: (screen: string) => void;

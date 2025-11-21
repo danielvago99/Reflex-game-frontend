@@ -222,25 +222,28 @@ export interface CreateReferralCodeRequest {
 // WEBSOCKET MESSAGE TYPES
 // ============================================================================
 
-export interface WSMessage<T = any> {
-  type: WSMessageType;
-  payload: T;
+export type WSPayloadMap = {
+  'lobby:update': WSLobbyUpdate;
+  'lobby:player_joined': WSLobbyUpdate;
+  'lobby:player_left': WSLobbyUpdate;
+  'game:start': WSGameStart;
+  'game:countdown': WSGameCountdown;
+  'game:show_button': WSGameShowButton;
+  'game:player_clicked': WSGamePlayerClicked;
+  'game:result': WSGameResult;
+  'game:end': WSGameResult;
+  error: WSError;
+  ping: Record<string, never>;
+  pong: Record<string, never>;
+};
+
+export type WSMessageType = keyof WSPayloadMap;
+
+export interface WSMessage<T extends WSMessageType = WSMessageType> {
+  type: T;
+  payload: WSPayloadMap[T];
   timestamp: number;
 }
-
-export type WSMessageType = 
-  | 'lobby:update'
-  | 'lobby:player_joined'
-  | 'lobby:player_left'
-  | 'game:start'
-  | 'game:countdown'
-  | 'game:show_button'
-  | 'game:player_clicked'
-  | 'game:result'
-  | 'game:end'
-  | 'error'
-  | 'ping'
-  | 'pong';
 
 export interface WSLobbyUpdate {
   lobby: GameLobby;

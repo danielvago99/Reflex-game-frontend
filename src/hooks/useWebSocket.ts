@@ -5,7 +5,17 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { wsService, WS_EVENTS } from '../utils/websocket';
-import type { WSMessage, WSMessageType } from '../types/api';
+import type {
+  WSGameCountdown,
+  WSGamePlayerClicked,
+  WSGameResult,
+  WSGameShowButton,
+  WSGameStart,
+  WSLobbyUpdate,
+  WSMessage,
+  WSMessageType,
+  WSPayloadMap
+} from '../types/api';
 
 interface UseWebSocketOptions {
   autoConnect?: boolean;
@@ -89,9 +99,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 /**
  * Hook for subscribing to WebSocket messages
  */
-export function useWebSocketEvent<T = any>(
-  type: WSMessageType,
-  handler: (payload: T) => void,
+export function useWebSocketEvent<T extends WSMessageType>(
+  type: T,
+  handler: (payload: WSPayloadMap[T]) => void,
   deps: any[] = []
 ) {
   const handlerRef = useRef(handler);
@@ -114,9 +124,9 @@ export function useWebSocketEvent<T = any>(
  * Hook for game lobby events
  */
 export function useLobbyEvents(handlers: {
-  onUpdate?: (data: any) => void;
-  onPlayerJoined?: (data: any) => void;
-  onPlayerLeft?: (data: any) => void;
+  onUpdate?: (data: WSLobbyUpdate) => void;
+  onPlayerJoined?: (data: WSLobbyUpdate) => void;
+  onPlayerLeft?: (data: WSLobbyUpdate) => void;
 }) {
   useWebSocketEvent('lobby:update', handlers.onUpdate || (() => {}), [handlers.onUpdate]);
   useWebSocketEvent('lobby:player_joined', handlers.onPlayerJoined || (() => {}), [handlers.onPlayerJoined]);
@@ -127,12 +137,12 @@ export function useLobbyEvents(handlers: {
  * Hook for game events
  */
 export function useGameEvents(handlers: {
-  onStart?: (data: any) => void;
-  onCountdown?: (data: any) => void;
-  onShowButton?: (data: any) => void;
-  onPlayerClicked?: (data: any) => void;
-  onResult?: (data: any) => void;
-  onEnd?: (data: any) => void;
+  onStart?: (data: WSGameStart) => void;
+  onCountdown?: (data: WSGameCountdown) => void;
+  onShowButton?: (data: WSGameShowButton) => void;
+  onPlayerClicked?: (data: WSGamePlayerClicked) => void;
+  onResult?: (data: WSGameResult) => void;
+  onEnd?: (data: WSGameResult) => void;
 }) {
   useWebSocketEvent('game:start', handlers.onStart || (() => {}), [handlers.onStart]);
   useWebSocketEvent('game:countdown', handlers.onCountdown || (() => {}), [handlers.onCountdown]);

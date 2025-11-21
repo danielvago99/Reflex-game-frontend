@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HUD } from './HUD';
 import { ArenaCanvas } from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
@@ -13,6 +13,7 @@ import { FullscreenToggle } from './FullscreenToggle';
 import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { useIsMobile } from '../../../shared/hooks/useIsMobile';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -51,12 +52,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [roundResolved, setRoundResolved] = useState(false);
   const [lossReason, setLossReason] = useState<'early-click' | 'no-reaction' | 'slower' | null>(null);
+  const opponentTimerRef = useRef<number | null>(null);
 
   const TOTAL_ROUNDS = 3;
   const MAX_PAUSES = 3;
 
   // Detect mobile
-  const isMobile = window.innerWidth < 640;
+  const isMobile = useIsMobile();
 
   // Reset all game state for restart
   const handleRestart = () => {
@@ -121,12 +123,6 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const handleTargetAppeared = () => {
     setTargetAppearTime(Date.now());
     setIsTargetPresent(true);
-
-    // Simulate opponent reaction (AI opponent)
-    const opponentDelay = 200 + Math.random() * 300; // 200-500ms
-    setTimeout(() => {
-      setOpponentReactionTime(Math.floor(opponentDelay));
-    }, opponentDelay);
   };
 
   const handleTargetDisappeared = () => {
@@ -147,6 +143,38 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     const reactionTime = Date.now() - targetAppearTime;
     setPlayerReactionTime(reactionTime);
   };
+
+  useEffect(() => {
+    if (opponentTimerRef.current !== null) {
+      clearTimeout(opponentTimerRef.current);
+      opponentTimerRef.current = null;
+    }
+
+    if (gameState !== 'playing' || !isTargetPresent || targetAppearTime === null) {
+      return;
+    }
+
+    const opponentDelay = 200 + Math.random() * 300; // 200-500ms
+    opponentTimerRef.current = window.setTimeout(() => {
+      setOpponentReactionTime(Math.floor(opponentDelay));
+    }, opponentDelay);
+
+    return () => {
+      if (opponentTimerRef.current !== null) {
+        clearTimeout(opponentTimerRef.current);
+        opponentTimerRef.current = null;
+      }
+    };
+  }, [gameState, isTargetPresent, targetAppearTime]);
+
+  useEffect(() => {
+    return () => {
+      if (opponentTimerRef.current !== null) {
+        clearTimeout(opponentTimerRef.current);
+        opponentTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (roundResolved || gameState !== 'playing') return;
