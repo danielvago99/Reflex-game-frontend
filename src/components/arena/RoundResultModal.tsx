@@ -9,6 +9,7 @@ interface RoundResultModalProps {
   onNext: () => void;
   currentRound: number;
   totalRounds: number;
+  isMatchOver: boolean;
   lossReason?: 'early-click' | 'no-reaction' | 'slower' | null;
 }
 
@@ -19,6 +20,7 @@ export function RoundResultModal({
   onNext,
   currentRound,
   totalRounds,
+  isMatchOver,
   lossReason,
 }: RoundResultModalProps) {
   const [countdown, setCountdown] = useState(5);
@@ -195,7 +197,7 @@ export function RoundResultModal({
             <div className={`absolute inset-0 bg-gradient-to-r ${config.glow} opacity-30`}></div>
             <div className="relative flex items-center justify-center gap-3 text-white text-lg">
               <span className="text-gray-300">
-                {currentRound < totalRounds ? 'Next round starts in' : 'Results in'}{' '}
+                {isMatchOver ? 'Results in' : 'Next round starts in'}{' '}
                 <span className={`font-bold font-mono text-2xl bg-gradient-to-r ${config.color} bg-clip-text text-transparent`}>
                   {countdown}
                 </span>

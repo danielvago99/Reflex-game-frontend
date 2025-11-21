@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Target, Zap, Trophy, X } from 'lucide-react';
 import { useEffect } from 'react';
+import { ROUNDS_TO_WIN } from '../../features/arena/constants';
 
 interface HowToPlayOverlayProps {
   targetShape: string;
@@ -111,7 +112,7 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
             </div>
 
             <p className="text-center text-gray-400 text-sm mb-4 sm:mb-6">
-              First to win 2 rounds takes the match!
+              First to win {ROUNDS_TO_WIN} rounds takes the match!
             </p>
 
             {/* Instructions */}

@@ -13,6 +13,7 @@ import { FullscreenToggle } from './FullscreenToggle';
 import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -46,14 +47,17 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [targetAppearTime, setTargetAppearTime] = useState<number | null>(null);
   const [isTargetPresent, setIsTargetPresent] = useState(false);
   const [showFinalResults, setShowFinalResults] = useState(false);
-  const [allPlayerTimes, setAllPlayerTimes] = useState<(number | null)[]>([null, null, null]);
-  const [allOpponentTimes, setAllOpponentTimes] = useState<(number | null)[]>([null, null, null]);
+  const [allPlayerTimes, setAllPlayerTimes] = useState<(number | null)[]>(Array(MAX_ROUNDS).fill(null));
+  const [allOpponentTimes, setAllOpponentTimes] = useState<(number | null)[]>(Array(MAX_ROUNDS).fill(null));
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [roundResolved, setRoundResolved] = useState(false);
   const [lossReason, setLossReason] = useState<'early-click' | 'no-reaction' | 'slower' | null>(null);
 
-  const TOTAL_ROUNDS = 3;
   const MAX_PAUSES = 3;
+  const isMatchOver =
+    playerScore >= ROUNDS_TO_WIN ||
+    opponentScore >= ROUNDS_TO_WIN ||
+    currentRound >= MAX_ROUNDS;
 
   // Detect mobile
   const isMobile = window.innerWidth < 640;
@@ -72,8 +76,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setTargetAppearTime(null);
     setIsTargetPresent(false);
     setShowFinalResults(false);
-    setAllPlayerTimes([null, null, null]);
-    setAllOpponentTimes([null, null, null]);
+    setAllPlayerTimes(Array(MAX_ROUNDS).fill(null));
+    setAllOpponentTimes(Array(MAX_ROUNDS).fill(null));
     setRoundResolved(false);
     setLossReason(null);
     startRound();
@@ -209,18 +213,19 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   };
 
   const handleNextRound = () => {
-    if (currentRound < TOTAL_ROUNDS) {
-      setCurrentRound(prev => prev + 1);
+    if (isMatchOver) {
       setRoundResult(null);
-      // Skip countdown for rounds 2 and 3, go directly to playing
-      setGameState('playing');
-      startRound();
-      setRoundResolved(false);
-      setLossReason(null); // reset reason for new round
-    } else {
-      // Game over - go to results
       setShowFinalResults(true);
+      return;
     }
+
+    setCurrentRound(prev => prev + 1);
+    setRoundResult(null);
+    // Skip countdown for later rounds, go directly to playing
+    setGameState('playing');
+    startRound();
+    setRoundResolved(false);
+    setLossReason(null); // reset reason for new round
   };
 
   const handlePause = () => {
@@ -306,7 +311,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           playerScore={playerScore}
           opponentScore={opponentScore}
           currentRound={currentRound}
-          totalRounds={TOTAL_ROUNDS}
+          totalRounds={MAX_ROUNDS}
         />
 
         {/* Arena Canvas */}
@@ -377,7 +382,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           lossReason={lossReason}
           onNext={handleNextRound}
           currentRound={currentRound}
-          totalRounds={TOTAL_ROUNDS}
+          totalRounds={MAX_ROUNDS}
+          isMatchOver={isMatchOver}
         />
       )}
 
