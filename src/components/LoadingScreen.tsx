@@ -4,12 +4,18 @@ import { FuturisticBackground } from './FuturisticBackground';
 
 interface LoadingScreenProps {
   onComplete: () => void;
+  isStatic?: boolean;
 }
 
-export function LoadingScreen({ onComplete }: LoadingScreenProps) {
-  const [progress, setProgress] = useState(0);
+export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenProps) {
+  const [progress, setProgress] = useState(isStatic ? 100 : 0);
 
   useEffect(() => {
+    if (isStatic) {
+      setProgress(100);
+      return;
+    }
+
     // Animate progress bar - 3 second duration
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -24,7 +30,7 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
     }, 40); // 40ms * 75 intervals = 3000ms (3 seconds)
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [isStatic, onComplete]);
 
   return (
     <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">

@@ -34,7 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppProviders>
-        <Suspense fallback={<LoadingScreen onComplete={() => undefined} />}>        
+        <Suspense fallback={<LoadingScreen onComplete={() => undefined} isStatic />}>
           <Routes>
             <Route path="/" element={<WelcomeRoute />} />
             <Route path="/wallet/create" element={<CreateWalletRoute />} />
