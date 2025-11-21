@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Trophy, Target, Clock, Home, RotateCcw, Coins, X } from 'lucide-react';
+import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
@@ -205,7 +206,7 @@ export function GameResultModal({
 
               {/* Round indicators */}
               <div className="flex justify-center gap-2">
-                {[0, 1, 2].map((round) => (
+                {Array.from({ length: MAX_ROUNDS }, (_, round) => round).map((round) => (
                   <div
                     key={round}
                     className={`w-3 h-8 rounded-full ${
@@ -246,13 +247,13 @@ export function GameResultModal({
                     </div>
                     <div>
                       <p className="text-xs text-gray-400">Accuracy</p>
-                      <p className="text-white">{validPlayerTimes.length}/3 rounds</p>
+                      <p className="text-white">{validPlayerTimes.length}/{MAX_ROUNDS} rounds</p>
                     </div>
                   </div>
                   <div className="w-20 bg-white/10 rounded-full h-1.5">
-                    <div 
-                      className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] h-1.5 rounded-full" 
-                      style={{ width: `${(validPlayerTimes.length / 3) * 100}%` }}
+                    <div
+                      className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] h-1.5 rounded-full"
+                      style={{ width: `${(validPlayerTimes.length / MAX_ROUNDS) * 100}%` }}
                     ></div>
                   </div>
                 </div>

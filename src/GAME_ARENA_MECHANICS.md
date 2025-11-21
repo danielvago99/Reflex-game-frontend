@@ -146,8 +146,8 @@ reactionTime = Date.now() - targetAppearTime
 - [ ] Reaction button only works when active
 - [ ] Correct reaction times recorded
 - [ ] Score updates properly
-- [ ] All 3 rounds complete successfully
-- [ ] Result screen shows after round 3
+- [ ] All 5 rounds complete successfully (or match ends early at 3 wins)
+- [ ] Result screen shows after match ends (max round 5)
 - [ ] Pause/resume works correctly
 - [ ] Responsive on mobile and desktop
 - [ ] No memory leaks from PixiJS
