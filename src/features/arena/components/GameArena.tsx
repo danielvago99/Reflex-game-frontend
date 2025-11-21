@@ -22,7 +22,7 @@ interface GameArenaProps {
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
 }
 
-type GameState = 'countdown' | 'playing' | 'result';
+type GameState = 'countdown' | 'playing' | 'paused' | 'result';
 
 interface Target {
   shape: 'circle' | 'square' | 'triangle';
@@ -78,6 +78,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setAllOpponentTimes([null, null, null]);
     setRoundResolved(false);
     setLossReason(null);
+    setPauseCount(0);
     startRound();
   };
 
@@ -252,27 +253,29 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   };
 
   const handlePause = () => {
-    const isPauseLimited = isRanked || stakeAmount > 0;
-    
-    // Check if pause limit reached for ranked/friend matches
-    if (isPauseLimited && pauseCount >= MAX_PAUSES) {
+    if (gameState !== 'playing') return;
+
+    if (pauseCount >= MAX_PAUSES) {
       toast.error('⏸️ Pause limit reached', {
-        description: `Maximum ${MAX_PAUSES} pauses allowed in ranked matches`,
+        description: `Maximum ${MAX_PAUSES} pauses allowed per match`,
         duration: 3000,
       });
       return;
     }
-    
+
     setPauseCount(prev => prev + 1);
     setShowPauseMenu(true);
+    setGameState('paused');
   };
 
   const handleResume = () => {
     setShowPauseMenu(false);
+    setGameState('playing');
   };
 
   const handleAutoResume = () => {
     setShowPauseMenu(false);
+    setGameState('playing');
     toast.info('⏱️ Match resumed automatically', {
       description: 'Pause time limit reached',
       duration: 3000,

@@ -20,13 +20,22 @@ interface ShapeInstance {
   hasAnnounced?: boolean;
 }
 
-const MIN_LIFESPAN = 2000;
-const MAX_LIFESPAN = 4000;
-const TARGET_RESPAWN_DELAY = { min: 800, max: 1500 };
-const RANDOM_SPAWN_INTERVAL = 400;
-const INITIAL_RANDOM_SHAPES = 8;
+// Spawn and pacing constants tuned to mirror the original gameplay feel
+const DECOY_LIFESPAN_MS = { min: 1800, max: 2800 };
+const TARGET_LIFESPAN_MS = { min: 2200, max: 3800 };
+const TARGET_APPEAR_DELAY_MS = { min: 1000, max: 2800 };
+const TARGET_RESPAWN_DELAY_MS = { min: 1200, max: 2600 };
+const DECOY_SPAWN_INTERVAL_MS = { min: 450, max: 750 };
+const INITIAL_DECOYS = 6;
+const MAX_SHAPES_ON_SCREEN = 14;
 const SHAPE_POOL_LIMIT = 36;
+const ARENA_PADDING = 72;
+const SHAPE_SIZE = { min: 14, max: 26 };
+const FADE_IN_MS = 250;
+const FADE_OUT_MS = 400;
+const COLOR_CHOICES = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x9333ea, 0x06b6d4, 0xff6b00, 0xff0099];
 
+const randomInRange = (range: { min: number; max: number }) => range.min + Math.random() * (range.max - range.min);
 const hexToNumber = (hex: string): number => parseInt(hex.replace('#', ''), 16);
 
 export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
@@ -36,8 +45,9 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const shapesRef = useRef<ShapeInstance[]>([]);
   const shapePoolRef = useRef<PIXI.Graphics[]>([]);
   const currentTargetRef = useRef<ShapeInstance | null>(null);
-  const spawnTimerRef = useRef<number>(0);
-  const targetSpawnTimerRef = useRef<number>(0);
+  const decoyTimerRef = useRef<number>(0);
+  const nextDecoyIntervalRef = useRef<number>(randomInRange(DECOY_SPAWN_INTERVAL_MS));
+  const targetSpawnTimerRef = useRef<number>(randomInRange(TARGET_APPEAR_DELAY_MS));
   const isActiveRef = useRef<boolean>(isActive);
   const [isAppReady, setIsAppReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -46,20 +56,28 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     isActiveRef.current = isActive;
   }, [isActive]);
 
-  const clearShapes = useCallback((app: PIXI.Application | null) => {
-    shapesRef.current.forEach((shape) => {
-      app?.stage.removeChild(shape.graphics);
-      if (shapePoolRef.current.length < SHAPE_POOL_LIMIT) {
-        shape.graphics.alpha = 1;
-        shape.graphics.clear();
-        shapePoolRef.current.push(shape.graphics);
-      } else {
-        shape.graphics.destroy();
-      }
-    });
-    shapesRef.current = [];
-    currentTargetRef.current = null;
-  }, []);
+  const clearShapes = useCallback(
+    (app: PIXI.Application | null, { notifyTarget = false }: { notifyTarget?: boolean } = {}) => {
+      shapesRef.current.forEach((shape) => {
+        if (shape.isTarget && notifyTarget && currentTargetRef.current === shape && onTargetDisappeared) {
+          onTargetDisappeared();
+        }
+
+        app?.stage.removeChild(shape.graphics);
+        if (shapePoolRef.current.length < SHAPE_POOL_LIMIT) {
+          shape.graphics.alpha = 1;
+          shape.graphics.clear();
+          shapePoolRef.current.push(shape.graphics);
+        } else {
+          shape.graphics.destroy();
+        }
+      });
+
+      shapesRef.current = [];
+      currentTargetRef.current = null;
+    },
+    [onTargetDisappeared]
+  );
 
   const getGraphic = useCallback(() => {
     const pooled = shapePoolRef.current.pop();
@@ -71,34 +89,34 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   }, []);
 
   const spawnShape = useCallback(
-    (app: PIXI.Application | null, shouldBeTarget = false) => {
+    (app: PIXI.Application | null, { isTarget = false }: { isTarget?: boolean } = {}) => {
       if (!app) return;
 
       const graphics = getGraphic();
       const width = app.renderer.width;
       const height = app.renderer.height;
 
-      const padding = 80;
-      const x = padding + Math.random() * Math.max(10, width - padding * 2);
-      const y = padding + Math.random() * Math.max(10, height - padding * 2);
-      const size = 8 + Math.random() * 14;
+      const x = ARENA_PADDING + Math.random() * Math.max(10, width - ARENA_PADDING * 2);
+      const y = ARENA_PADDING + Math.random() * Math.max(10, height - ARENA_PADDING * 2);
+      const size = SHAPE_SIZE.min + Math.random() * (SHAPE_SIZE.max - SHAPE_SIZE.min);
 
-      const colorArray = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x9333ea, 0x06b6d4, 0xff6b00, 0xff0099];
       const targetColorNumber = hexToNumber(targetColor);
 
       let type: 'circle' | 'square' | 'triangle';
       let color: number;
 
-      if (shouldBeTarget) {
+      if (isTarget) {
         type = targetShape;
         color = targetColorNumber;
       } else {
         const shapeTypes: Array<'circle' | 'square' | 'triangle'> = ['circle', 'square', 'triangle'];
         type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-        color = colorArray[Math.floor(Math.random() * colorArray.length)];
+        color = COLOR_CHOICES[Math.floor(Math.random() * COLOR_CHOICES.length)];
 
+        // Never allow a decoy to match the active target combination
         if (type === targetShape && color === targetColorNumber) {
-          color = colorArray.find((c) => c !== targetColorNumber) ?? colorArray[0];
+          // Adjust the color while keeping the random type
+          color = COLOR_CHOICES.find((c) => c !== targetColorNumber) ?? COLOR_CHOICES[0];
         }
       }
 
@@ -122,12 +140,12 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
       app.stage.addChild(graphics);
 
-      const lifespanMs = MIN_LIFESPAN + Math.random() * (MAX_LIFESPAN - MIN_LIFESPAN);
+      const lifespanMs = isTarget ? randomInRange(TARGET_LIFESPAN_MS) : randomInRange(DECOY_LIFESPAN_MS);
       const shape: ShapeInstance = {
         graphics,
         type,
         color,
-        isTarget: shouldBeTarget,
+        isTarget,
         state: 'fade-in',
         ageMs: 0,
         lifespanMs,
@@ -146,10 +164,10 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       if (shape.isTarget) {
         currentTargetRef.current = null;
         shape.hasAnnounced = false;
-        if (isActiveRef.current && onTargetDisappeared) {
+        if (onTargetDisappeared) {
           onTargetDisappeared();
         }
-        targetSpawnTimerRef.current = TARGET_RESPAWN_DELAY.min + Math.random() * (TARGET_RESPAWN_DELAY.max - TARGET_RESPAWN_DELAY.min);
+        targetSpawnTimerRef.current = randomInRange(TARGET_RESPAWN_DELAY_MS);
       }
 
       if (shapePoolRef.current.length < SHAPE_POOL_LIMIT) {
@@ -164,15 +182,12 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   );
 
   const updateShapes = useCallback(
-    (app: PIXI.Application) => {
-      const fadeInMs = 250;
-      const fadeOutMs = 400;
-
+    (app: PIXI.Application, deltaMs: number) => {
       for (const shape of [...shapesRef.current]) {
-        shape.ageMs += tickerRef.current?.deltaMS ?? 0;
+        shape.ageMs += deltaMs;
 
         if (shape.state === 'fade-in') {
-          shape.graphics.alpha = Math.min(1, shape.ageMs / fadeInMs);
+          shape.graphics.alpha = Math.min(1, shape.ageMs / FADE_IN_MS);
           if (shape.graphics.alpha >= 1) {
             shape.state = 'visible';
             shape.ageMs = 0;
@@ -188,7 +203,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
             shape.ageMs = 0;
           }
         } else if (shape.state === 'fade-out') {
-          const remaining = Math.max(0, 1 - shape.ageMs / fadeOutMs);
+          const remaining = Math.max(0, 1 - shape.ageMs / FADE_OUT_MS);
           shape.graphics.alpha = remaining;
           if (remaining <= 0) {
             removeShape(app, shape);
@@ -198,6 +213,48 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     },
     [onTargetAppeared, removeShape]
   );
+
+  const startRound = useCallback(
+    (app: PIXI.Application) => {
+      clearShapes(app, { notifyTarget: true });
+      decoyTimerRef.current = 0;
+      nextDecoyIntervalRef.current = randomInRange(DECOY_SPAWN_INTERVAL_MS);
+      targetSpawnTimerRef.current = randomInRange(TARGET_APPEAR_DELAY_MS);
+
+      for (let i = 0; i < INITIAL_DECOYS && shapesRef.current.length < MAX_SHAPES_ON_SCREEN; i++) {
+        spawnShape(app, { isTarget: false });
+      }
+    },
+    [clearShapes, spawnShape]
+  );
+
+  const update = useCallback(() => {
+    const app = appRef.current;
+    const ticker = tickerRef.current;
+    if (!app || !ticker || !isActiveRef.current) return;
+
+    const deltaMs = ticker.deltaMS;
+
+    if (shapesRef.current.length < MAX_SHAPES_ON_SCREEN) {
+      decoyTimerRef.current += deltaMs;
+      if (decoyTimerRef.current >= nextDecoyIntervalRef.current) {
+        spawnShape(app, { isTarget: false });
+        decoyTimerRef.current = 0;
+        nextDecoyIntervalRef.current = randomInRange(DECOY_SPAWN_INTERVAL_MS);
+      }
+    }
+
+    if (!currentTargetRef.current) {
+      targetSpawnTimerRef.current -= deltaMs;
+      if (targetSpawnTimerRef.current <= 0) {
+        spawnShape(app, { isTarget: true });
+        // Prevent another target from spawning until the current one expires
+        targetSpawnTimerRef.current = Number.POSITIVE_INFINITY;
+      }
+    }
+
+    updateShapes(app, deltaMs);
+  }, [spawnShape, updateShapes]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -216,6 +273,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
         appRef.current = app;
         container.appendChild(app.canvas);
+        tickerRef.current = app.ticker; // tie updates to the renderer ticker so it always advances frames
         setIsAppReady(true);
       } catch (error) {
         console.error('Failed to initialize PixiJS application:', error);
@@ -228,9 +286,9 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     return () => {
       destroyed = true;
-      clearShapes(app);
+      clearShapes(app, { notifyTarget: true });
+      tickerRef.current?.remove(update);
       tickerRef.current?.stop();
-      tickerRef.current?.destroy();
       tickerRef.current = null;
 
       if (app.canvas && container.contains(app.canvas)) {
@@ -240,65 +298,38 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       appRef.current = null;
       setIsAppReady(false);
     };
-  }, [clearShapes]);
+  }, [clearShapes, update]);
 
   useEffect(() => {
     const app = appRef.current;
     if (!app || !isAppReady) return;
 
-    clearShapes(app);
-    spawnTimerRef.current = 0;
-    targetSpawnTimerRef.current = 0;
-
-    if (!isActive) {
-      return;
-    }
-
-    // Seed the scene with a few shapes to avoid empty renders
-    for (let i = 0; i < INITIAL_RANDOM_SHAPES; i++) {
-      spawnShape(app, false);
-    }
-  }, [clearShapes, isActive, isAppReady, spawnShape, targetColor, targetShape]);
-
-  useEffect(() => {
-    const app = appRef.current;
-    if (!app || !isAppReady) return;
-
-    if (!isActive) {
-      clearShapes(app);
-      tickerRef.current?.stop();
-      return;
-    }
-
-    const ticker = tickerRef.current ?? new PIXI.Ticker();
-    tickerRef.current = ticker;
-
-    const update = () => {
-      spawnTimerRef.current += ticker.deltaMS;
-      targetSpawnTimerRef.current -= ticker.deltaMS;
-
-      if (spawnTimerRef.current >= RANDOM_SPAWN_INTERVAL) {
-        if (Math.random() > 0.2) {
-          spawnShape(app, false);
-        }
-        spawnTimerRef.current = 0;
-      }
-
-      if (!currentTargetRef.current && targetSpawnTimerRef.current <= 0) {
-        spawnShape(app, true);
-        targetSpawnTimerRef.current = MIN_LIFESPAN; // avoid immediate respawn
-      }
-
-      updateShapes(app);
-    };
+    const ticker = tickerRef.current;
+    if (!ticker) return;
 
     ticker.add(update);
-    ticker.start();
+    if (isActive) {
+      ticker.start();
+    } else {
+      ticker.stop();
+    }
 
     return () => {
       ticker.remove(update);
     };
-  }, [clearShapes, isActive, isAppReady, spawnShape, updateShapes]);
+  }, [isActive, isAppReady, update]);
+
+  useEffect(() => {
+    const app = appRef.current;
+    if (!app || !isAppReady) return;
+
+    if (isActive) {
+      startRound(app);
+      tickerRef.current?.start();
+    } else {
+      tickerRef.current?.stop();
+    }
+  }, [isActive, isAppReady, startRound]);
 
   if (initError) {
     return (
