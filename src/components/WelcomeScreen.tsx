@@ -17,7 +17,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
   };
 
   return (
-    <div className="h-[100svh] bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
+    <div className="h-screen-dvh bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
       
       <FuturisticBackground />
 

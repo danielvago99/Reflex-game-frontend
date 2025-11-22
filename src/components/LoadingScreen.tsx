@@ -33,7 +33,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
   }, [isStatic, onComplete]);
 
   return (
-    <div className="h-[100svh] bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
+    <div className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
       {/* Static background effects - NO ANIMATION */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Grid Pattern */}
