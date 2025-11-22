@@ -109,48 +109,50 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur-sm rounded-xl"></div>
             <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5 md:p-6 overflow-hidden">
-              {!isRevealed ? (
-                <div className="text-center py-10 md:py-12">
-                  <EyeOff className="w-12 h-12 text-gray-500 mx-auto mb-3 md:mb-4" />
-                  <p className="text-gray-400 mb-6">
-                    Your seed phrase is hidden for security.<br />
-                    Click below to reveal it.
-                  </p>
-                  <WalletButton onClick={handleReveal} variant="secondary" fullWidth={false} className="mx-auto">
-                    <Eye className="w-5 h-5" />
-                    Reveal Seed Phrase
-                  </WalletButton>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-2.5 md:gap-3 mb-4 md:mb-5">
-                    {seedPhrase.map((word, index) => (
-                      <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
-                        <div className="text-xs text-gray-500 mb-1">#{index + 1}</div>
-                        <div className="text-white">{word}</div>
-                      </div>
-                    ))}
+              <div className="min-h-[360px] md:min-h-[380px] flex flex-col">
+                {!isRevealed ? (
+                  <div className="flex flex-1 flex-col items-center justify-center text-center gap-4 py-6">
+                    <EyeOff className="w-12 h-12 text-gray-500" />
+                    <p className="text-gray-400">
+                      Your seed phrase is hidden for security.<br />
+                      Click below to reveal it.
+                    </p>
+                    <WalletButton onClick={handleReveal} variant="secondary" fullWidth={false} className="mx-auto">
+                      <Eye className="w-5 h-5" />
+                      Reveal Seed Phrase
+                    </WalletButton>
                   </div>
+                ) : (
+                  <div className="flex flex-1 flex-col">
+                    <div className="grid grid-cols-3 gap-2.5 md:gap-3 mb-4 md:mb-5">
+                      {seedPhrase.map((word, index) => (
+                        <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
+                          <div className="text-xs font-semibold text-[#00FFA3] mb-1">#{index + 1}</div>
+                          <div className="text-white">{word}</div>
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* Actions */}
-                  <div className="grid grid-cols-2 gap-2.5 md:gap-3">
-                    <button
-                      onClick={handleCopy}
-                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
-                    </button>
-                    <button
-                      onClick={handleDownload}
-                      className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span className="text-sm">Download</span>
-                    </button>
+                    {/* Actions */}
+                    <div className="grid grid-cols-2 gap-2.5 md:gap-3 mt-auto">
+                      <button
+                        onClick={handleCopy}
+                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
+                      </button>
+                      <button
+                        onClick={handleDownload}
+                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="text-sm">Download</span>
+                      </button>
+                    </div>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
