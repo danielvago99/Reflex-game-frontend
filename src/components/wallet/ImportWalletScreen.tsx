@@ -58,24 +58,24 @@ export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: I
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-screen py-8">
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-1.75rem)] md:min-h-[75vh] py-5 md:py-6 gap-4 md:gap-5">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#00FFA3] mb-4 relative">
+        <div className="text-center mb-4 md:mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#00FFA3] mb-3 md:mb-4 relative">
             <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED] to-[#00FFA3] blur-xl opacity-50"></div>
-            <Download className="w-10 h-10 text-white relative" />
+            <Download className="w-9 h-9 md:w-10 md:h-10 text-white relative" />
           </div>
-          <h1 className="text-3xl text-white mb-2">Recover Wallet</h1>
-          <p className="text-gray-400">Restore your wallet using recovery methods</p>
+          <h1 className="text-2xl md:text-3xl text-white mb-1 md:mb-2">Recover Wallet</h1>
+          <p className="text-sm md:text-base text-gray-400">Restore your wallet using recovery methods</p>
         </div>
 
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 space-y-4 md:space-y-6">
           {/* Security warnings */}
           <WalletAlert variant="danger" title="Security Warning">
             <ul className="space-y-1 mt-2">
@@ -248,7 +248,7 @@ export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: I
         )}
 
         {/* Actions */}
-        <div className="space-y-3 mt-8">
+        <div className="space-y-3 mt-6">
           <WalletButton
             onClick={handleImport}
             icon={ArrowRight}
