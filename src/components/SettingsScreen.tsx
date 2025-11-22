@@ -34,12 +34,13 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
   const avatarData = getAvatarData(selectedAvatar);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="h-screen max-h-screen flex flex-col bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 p-safe pb-safe pt-safe relative overflow-hidden">
       <FuturisticBackground />
 
-      <div className="relative z-10 max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+      <div className="relative z-10 max-w-md mx-auto flex flex-col flex-1 w-full">
+        <div className="flex-1 overflow-y-auto pb-32">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
             className="p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
@@ -310,7 +311,31 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
             </div>
           </div>
 
-          {/* Logout Button */}
+          {/* App Info */}
+          <div className="relative">
+            <div className="absolute -inset-px bg-gradient-to-br from-white/5 to-white/5 blur-sm" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+              {/* Corner indicators */}
+              <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-white/20"></div>
+              <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-white/20"></div>
+              
+              <div className="p-4">
+                <div className="text-center space-y-2">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Reflex Arena</p>
+                  <p className="text-xs text-gray-500">Version 1.0.0 • Web3 Gaming</p>
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <div className="w-1.5 h-1.5 bg-[#00FFA3] rounded-full"></div>
+                    <span className="text-xs text-gray-400">Powered by Solana</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 p-safe pb-safe bg-gradient-to-t from-[#0B0F1A] to-transparent backdrop-blur-lg z-50">
+        <div className="max-w-sm mx-auto space-y-3 pb-6">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button className="relative w-full group">
@@ -352,7 +377,7 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                 <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20">
                   Cancel
                 </AlertDialogCancel>
-                <AlertDialogAction 
+                <AlertDialogAction
                   onClick={onLogout}
                   className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0"
                 >
@@ -361,27 +386,6 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-          {/* App Info */}
-          <div className="relative">
-            <div className="absolute -inset-px bg-gradient-to-br from-white/5 to-white/5 blur-sm" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
-              {/* Corner indicators */}
-              <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-white/20"></div>
-              <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-white/20"></div>
-              
-              <div className="p-4">
-                <div className="text-center space-y-2">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Reflex Arena</p>
-                  <p className="text-xs text-gray-500">Version 1.0.0 • Web3 Gaming</p>
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    <div className="w-1.5 h-1.5 bg-[#00FFA3] rounded-full"></div>
-                    <span className="text-xs text-gray-400">Powered by Solana</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
