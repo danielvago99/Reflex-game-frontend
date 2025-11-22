@@ -91,22 +91,22 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 space-y-3.5 md:space-y-5 overflow-y-auto pr-1">
+          <div className="flex-1 space-y-3 md:space-y-4 overflow-y-auto pr-1">
             <WalletAlert variant="info">
               Select the correct words from your seed phrase to verify you've saved it properly.
             </WalletAlert>
 
             {/* Verification questions */}
             {randomIndices.map((index) => (
-              <div key={index} className="space-y-2 md:space-y-2.5">
-                <label className="text-white flex items-center gap-2 text-sm md:text-base">
+              <div key={index} className="space-y-1.5 md:space-y-2">
+                <label className="text-white flex items-center gap-2 text-sm md:text-base leading-tight">
                   Word #{index + 1}
                   {selectedWords[index] === seedPhrase[index] && (
                     <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-[#00FFA3]" />
                   )}
                 </label>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-2.5">
+                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1.5 md:gap-2">
                   {shuffledOptions.map((word, idx) => {
                     const isSelected = selectedWords[index] === word;
                     const isCorrectWord = word === seedPhrase[index];
@@ -117,7 +117,7 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
                       <button
                         key={idx}
                         onClick={() => handleSelectWord(index, word)}
-                        className={`relative px-3 py-2.5 md:px-3.5 md:py-3 rounded-lg border-2 text-sm md:text-base transition-all ${
+                        className={`relative px-2.5 py-2 md:px-3 md:py-2.5 rounded-lg border-2 text-xs md:text-sm transition-all ${
                           showCorrect
                             ? 'border-[#00FFA3] bg-[#00FFA3]/10'
                             : showIncorrect
