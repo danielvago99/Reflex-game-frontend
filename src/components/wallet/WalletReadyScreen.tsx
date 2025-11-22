@@ -1,4 +1,4 @@
-import { Copy, QrCode, ArrowRight, AlertCircle, Wallet, CheckCircle2, Shield, Info, Check } from 'lucide-react';
+import { Copy, ArrowRight, CheckCircle2, Info, Check } from 'lucide-react';
 import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -54,25 +54,6 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
         </div>
 
         <div className="flex-1 space-y-4 md:space-y-6">
-          {/* Wallet Secured Confirmation */}
-          <div className="grid gap-4">
-            <div className="relative bg-white/5 backdrop-blur-lg border border-[#00FFA3]/20 rounded-xl p-5">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-xl bg-[#00FFA3]/10 border border-[#00FFA3]/20 flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-[#00FFA3]" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white mb-2">Wallet Secured</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">
-                    Your wallet is encrypted with AES-256-GCM and stored locally. Only you can access it with your password.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Wallet Address Section */}
           <div className="space-y-3">
             <h3 className="text-sm text-gray-400 uppercase tracking-widest">Your Solana Address</h3>
