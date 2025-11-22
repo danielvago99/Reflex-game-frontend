@@ -98,14 +98,14 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
           {/* Verification questions */}
           {randomIndices.map((index) => (
             <div key={index} className="space-y-3">
-              <label className="text-white flex items-center gap-2">
+              <label className="text-white flex items-center gap-2 text-sm md:text-base">
                 Word #{index + 1}
                 {selectedWords[index] === seedPhrase[index] && (
                   <CheckCircle className="w-5 h-5 text-[#00FFA3]" />
                 )}
               </label>
 
-              <div className="grid grid-cols-2 gap-2.5 md:gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 md:gap-3">
                 {shuffledOptions.map((word, idx) => {
                   const isSelected = selectedWords[index] === word;
                   const isCorrectWord = word === seedPhrase[index];
@@ -116,7 +116,7 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
                     <button
                       key={idx}
                       onClick={() => handleSelectWord(index, word)}
-                      className={`relative p-4 rounded-lg border-2 transition-all ${
+                      className={`relative p-3 md:p-4 rounded-lg border-2 text-sm md:text-base transition-all ${
                         showCorrect
                           ? 'border-[#00FFA3] bg-[#00FFA3]/10'
                           : showIncorrect
