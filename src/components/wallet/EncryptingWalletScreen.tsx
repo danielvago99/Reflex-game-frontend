@@ -48,7 +48,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
   }, [onComplete]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden flex items-center justify-center">
+    <div className="h-screen max-h-screen flex flex-col bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 p-safe pb-safe pt-safe relative overflow-hidden items-center justify-center">
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-[#7C3AED] opacity-20 rounded-full blur-[120px] animate-pulse"></div>

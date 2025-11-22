@@ -17,12 +17,12 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      
+    <div className="h-screen max-h-screen flex flex-col bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] items-center justify-center p-3 xs:p-4 sm:p-6 p-safe pb-safe pt-safe relative overflow-hidden">
+
       <FuturisticBackground />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center max-w-md w-full">
+      <div className="relative z-10 flex flex-col items-center max-w-md w-full flex-1 justify-center pb-32">
         {/* Logo */}
         <div className="mb-6 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
@@ -76,7 +76,15 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         </div>
 
         {/* Buttons */}
-        <div className="w-full space-y-3 max-w-xs mx-auto">
+        {/* Footer */}
+        <div className="mt-8 flex items-center gap-2 text-gray-500 text-sm">
+          <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
+          <span>Powered by Solana</span>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 p-safe pb-safe bg-gradient-to-t from-[#0B0F1A] to-transparent backdrop-blur-lg z-50">
+        <div className="max-w-sm mx-auto space-y-3 pb-6">
           <button
             onClick={handleConnectWallet}
             className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
@@ -84,7 +92,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             <Wallet className="w-5 h-5" />
             <span>Connect Wallet</span>
           </button>
-          
+
           <button
             onClick={() => onNavigate('create-wallet')}
             className="w-full bg-white/5 backdrop-blur-lg border border-[#00FFA3]/30 hover:bg-white/10 hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
@@ -100,12 +108,6 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             <Key className="w-4 h-4" />
             <span>Unlock Existing Wallet</span>
           </button>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-8 flex items-center gap-2 text-gray-500 text-sm">
-          <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
-          <span>Powered by Solana</span>
         </div>
       </div>
     </div>

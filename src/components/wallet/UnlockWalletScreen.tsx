@@ -128,14 +128,14 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
   const canUnlock = password.length >= 8 && !isPasswordLocked;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="h-screen max-h-screen flex flex-col bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 p-safe pb-safe pt-safe relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-screen py-8">
+      <div className="relative z-10 max-w-md mx-auto flex flex-col flex-1 py-8 pb-32">
         {/* Header */}
         <div className="text-center mb-8">
           {/* Icon with glow effect */}
@@ -342,15 +342,17 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
           )}
         </div>
 
-        {/* Back button */}
-        {!biometricVerified && (
-          <div className="mt-8">
+      </div>
+
+      {!biometricVerified && (
+        <div className="fixed bottom-0 left-0 right-0 p-safe pb-safe bg-gradient-to-t from-[#0B0F1A] to-transparent backdrop-blur-lg z-50">
+          <div className="max-w-sm mx-auto space-y-3 pb-6">
             <WalletButton onClick={onBack} variant="secondary" fullWidth>
               Back to Welcome
             </WalletButton>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
