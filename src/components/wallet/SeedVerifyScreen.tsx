@@ -81,7 +81,7 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
         </div>
 
         {/* Header */}
-        <div className="text-center mb-4 md:mb-6">
+        <div className="text-center mb-3 md:mb-5">
           <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#06B6D4] mb-3 md:mb-4 relative">
             <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED] to-[#06B6D4] blur-xl opacity-50 animate-pulse"></div>
             <Shield className="w-9 h-9 md:w-10 md:h-10 text-white relative" />
@@ -90,68 +90,70 @@ export function SeedVerifyScreen({ seedPhrase, onContinue, onBack }: SeedVerifyS
           <p className="text-sm md:text-base text-gray-400">Confirm you saved it correctly</p>
         </div>
 
-        <div className="flex-1 space-y-4 md:space-y-6">
-          <WalletAlert variant="info">
-            Select the correct words from your seed phrase to verify you've saved it properly.
-          </WalletAlert>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 space-y-3.5 md:space-y-5 overflow-y-auto pr-1">
+            <WalletAlert variant="info">
+              Select the correct words from your seed phrase to verify you've saved it properly.
+            </WalletAlert>
 
-          {/* Verification questions */}
-          {randomIndices.map((index) => (
-            <div key={index} className="space-y-3">
-              <label className="text-white flex items-center gap-2">
-                Word #{index + 1}
-                {selectedWords[index] === seedPhrase[index] && (
-                  <CheckCircle className="w-5 h-5 text-[#00FFA3]" />
-                )}
-              </label>
+            {/* Verification questions */}
+            {randomIndices.map((index) => (
+              <div key={index} className="space-y-2 md:space-y-2.5">
+                <label className="text-white flex items-center gap-2 text-sm md:text-base">
+                  Word #{index + 1}
+                  {selectedWords[index] === seedPhrase[index] && (
+                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-[#00FFA3]" />
+                  )}
+                </label>
 
-              <div className="grid grid-cols-2 gap-2.5 md:gap-3">
-                {shuffledOptions.map((word, idx) => {
-                  const isSelected = selectedWords[index] === word;
-                  const isCorrectWord = word === seedPhrase[index];
-                  const showCorrect = isSelected && isCorrectWord;
-                  const showIncorrect = isSelected && !isCorrectWord;
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-2.5">
+                  {shuffledOptions.map((word, idx) => {
+                    const isSelected = selectedWords[index] === word;
+                    const isCorrectWord = word === seedPhrase[index];
+                    const showCorrect = isSelected && isCorrectWord;
+                    const showIncorrect = isSelected && !isCorrectWord;
 
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handleSelectWord(index, word)}
-                      className={`relative p-4 rounded-lg border-2 transition-all ${
-                        showCorrect
-                          ? 'border-[#00FFA3] bg-[#00FFA3]/10'
-                          : showIncorrect
-                          ? 'border-red-500 bg-red-500/10'
-                          : isSelected
-                          ? 'border-[#06B6D4] bg-[#06B6D4]/10'
-                          : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
-                      }`}
-                    >
-                      <span className={`${
-                        showCorrect ? 'text-[#00FFA3]' :
-                        showIncorrect ? 'text-red-400' :
-                        'text-white'
-                      }`}>
-                        {word}
-                      </span>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectWord(index, word)}
+                        className={`relative px-3 py-2.5 md:px-3.5 md:py-3 rounded-lg border-2 text-sm md:text-base transition-all ${
+                          showCorrect
+                            ? 'border-[#00FFA3] bg-[#00FFA3]/10'
+                            : showIncorrect
+                            ? 'border-red-500 bg-red-500/10'
+                            : isSelected
+                            ? 'border-[#06B6D4] bg-[#06B6D4]/10'
+                            : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className={`${
+                          showCorrect ? 'text-[#00FFA3]' :
+                          showIncorrect ? 'text-red-400' :
+                          'text-white'
+                        }`}>
+                          {word}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {/* Feedback */}
-          {allSelected && !isCorrect && (
-            <WalletAlert variant="danger">
-              Some words are incorrect. Please review your seed phrase and try again.
-            </WalletAlert>
-          )}
+            {/* Feedback */}
+            {allSelected && !isCorrect && (
+              <WalletAlert variant="danger">
+                Some words are incorrect. Please review your seed phrase and try again.
+              </WalletAlert>
+            )}
 
-          {allSelected && isCorrect && (
-            <WalletAlert variant="success" title="Verification Successful!">
-              You've correctly verified your seed phrase. Your wallet is ready to be created.
-            </WalletAlert>
-          )}
+            {allSelected && isCorrect && (
+              <WalletAlert variant="success" title="Verification Successful!">
+                You've correctly verified your seed phrase. Your wallet is ready to be created.
+              </WalletAlert>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
