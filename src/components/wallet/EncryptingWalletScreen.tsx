@@ -48,7 +48,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
   }, [onComplete]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden">
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-[#7C3AED] opacity-20 rounded-full blur-[120px] animate-pulse"></div>
@@ -71,52 +71,54 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
         ))}
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto w-full py-4 md:py-5">
-        {/* Step Progress */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center justify-between mb-2 md:mb-3">
-            <span className="text-xs md:text-sm text-gray-400 uppercase tracking-widest">Step 4 of 5</span>
-            <span className="text-xs md:text-sm text-[#00FFA3]">80%</span>
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-1.75rem)] md:min-h-[75vh] py-4 gap-4">
+        <div className="space-y-4 md:space-y-6">
+          {/* Step Progress */}
+          <div>
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <span className="text-xs md:text-sm text-gray-400 uppercase tracking-widest">Step 4 of 5</span>
+              <span className="text-xs md:text-sm text-[#00FFA3]">80%</span>
+            </div>
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] w-4/5 transition-all duration-500"></div>
+            </div>
           </div>
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] w-4/5 transition-all duration-500"></div>
-          </div>
-        </div>
 
-        {/* Animated Lock Icon */}
-        <div className="text-center mb-5 md:mb-7">
-          <div className="relative inline-block">
-            {/* Rotating shield */}
-            <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}>
-              <Shield className="w-32 h-32 text-[#00FFA3]/20" />
-            </div>
-            
-            {/* Pulsing glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-3xl opacity-30 animate-pulse"></div>
-            
-            {/* Center lock */}
-            <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] animate-pulse">
-              <Lock className="w-12 h-12 text-[#0B0F1A]" />
-            </div>
-            
-            {/* Orbiting keys */}
-            <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '4s' }}>
-              <Key className="w-6 h-6 text-[#06B6D4] absolute -top-2" />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '5s', animationDirection: 'reverse' }}>
-              <Key className="w-6 h-6 text-[#7C3AED] absolute -bottom-2" />
+          {/* Animated Lock Icon */}
+          <div className="text-center">
+            <div className="relative inline-block">
+              {/* Rotating shield */}
+              <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}>
+                <Shield className="w-32 h-32 text-[#00FFA3]/20" />
+              </div>
+
+              {/* Pulsing glow */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-3xl opacity-30 animate-pulse"></div>
+
+              {/* Center lock */}
+              <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] animate-pulse">
+                <Lock className="w-12 h-12 text-[#0B0F1A]" />
+              </div>
+
+              {/* Orbiting keys */}
+              <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '4s' }}>
+                <Key className="w-6 h-6 text-[#06B6D4] absolute -top-2" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '5s', animationDirection: 'reverse' }}>
+                <Key className="w-6 h-6 text-[#7C3AED] absolute -bottom-2" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Title */}
-        <div className="text-center mb-5 md:mb-7">
-          <h1 className="text-2xl md:text-3xl text-white mb-1 md:mb-2">Encrypting Wallet</h1>
-          <p className="text-sm md:text-base text-gray-400">Your wallet is being secured locally</p>
+          {/* Title */}
+          <div className="text-center">
+            <h1 className="text-2xl md:text-3xl text-white mb-1 md:mb-2">Encrypting Wallet</h1>
+            <p className="text-sm md:text-base text-gray-400">Your wallet is being secured locally</p>
+          </div>
         </div>
 
         {/* Progress Section */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="flex-1 space-y-4 md:space-y-6">
           {/* Current stage */}
           <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-5 md:p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -129,7 +131,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
 
             {/* Progress bar */}
             <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] transition-all duration-300 relative"
                 style={{ width: `${progress}%` }}
               >
@@ -160,7 +162,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
           {/* Stage checklist */}
           <div className="space-y-2">
             {stages.map((s, i) => (
-              <div 
+              <div
                 key={i}
                 className={`flex items-center gap-3 text-sm transition-all duration-300 ${
                   i < stage ? 'text-[#00FFA3]' :
