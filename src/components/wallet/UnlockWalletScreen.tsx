@@ -128,21 +128,21 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
   const canUnlock = password.length >= 8 && !isPasswordLocked;
 
   return (
-    <div className="min-h-[100svh] bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-4 md:p-6 relative overflow-x-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-[100svh] overflow-y-auto py-6">
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-2rem)] md:min-h-[75vh] py-6 gap-4">
         {/* Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4 md:mb-6">
           {/* Icon with glow effect */}
           <div className="relative inline-block mb-3">
             <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-2xl opacity-50"></div>
-            <div className="relative inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
-              <Lock className="w-10 h-10 md:w-12 md:h-12 text-[#0B0F1A]" />
+            <div className="relative inline-flex items-center justify-center w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
+              <Lock className="w-12 h-12 md:w-14 md:h-14 text-[#0B0F1A]" />
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl text-white mb-1">Unlock Wallet</h1>
