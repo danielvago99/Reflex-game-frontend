@@ -135,7 +135,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col h-full py-8">
+      <div className="relative z-10 max-w-md mx-auto flex flex-col h-screen-dvh py-8">
         {/* Header */}
         <div className="text-center mb-8">
           {/* Icon with glow effect */}
