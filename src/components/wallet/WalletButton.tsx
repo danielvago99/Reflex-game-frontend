@@ -19,7 +19,7 @@ export function WalletButton({
   fullWidth = true,
   className = ''
 }: WalletButtonProps) {
-  const baseStyles = "relative py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
+  const baseStyles = "relative py-3.5 sm:py-4 px-5 sm:px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
   
   const variants = {
     primary: "bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] shadow-xl",
@@ -34,7 +34,7 @@ export function WalletButton({
       className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
     >
       {Icon && <Icon className="w-5 h-5" />}
-      <span className="text-lg">{children}</span>
+      <span className="text-base sm:text-lg leading-none">{children}</span>
     </button>
   );
 }
