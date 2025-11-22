@@ -1,6 +1,5 @@
-import { Shield, ArrowRight, AlertTriangle, Info } from 'lucide-react';
+import { ArrowRight, Fingerprint, KeyRound, LockKeyhole, Shield } from 'lucide-react';
 import { WalletButton } from './WalletButton';
-import { WalletCard } from './WalletCard';
 import { WalletAlert } from './WalletAlert';
 
 interface CreateWalletScreenProps {
@@ -40,48 +39,20 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         <div className="flex-1 space-y-4 md:space-y-6">
-          {/* Info Card - Local Encryption */}
-          <WalletCard>
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-[#00FFA3]/10 rounded-lg border border-[#00FFA3]/20">
-                <Shield className="w-6 h-6 text-[#00FFA3]" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-white mb-2">Local Encryption</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Your wallet will be encrypted locally on this device using <span className="text-[#00FFA3]">AES-256-GCM</span> encryption. Your password never leaves your device.
-                </p>
-              </div>
-            </div>
-          </WalletCard>
-
-          {/* BIP-39 Info */}
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-white text-sm mb-1">BIP-39 Standard</h4>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  We'll generate a 12-word <span className="text-[#06B6D4]">seed phrase</span> using the industry-standard BIP-39 protocol. This phrase is the master key to your wallet.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Security Features */}
           <div className="space-y-3">
             <h3 className="text-sm text-gray-400 uppercase tracking-widest">Security Features</h3>
             <div className="space-y-2">
               {[
-                { icon: '🔐', text: 'Password-protected encryption' },
-                { icon: '🔑', text: 'Biometric unlock' },
-
+                { icon: LockKeyhole, text: 'AES-256GCM encryption' },
+                { icon: KeyRound, text: 'BIP-39 Standard' },
+                { icon: Fingerprint, text: 'Biometric unlock' },
               ].map((feature, i) => (
-                <div 
+                <div
                   key={i}
                   className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all"
                 >
-                  <span className="text-xl">{feature.icon}</span>
+                  <feature.icon className="w-5 h-5 text-[#00FFA3]" />
                   <span className="text-sm text-gray-300">{feature.text}</span>
                 </div>
               ))}
