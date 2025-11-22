@@ -108,7 +108,7 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
           {/* Seed phrase display */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur-sm rounded-xl"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5 md:p-6 overflow-hidden">
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 md:p-5 overflow-hidden">
               {!isRevealed ? (
                 <div className="text-center py-10 md:py-12">
                   <EyeOff className="w-12 h-12 text-gray-500 mx-auto mb-3 md:mb-4" />
@@ -123,14 +123,14 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3 mb-4 md:mb-5">
+                  <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-2.5 mb-3 md:mb-4">
                     {seedPhrase.map((word, index) => (
-                      <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-2.5">
-                        <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00FFA3] bg-white/10 border border-[#00FFA3]/20 rounded-full px-2 py-0.5 mb-1">
+                      <div key={index} className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 sm:p-2">
+                        <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00FFA3] bg-white/10 border border-[#00FFA3]/20 rounded-full px-2 py-0.5 mb-1 justify-center">
                           <span className="text-[10px] text-white/70">No.</span>
                           <span>#{index + 1}</span>
                         </div>
-                        <div className="text-sm sm:text-base text-white leading-tight">{word}</div>
+                        <div className="text-xs sm:text-sm md:text-base text-white leading-tight text-center">{word}</div>
                       </div>
                     ))}
                   </div>
