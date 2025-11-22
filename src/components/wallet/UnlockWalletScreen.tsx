@@ -141,8 +141,8 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
           {/* Icon with glow effect */}
           <div className="relative inline-block mb-3">
             <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-2xl opacity-50"></div>
-            <div className="relative inline-flex items-center justify-center w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
-              <Lock className="w-12 h-12 md:w-14 md:h-14 text-[#0B0F1A]" />
+            <div className="relative inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
+              <Lock className="w-10 h-10 md:w-12 md:h-12 text-[#0B0F1A]" />
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl text-white mb-1">Unlock Wallet</h1>
@@ -230,10 +230,10 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
               {errorMessage && !isPasswordLocked && (
                 <div className="relative">
                   <div className="absolute -inset-px bg-gradient-to-br from-red-500/30 to-orange-500/30 blur-sm rounded-lg"></div>
-                  <div className="relative bg-red-500/10 backdrop-blur-lg border border-red-500/30 rounded-lg p-3.5">
+                  <div className="relative bg-red-500/10 backdrop-blur-lg border border-red-500/30 rounded-lg p-4">
                     <div className="flex items-start gap-3">
                       <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs md:text-sm text-red-300 leading-relaxed">{errorMessage}</p>
+                      <p className="text-sm text-red-300 leading-relaxed">{errorMessage}</p>
                     </div>
                   </div>
                 </div>
