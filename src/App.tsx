@@ -4,6 +4,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { AppProviders } from './app/providers/AppProviders';
 import { RouteGuard } from './app/routes/RouteGuard';
 import { Toaster } from './components/ui/sonner';
+import { ScrollToTop } from './app/ScrollToTop';
 
 const WelcomeRoute = lazy(() => import('./features/auth/routes/WelcomeRoute'));
 const CreateWalletRoute = lazy(() => import('./features/wallet/routes/CreateWalletRoute'));
@@ -33,6 +34,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppProviders>
         <Suspense fallback={<LoadingScreen onComplete={() => undefined} isStatic />}>
           <Routes>
