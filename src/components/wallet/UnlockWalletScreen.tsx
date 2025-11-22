@@ -149,7 +149,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
           <p className="text-sm md:text-base text-gray-400">Access your secure Web3 wallet</p>
         </div>
 
-        <div className="flex-1 space-y-4">
+        <div className="space-y-4 flex flex-col">
           {/* Biometric unlock option */}
           {biometricAvailable && !biometricVerified && !isPasswordLocked && (
             <div className="relative">
