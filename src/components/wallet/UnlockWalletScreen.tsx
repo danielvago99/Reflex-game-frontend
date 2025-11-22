@@ -128,14 +128,14 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
   const canUnlock = password.length >= 8 && !isPasswordLocked;
 
   return (
-    <div className="min-h-[100svh] bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden">
+    <div className="min-h-[100svh] bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden flex flex-col">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100svh-1.75rem)] md:min-h-[75vh] py-5 gap-4">
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col flex-1 min-h-full md:min-h-[75vh] py-5 gap-4">
         {/* Header */}
         <div className="text-center mb-4 md:mb-6">
           {/* Icon with glow effect */}
@@ -149,7 +149,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
           <p className="text-sm md:text-base text-gray-400">Access your secure Web3 wallet</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 pb-2">
+        <div className="flex-1 overflow-y-auto space-y-4 pb-3">
           {/* Biometric unlock option */}
           {biometricAvailable && !biometricVerified && !isPasswordLocked && (
             <div className="relative">
