@@ -1,8 +1,7 @@
-import { Lock, ArrowRight, Fingerprint, Info, Eye, EyeOff } from 'lucide-react';
+import { Lock, ArrowRight, Fingerprint } from 'lucide-react';
 import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletInput } from './WalletInput';
-import { WalletAlert } from './WalletAlert';
 import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
 import { getPasswordStrength } from '../../utils/walletCrypto';
@@ -18,9 +17,6 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
   const [understand, setUnderstand] = useState(false);
   const [biometric, setBiometric] = useState(false);
   const [errors, setErrors] = useState({ password: '', confirm: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
   const passwordStrength = password ? getPasswordStrength(password) : null;
 
   const validatePassword = () => {
@@ -97,57 +93,30 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
         </div>
 
         <div className="flex-1 space-y-4 md:space-y-6">
-          {/* Password info */}
-          <div className="relative bg-white/5 backdrop-blur-lg border border-[#00FFA3]/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-[#00FFA3] mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-white text-sm mb-1">Local Encryption Only</h4>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Your password encrypts your wallet locally on this device. You'll need your seed phrase to recover your wallet on other devices.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Password fields */}
           <div className="space-y-3 md:space-y-4">
             <div className="relative">
               <WalletInput
                 label="Password"
-                type={showPassword ? "text" : "password"}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
                 error={errors.password}
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-gray-400 hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
-            
+
             <div className="relative">
               <WalletInput
                 label="Confirm Password"
-                type={showConfirm ? "text" : "password"}
+                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
                 error={errors.confirm}
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-9 text-gray-400 hover:text-white transition-colors"
-              >
-                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
           </div>
 
