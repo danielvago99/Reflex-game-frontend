@@ -1222,6 +1222,12 @@
   .min-h-screen {
     min-height: 100vh;
   }
+  /* Kritické – vyrieši scroll na iPhone 16 Pro, 15 Pro, SE, všetkých */
+  .h-screen-dvh {
+     height: 100dvh;        /* dynamická výška bez adresného baru */
+     min-height: 100dvh;
+     max-height: 100dvh;
+  }
 
   .w-0 {
     width: calc(var(--spacing) * 0);
