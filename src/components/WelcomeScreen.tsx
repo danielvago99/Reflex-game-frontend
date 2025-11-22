@@ -48,9 +48,9 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             
             {/* Corner indicators */}
             <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
-            <div className="absolute -top-2 -right-2 w-3 h-3 border-t border-r border-[#00FFA3]/50"></div>
+            <div className="absolute top-2 right-2 w-3 h-3 border-t border-r border-[#00FFA3]/50"></div>
             <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
-            <div className="absolute -bottom-2 -left-2 w-3 h-3 border-b border-l border-[#06B6D4]/50"></div>
+            <div className="absolute bottom-2 left-2 w-3 h-3 border-b border-l border-[#06B6D4]/50"></div>
             
             <div className="p-6">
               <p className="text-gray-300 text-center leading-relaxed">
