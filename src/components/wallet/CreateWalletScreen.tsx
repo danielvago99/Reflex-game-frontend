@@ -36,7 +36,7 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
             <Shield className="w-9 h-9 md:w-10 md:h-10 text-white relative animate-pulse" />
           </div>
           <h1 className="text-2xl md:text-3xl text-white mb-1 md:mb-2">Create Wallet</h1>
-          <p className="text-sm md:text-base text-gray-400">Your secure, non-custodial Web3 wallet</p>
+          <p className="text-sm md:text-base text-gray-400">Your secure, non-custodial Solana wallet</p>
         </div>
 
         <div className="flex-1 space-y-4 md:space-y-6">
@@ -74,9 +74,8 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
             <div className="space-y-2">
               {[
                 { icon: '🔐', text: 'Password-protected encryption' },
-                { icon: '🔑', text: 'BIP-39 seed phrase generation' },
-                { icon: '💾', text: 'Local storage only - never sent to servers' },
-                { icon: '🚀', text: 'Compatible with other Solana wallets' },
+                { icon: '🔑', text: 'Biometric unlock' },
+
               ].map((feature, i) => (
                 <div 
                   key={i}
