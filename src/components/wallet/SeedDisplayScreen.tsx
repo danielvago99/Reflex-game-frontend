@@ -123,11 +123,11 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-3 gap-2.5 md:gap-3 mb-4 md:mb-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-5">
                     {seedPhrase.map((word, index) => (
-                      <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
-                        <div className="text-xs text-gray-500 mb-1">#{index + 1}</div>
-                        <div className="text-white">{word}</div>
+                      <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-2.5 sm:p-3">
+                        <div className="text-[11px] text-gray-500 mb-1">#{index + 1}</div>
+                        <div className="text-sm sm:text-base text-white leading-tight">{word}</div>
                       </div>
                     ))}
                   </div>
