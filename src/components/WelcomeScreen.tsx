@@ -45,13 +45,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             {/* Top accent line */}
             <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
             <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
-            
-            {/* Corner indicators */}
-            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
-            <div className="absolute top-2 right-2 w-3 h-3 border-t border-r border-[#00FFA3]/50"></div>
-            <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
-            <div className="absolute bottom-2 left-2 w-3 h-3 border-b border-l border-[#06B6D4]/50"></div>
-            
+                      
             <div className="p-6">
               <p className="text-gray-300 text-center leading-relaxed">
                 Challenge players worldwide in real-time reflex duels.
@@ -60,6 +54,12 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             </div>
           </div>
         </div>
+
+            {/* Corner indicators */}
+            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
+            <div className="absolute top-2 right-2 w-3 h-3 border-t border-r border-[#00FFA3]/50"></div>
+            <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
+            <div className="absolute bottom-2 left-2 w-3 h-3 border-b border-l border-[#06B6D4]/50"></div>
 
         {/* Game features mini preview */}
         <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
