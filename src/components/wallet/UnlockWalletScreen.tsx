@@ -344,7 +344,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
 
         {/* Back button */}
         {!biometricVerified && (
-          <div className="mt-3">
+          <div className="mt-8">
             <WalletButton onClick={onBack} variant="secondary" fullWidth>
               Back to Welcome
             </WalletButton>
