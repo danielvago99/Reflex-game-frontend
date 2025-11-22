@@ -1,4 +1,4 @@
-import { Shield, ArrowRight, Info, CheckCircle2 } from 'lucide-react';
+import { Shield, ArrowRight, ArrowLeft, Info, CheckCircle2 } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import { WalletCard } from './WalletCard';
 import { WalletAlert } from './WalletAlert';
@@ -30,7 +30,7 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         {/* Header */}
-        <div className="text-center">
+        <div className="text-center mb-4 md:mb-6">
           <div className="relative inline-block mb-3">
             <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-2xl opacity-50"></div>
             <div className="relative inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
@@ -120,16 +120,18 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         {/* Actions */}
-        <div className="mt-4 space-y-3">
-          <WalletButton
-            onClick={onContinue}
-            icon={ArrowRight}
-          >
-            Continue
-          </WalletButton>
-          <WalletButton onClick={onBack} variant="secondary">
-            Back
-          </WalletButton>
+        <div className="mt-4 sticky bottom-3 left-0 right-0">
+          <div className="bg-[#0B0F1A]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 space-y-2">
+            <WalletButton
+              onClick={onContinue}
+              icon={ArrowRight}
+            >
+              Continue
+            </WalletButton>
+            <WalletButton onClick={onBack} variant="secondary" icon={ArrowLeft}>
+              Back
+            </WalletButton>
+          </div>
         </div>
       </div>
     </div>
