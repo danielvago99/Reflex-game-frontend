@@ -1,4 +1,4 @@
-import { Shield, ArrowRight, AlertTriangle, Info } from 'lucide-react';
+import { Shield, ArrowRight, Info, CheckCircle2 } from 'lucide-react';
 import { WalletButton } from './WalletButton';
 import { WalletCard } from './WalletCard';
 import { WalletAlert } from './WalletAlert';
@@ -10,75 +10,99 @@ interface CreateWalletScreenProps {
 
 export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-1/4 right-1/2 w-96 h-96 bg-[#06B6D4] opacity-10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-screen py-8">
-        {/* Step Progress */}
-        <div className="mb-8">
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-1.75rem)] md:min-h-[75vh] py-5 gap-4">
+        {/* Progress */}
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs text-gray-400 uppercase tracking-widest">Step 1 of 5</span>
-            <span className="text-xs text-[#00FFA3]">20%</span>
+            <span className="text-xs text-[#00FFA3]">20% complete</span>
           </div>
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] w-1/5 transition-all duration-500"></div>
           </div>
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] mb-4 relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50"></div>
-            <Shield className="w-10 h-10 text-white relative animate-pulse" />
+        <div className="text-center">
+          <div className="relative inline-block mb-3">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-2xl opacity-50"></div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4]">
+              <Shield className="w-10 h-10 md:w-12 md:h-12 text-[#0B0F1A]" />
+            </div>
           </div>
-          <h1 className="text-3xl text-white mb-2">Create Wallet</h1>
-          <p className="text-gray-400">Your secure, non-custodial Web3 wallet</p>
+          <h1 className="text-2xl md:text-3xl text-white mb-1">Create Wallet</h1>
+          <p className="text-sm md:text-base text-gray-400">Your secure, non-custodial Web3 wallet</p>
         </div>
 
-        <div className="flex-1 space-y-6">
-          {/* Info Card - Local Encryption */}
-          <WalletCard>
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-[#00FFA3]/10 rounded-lg border border-[#00FFA3]/20">
-                <Shield className="w-6 h-6 text-[#00FFA3]" />
+        <div className="flex-1 space-y-4">
+          {/* Local encryption */}
+          <div className="relative">
+            <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/25 to-[#06B6D4]/25 blur-sm rounded-xl"></div>
+            <WalletCard>
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[#00FFA3]/10 rounded-lg border border-[#00FFA3]/20">
+                  <Shield className="w-6 h-6 text-[#00FFA3]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white mb-2">Local Encryption</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    Your wallet will be encrypted locally on this device using <span className="text-[#00FFA3]">AES-256-GCM</span> encryption. Your password never leaves your device.
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-white mb-2">Local Encryption</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  Your wallet will be encrypted locally on this device using <span className="text-[#00FFA3]">AES-256-GCM</span> encryption. Your password never leaves your device.
-                </p>
-              </div>
-            </div>
-          </WalletCard>
+            </WalletCard>
+          </div>
 
-          {/* BIP-39 Info */}
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-white text-sm mb-1">BIP-39 Standard</h4>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  We'll generate a 12-word <span className="text-[#06B6D4]">seed phrase</span> using the industry-standard BIP-39 protocol. This phrase is the master key to your wallet.
-                </p>
+          {/* Seed phrase overview */}
+          <div className="relative">
+            <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#00FFA3]/20 blur-sm rounded-xl"></div>
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <div>
+                    <h4 className="text-white text-sm mb-1">BIP-39 Standard</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      We'll generate a 12-word <span className="text-[#06B6D4]">seed phrase</span> using the industry-standard BIP-39 protocol. This phrase is the master key to your wallet.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#00FFA3]" />
+                      <span>Works offline & on-device</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#00FFA3]" />
+                      <span>Restores across wallets</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Security Features */}
+          {/* Security checklist */}
           <div className="space-y-3">
-            <h3 className="text-sm text-gray-400 uppercase tracking-widest">Security Features</h3>
-            <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400 uppercase tracking-widest">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></span>
+              <span>Security Features</span>
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></span>
+            </div>
+            <div className="space-y-2.5">
               {[
                 { icon: '🔐', text: 'Password-protected encryption' },
                 { icon: '🔑', text: 'BIP-39 seed phrase generation' },
                 { icon: '💾', text: 'Local storage only - never sent to servers' },
                 { icon: '🚀', text: 'Compatible with other Solana wallets' },
               ].map((feature, i) => (
-                <div 
+                <div
                   key={i}
                   className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all"
                 >
@@ -96,9 +120,9 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         {/* Actions */}
-        <div className="space-y-3 mt-8">
-          <WalletButton 
-            onClick={onContinue} 
+        <div className="mt-4 space-y-3">
+          <WalletButton
+            onClick={onContinue}
             icon={ArrowRight}
           >
             Continue
