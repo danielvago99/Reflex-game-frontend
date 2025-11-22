@@ -10,19 +10,19 @@ interface CreateWalletScreenProps {
 
 export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4 relative overflow-x-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-[#00FFA3] opacity-10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-1/4 right-1/2 w-96 h-96 bg-[#06B6D4] opacity-10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-screen py-8">
+      <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-1.75rem)] md:min-h-[75vh] py-5 md:py-6 gap-4 md:gap-5">
         {/* Step Progress */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-gray-400 uppercase tracking-widest">Step 1 of 5</span>
-            <span className="text-xs text-[#00FFA3]">20%</span>
+        <div className="mb-2 md:mb-4">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <span className="text-xs md:text-sm text-gray-400 uppercase tracking-widest">Step 1 of 5</span>
+            <span className="text-xs md:text-sm text-[#00FFA3]">20%</span>
           </div>
           <div className="h-1 bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] w-1/5 transition-all duration-500"></div>
@@ -30,16 +30,16 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] mb-4 relative">
+        <div className="text-center mb-4 md:mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] mb-3 md:mb-4 relative">
             <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50"></div>
-            <Shield className="w-10 h-10 text-white relative animate-pulse" />
+            <Shield className="w-9 h-9 md:w-10 md:h-10 text-white relative animate-pulse" />
           </div>
-          <h1 className="text-3xl text-white mb-2">Create Wallet</h1>
-          <p className="text-gray-400">Your secure, non-custodial Web3 wallet</p>
+          <h1 className="text-2xl md:text-3xl text-white mb-1 md:mb-2">Create Wallet</h1>
+          <p className="text-sm md:text-base text-gray-400">Your secure, non-custodial Web3 wallet</p>
         </div>
 
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 space-y-4 md:space-y-6">
           {/* Info Card - Local Encryption */}
           <WalletCard>
             <div className="flex items-start gap-4">
@@ -96,9 +96,9 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
         </div>
 
         {/* Actions */}
-        <div className="space-y-3 mt-8">
-          <WalletButton 
-            onClick={onContinue} 
+        <div className="space-y-3 mt-6">
+          <WalletButton
+            onClick={onContinue}
             icon={ArrowRight}
           >
             Continue
