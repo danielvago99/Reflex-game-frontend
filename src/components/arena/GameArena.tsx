@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HUD } from './HUD';
-import Arena3D from './Arena3D';
+import ArenaCanvas from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
 import { PauseMenu } from './PauseMenu';
 import { ForfeitConfirmDialog } from './ForfeitConfirmDialog';
@@ -315,8 +315,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         />
 
         {/* Arena Canvas */}
-        <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
-          <Arena3D
+        <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative min-h-[480px] md:min-h-[560px]">
+          <ArenaCanvas
             isActive={gameState === 'playing'}
             targetShape={(currentTarget ?? targets[0]).shape}
             targetColor={(currentTarget ?? targets[0]).color}

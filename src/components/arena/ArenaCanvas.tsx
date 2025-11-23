@@ -1,320 +1,351 @@
-import { useEffect, useRef, useState } from 'react';
-import * as PIXI from 'pixi.js';
+import { forwardRef, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Bloom, EffectComposer, Glitch, Noise } from '@react-three/postprocessing';
+import { BlendFunction, GlitchMode } from 'postprocessing';
+import { Float, Grid, Html, Stars } from '@react-three/drei';
+import * as THREE from 'three';
+import type { Vector3 } from '@react-three/fiber';
+
+type TargetShape = 'circle' | 'square' | 'triangle';
 
 interface ArenaCanvasProps {
   isActive: boolean;
-  targetShape: 'circle' | 'square' | 'triangle';
+  targetShape: TargetShape;
   targetColor: string;
   onTargetAppeared: () => void;
   onTargetDisappeared?: () => void;
+  onHit?: () => void;
+  onMiss?: () => void;
+  round?: number;
+  totalRounds?: number;
 }
 
-interface Shape {
-  graphics: PIXI.Graphics;
-  type: 'circle' | 'square' | 'triangle';
-  color: number;
-  isTarget: boolean;
+interface TargetInstance {
+  id: number;
+  position: THREE.Vector3;
+  scale: number;
 }
 
-// Module-level singleton - create app instance immediately
-let globalPixiApp: PIXI.Application | null = null;
+const neonPalette = ['#00f5ff', '#7c3aed', '#f97316', '#22d3ee', '#ff00b8'];
 
-export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const shapesRef = useRef<Shape[]>([]);
-  const targetTimerRef = useRef<number | null>(null);
-  const spawnIntervalRef = useRef<number | null>(null);
-  const hasNotifiedTargetRef = useRef(false);
-  const currentTargetRef = useRef<Shape | null>(null);
-  const [isAppReady, setIsAppReady] = useState(false);
-  const isActiveRef = useRef(isActive);
-  const targetSpawnCountRef = useRef(0);
-
+const useMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    isActiveRef.current = isActive;
-  }, [isActive]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let destroyed = false;
-    let resizeAttached = false;
-    const app = new PIXI.Application();
-
-    const handleResize = () => {
-      app.renderer.resize(container.clientWidth, container.clientHeight);
-    };
-    
-    const initApp = async () => {
-      try {
-          await app.init({
-          resizeTo: container,
-          backgroundAlpha: 0,
-          antialias: true,
-        });
-
-        if (destroyed) {
-          app.destroy(true, { children: true });
-          return;
-        }
-
-        globalPixiApp = app;
-        container.appendChild(app.canvas);
-        setIsAppReady(true);
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        resizeAttached = true;
-      } catch (error) {
-        console.error('Failed to initialize PixiJS application:', error);
-          }
-    };
-
-    initApp();
-
-    return () => {
-      destroyed = true;
-
-      if (resizeAttached) {
-        window.removeEventListener('resize', handleResize);
-      }
-
-      if (app.canvas && container.contains(app.canvas)) {
-        container.removeChild(app.canvas);
-      }
-
-      app.destroy(true, { children: true });
-
-      if (globalPixiApp === app) {
-        globalPixiApp = null;
-      }
-
-      setIsAppReady(false);
-    };
+    setIsMobile(window.innerWidth < 640);
   }, []);
+  return isMobile;
+};
 
-  // Game logic - spawn shapes when active
-  useEffect(() => {
-    if (!isActive || !isAppReady) {
-      hasNotifiedTargetRef.current = false;
-      return;
-    }
-
-    const app = globalPixiApp;
-    if (!app) return;
-    hasNotifiedTargetRef.current = false;
-    targetSpawnCountRef.current = 0;
-
-    // Clear existing shapes
-    shapesRef.current.forEach(shape => {
-      app.stage.removeChild(shape.graphics);
-    });
-    shapesRef.current = [];
-
-    // Spawn initial random shapes
-    for (let i = 0; i < 11; i++) {
-      setTimeout(() => spawnShape(app, false), i * 100);
-    }
-
-    // Spawn target shape after 1-2 seconds
-    const targetDelay = 1000 + Math.random() * 1500;
-    targetTimerRef.current = window.setTimeout(() => {
-      targetSpawnCountRef.current += 1;
-      spawnShape(app, true);
-    }, targetDelay);
-
-    // Continue spawning random shapes
-    const spawnInterval = window.setInterval(() => {
-      if (Math.random() > 0.2) { // 80% chance to spawn
-        spawnShape(app, false);
-      }
-    }, 400);
-    spawnIntervalRef.current = spawnInterval;
-    return () => {
-      if (targetTimerRef.current !== null) {
-        window.clearTimeout(targetTimerRef.current);
-        targetTimerRef.current = null;
-      }
-
-      if (spawnIntervalRef.current !== null) {
-        window.clearInterval(spawnIntervalRef.current);
-        spawnIntervalRef.current = null;
-      }
-    };
-  }, [isActive, isAppReady, targetShape, targetColor]);
-
-  // Convert hex color to number
-  const hexToNumber = (hex: string): number => {
-    return parseInt(hex.replace('#', ''), 16);
-  };
-
-  // Available colors for shapes
-  const colors = {
-    red: 0xFF0000,
-    green: 0x00FF00,
-    blue: 0x0000FF,
-    yellow: 0xFFFF00,
-    purple: 0x9333EA,
-    cyan: 0x06B6D4,
-    orange: 0xFF6B00,
-    pink: 0xFF0099,
-  };
-
-  const colorArray = Object.values(colors);
-  const targetColorNumber = hexToNumber(targetColor);
-
-  // Create shape graphics
-  const createShape = (type: 'circle' | 'square' | 'triangle', color: number, x: number, y: number, size: number): PIXI.Graphics => {
-    const graphics = new PIXI.Graphics();
-
-    if (type === 'circle') {
-      graphics.circle(0, 0, size);
-    } else if (type === 'square') {
-      graphics.rect(-size, -size, size * 2, size * 2);
-    } else if (type === 'triangle') {
-      graphics.moveTo(0, -size);
-      graphics.lineTo(size, size);
-      graphics.lineTo(-size, size);
-      graphics.closePath();
-    }
-
-    graphics.fill({ color, alpha: 1 });
-    graphics.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.3 });
-
-    graphics.x = x;
-    graphics.y = y;
-
-    return graphics;
-  };
-
-  // Spawn random shapes
-  const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
-    if (!app.stage) return;
-
-    const width = app.renderer.width;
-    const height = app.renderer.height;
-
-    // Random position with padding
-    const padding = 80;
-    const x = padding + Math.random() * (width - padding * 2);
-    const y = padding + Math.random() * (height - padding * 2);
-
-    // Random size
-    const size = 8 + Math.random() * 14;
-
-    let type: 'circle' | 'square' | 'triangle';
-    let color: number;
-
-    if (shouldBeTarget) {
-      type = targetShape;
-      color = targetColorNumber;
-    } else {
-      // Random shape and color, but not the target combination
-      const shapeTypes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
-      type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      color = colorArray[Math.floor(Math.random() * colorArray.length)];
-      
-      // If we accidentally created the target, change it
-      if (type === targetShape && color === targetColorNumber) {
-        color = colorArray.find(c => c !== targetColorNumber) || colors.red;
-      }
-    }
-
-    const graphics = createShape(type, color, x, y, size);
-    
-    // Add fade-in animation
-    graphics.alpha = 0;
-    app.stage.addChild(graphics);
-
-    const shape: Shape = {
-      graphics,
-      type,
-      color,
-      isTarget: shouldBeTarget,
-    };
-
-    shapesRef.current.push(shape);
-
-    // Fade in
-    const fadeIn = setInterval(() => {
-      graphics.alpha += 0.1;
-      if (graphics.alpha >= 1) {
-        clearInterval(fadeIn);
-        
-        // If this is the target shape, notify parent
-        if (shouldBeTarget && !hasNotifiedTargetRef.current) {
-          hasNotifiedTargetRef.current = true;
-          onTargetAppeared();
-          currentTargetRef.current = shape;
-        }
-      }
-    }, 30);
-
-    // Schedule removal after 2-4 seconds
-    window.setTimeout(() => {
-      const fadeOut = window.setInterval(() => {
-        graphics.alpha -= 0.05;
-        if (graphics.alpha <= 0) {
-          clearInterval(fadeOut);
-          app.stage.removeChild(graphics);
-          shapesRef.current = shapesRef.current.filter(s => s !== shape);
-          
-          // If this is the target shape, notify parent
-            if (shouldBeTarget) {
-            if (hasNotifiedTargetRef.current && onTargetDisappeared) {
-              hasNotifiedTargetRef.current = false;
-              onTargetDisappeared();
-              currentTargetRef.current = null;
-            }
-
-            if (isActiveRef.current && targetSpawnCountRef.current < 2) {
-              targetSpawnCountRef.current += 1;
-
-              const retryDelay = 800 + Math.random() * 700;
-              targetTimerRef.current = window.setTimeout(() => {
-                spawnShape(app, true);
-              }, retryDelay);
-            }
-          }
-        }
-      }, 30);
-    }, 2000 + Math.random() * 2000);
-  };
+const FloatingCameraHint = () => {
+  const groupRef = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    const group = groupRef.current;
+    if (!group) return;
+    group.rotation.z = Math.sin(clock.elapsedTime * 0.4) * 0.2;
+    group.position.y = 1.6 + Math.sin(clock.elapsedTime * 0.6) * 0.06;
+  });
 
   return (
-    <div className="relative w-full h-full max-w-4xl mx-auto">
-      {/* Glow effect */}
-      <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl"></div>
-      
-      {/* Main canvas container */}
-      <div 
-        ref={containerRef}
-        className="relative bg-black/40 backdrop-blur-lg border-2 border-white/20 rounded-3xl overflow-hidden shadow-2xl h-full min-h-[400px] md:min-h-[500px]"
-      >
-        {/* Corner accents */}
-        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-cyan-400/50 pointer-events-none z-10"></div>
-        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-pink-400/50 pointer-events-none z-10"></div>
-        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-cyan-400/50 pointer-events-none z-10"></div>
-        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-pink-400/50 pointer-events-none z-10"></div>
-
-        {/* Scan line animation */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-          <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan-line"></div>
+    <group ref={groupRef} position={[0, 1.6, -2.4]}>
+      <Float speed={1.3} floatIntensity={0.35} rotationIntensity={0.2}>
+        <mesh>
+          <torusGeometry args={[0.16, 0.02, 12, 32]} />
+          <meshBasicMaterial color="#22d3ee" toneMapped={false} />
+        </mesh>
+      </Float>
+      <Html center transform distanceFactor={9} style={{ pointerEvents: 'none' }}>
+        <div className="px-3 py-1 text-xs rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.45)]">
+          Move to target
         </div>
-
-        {/* Grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-5 pointer-events-none z-10"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '20px 20px'
-          }}
-        ></div>
-      </div>
-    </div>
+      </Html>
+    </group>
   );
-}
+};
+
+const NeonGrid = ({ color }: { color: string }) => {
+  const material = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.28,
+      }),
+    [color]
+  );
+
+  useFrame(({ clock }) => {
+    material.opacity = 0.22 + Math.sin(clock.elapsedTime * 0.7) * 0.06;
+  });
+
+  return (
+    <Grid
+      args={[30, 30]}
+      cellSize={0.6}
+      cellThickness={0.35}
+      sectionSize={3}
+      sectionThickness={0.75}
+      sectionColor={color}
+      cellColor={color}
+      position={[0, -1.5, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      infinite
+      fadeDistance={28}
+      fadeStrength={2}
+      material={material}
+    />
+  );
+};
+
+const FloatingPlatform = ({ position, color, speed = 1 }: { position: Vector3; color: string; speed?: number }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const t = clock.elapsedTime * speed;
+    mesh.position.y = (position as number[])[1] + Math.sin(t) * 0.08;
+    mesh.rotation.y = Math.sin(t * 0.6) * 0.1;
+  });
+
+  return (
+    <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.3} position={position}>
+      <mesh ref={meshRef} position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.7, 0.7, 0.08, 20]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.9}
+          metalness={0.2}
+          roughness={0.35}
+          toneMapped={false}
+        />
+      </mesh>
+    </Float>
+  );
+};
+
+const TargetShapeMesh = ({ shape, color, onPointerDown }: { shape: TargetShape; color: string; onPointerDown: () => void }) => {
+  const geometry = useMemo(() => {
+    switch (shape) {
+      case 'square':
+        return new THREE.BoxGeometry(0.42, 0.42, 0.42, 16, 16, 16);
+      case 'triangle':
+        return new THREE.ConeGeometry(0.36, 0.52, 3, 1);
+      default:
+        return new THREE.SphereGeometry(0.32, 20, 16);
+    }
+  }, [shape]);
+
+  return (
+    <mesh geometry={geometry} onPointerDown={onPointerDown}>
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={1.5}
+        roughness={0.3}
+        metalness={0.15}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+};
+
+const Target = ({ target, color, shape, onHit }: { target: TargetInstance; color: string; shape: TargetShape; onHit: () => void }) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    const group = groupRef.current;
+    if (!group) return;
+    const t = clock.elapsedTime;
+    group.position.y = target.position.y + Math.sin(t * 2) * 0.08;
+    group.rotation.y += 0.8 * (1 / 60);
+    const scale = target.scale + Math.sin(t * 3) * 0.05;
+    group.scale.setScalar(scale);
+  });
+
+  return (
+    <group ref={groupRef} position={target.position.toArray()}>
+      <Float speed={2} floatIntensity={0.8} rotationIntensity={0.4}>
+        <TargetShapeMesh shape={shape} color={color} onPointerDown={onHit} />
+      </Float>
+      <pointLight color={color} intensity={4} distance={3} decay={2} />
+    </group>
+  );
+};
+
+const ArenaScene = ({
+  target,
+  color,
+  shape,
+  onHit,
+  round,
+  totalRounds,
+}: {
+  target: TargetInstance | null;
+  color: string;
+  shape: TargetShape;
+  onHit: () => void;
+  round?: number;
+  totalRounds?: number;
+}) => (
+  <>
+    <color attach="background" args={[0.02, 0.01, 0.08]} />
+    <ambientLight intensity={0.7} color="#a2d9ff" />
+    <pointLight position={[2, 3.5, 2]} intensity={2} color="#7c3aed" decay={1.5} />
+    <pointLight position={[-2.5, 2.8, -2.5]} intensity={1.8} color="#22d3ee" decay={1.4} />
+
+    <Stars radius={24} depth={40} count={1800} factor={2.5} saturation={0.8} fade speed={0.6} />
+    <NeonGrid color="#0ea5e9" />
+
+    <FloatingPlatform position={[-1.4, -0.35, -0.6]} color="#7c3aed" speed={0.6} />
+    <FloatingPlatform position={[1.6, -0.25, 0.7]} color="#22d3ee" speed={0.85} />
+
+    {target && <Target target={target} color={color} shape={shape} onHit={onHit} />}
+
+    <Float speed={1.4} floatIntensity={0.3} rotationIntensity={0.15} position={[0, 1.85, 0]}>
+      <Html center transform distanceFactor={6} style={{ pointerEvents: 'none' }}>
+        <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-cyan-100 tracking-wide">
+          Round {round ?? 1}/{totalRounds ?? 7}
+        </div>
+      </Html>
+    </Float>
+
+    <FloatingCameraHint />
+  </>
+);
+
+const ArenaEffects = () => (
+  <EffectComposer multisampling={0}>
+    <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.55} intensity={0.9} mipmapBlur />
+    <Glitch
+      delay={new THREE.Vector2(6, 12)}
+      duration={new THREE.Vector2(0.25, 0.5)}
+      strength={new THREE.Vector2(0.01, 0.025)}
+      mode={GlitchMode.CONSTANT_MILD}
+      activeModes={[GlitchMode.CONSTANT_MILD]}
+    />
+    <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.15} />
+  </EffectComposer>
+);
+
+const ArenaCanvasInner = forwardRef<HTMLCanvasElement, ArenaCanvasProps>(
+  (
+    { isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared, onHit, onMiss, round = 1, totalRounds = 7 },
+    ref
+  ) => {
+    const isMobile = useMobile();
+    const [currentTarget, setCurrentTarget] = useState<TargetInstance | null>(null);
+    const spawnTimeoutRef = useRef<number | null>(null);
+    const activeRef = useRef(isActive);
+
+    useEffect(() => {
+      activeRef.current = isActive;
+    }, [isActive]);
+
+    const clearTimers = () => {
+      if (spawnTimeoutRef.current) {
+        window.clearTimeout(spawnTimeoutRef.current);
+        spawnTimeoutRef.current = null;
+      }
+    };
+
+    const spawnAfterDelay = (delay: number) => {
+      clearTimers();
+      spawnTimeoutRef.current = window.setTimeout(() => {
+        const position = new THREE.Vector3((Math.random() - 0.5) * 2.4, -0.2 + Math.random() * 1.2, (Math.random() - 0.5) * 2.2);
+        const instance: TargetInstance = {
+          id: performance.now(),
+          position,
+          scale: 1 + Math.random() * 0.2,
+        };
+        setCurrentTarget(instance);
+        onTargetAppeared();
+
+        const disappearDelay = 2000 + Math.random() * 1800;
+        spawnTimeoutRef.current = window.setTimeout(() => {
+          setCurrentTarget(null);
+          onTargetDisappeared?.();
+          onMiss?.();
+          if (activeRef.current) {
+            spawnAfterDelay(650 + Math.random() * 850);
+          }
+        }, disappearDelay);
+      }, delay);
+    };
+
+    const scheduleSpawn = () => {
+      const delay = 650 + Math.random() * 850;
+      spawnAfterDelay(delay);
+    };
+
+    useEffect(() => {
+      if (!isActive) {
+        clearTimers();
+        setCurrentTarget(null);
+        return;
+      }
+
+      spawnAfterDelay(280);
+
+      return () => {
+        clearTimers();
+      };
+    }, [isActive, targetShape, targetColor]);
+
+    useEffect(() => {
+      if (isActive && !currentTarget && spawnTimeoutRef.current === null) {
+        scheduleSpawn();
+      }
+    }, [isActive, currentTarget]);
+
+    const handleHit = () => {
+      if (!currentTarget) return;
+      setCurrentTarget(null);
+      onTargetDisappeared?.();
+      onHit?.();
+      if (activeRef.current) {
+        scheduleSpawn();
+      }
+    };
+
+    const accentColors = useMemo(() => neonPalette.sort(() => 0.5 - Math.random()).slice(0, 3), [round]);
+    const idleTarget = useMemo<TargetInstance>(() => ({ id: -1, position: new THREE.Vector3(0, 0.15, 0), scale: 1 }), []);
+    const displayedTarget = currentTarget ?? (!isActive ? idleTarget : null);
+
+    return (
+      <div className="relative w-full max-w-4xl mx-auto">
+        <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl" />
+        <div className="relative bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden shadow-2xl h-[460px] md:h-[560px]">
+          <Canvas
+            ref={ref}
+            dpr={[1, isMobile ? 1.25 : 1.5]}
+            gl={{ antialias: !isMobile }}
+            frameloop="always"
+            camera={{ fov: 55, position: [0, 0.8, 4.4] }}
+            flat
+            performance={{ min: 0.7 }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <Suspense fallback={null}>
+              <ArenaScene target={displayedTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
+              <ambientLight intensity={0.2} />
+              <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
+              <pointLight position={[1.2, 0.8, -2.4]} intensity={0.9} color={accentColors[1] ?? '#7c3aed'} decay={1.2} />
+              <pointLight position={[-1.6, 1.5, 1.2]} intensity={0.8} color={accentColors[2] ?? '#22d3ee'} decay={1.1} />
+              <ArenaEffects />
+            </Suspense>
+          </Canvas>
+
+          <div className="pointer-events-none absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.12),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(236,72,153,0.12),transparent_35%),radial-gradient(circle_at_50%_80%,rgba(124,58,237,0.12),transparent_30%)]" />
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.12 }} />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+);
+
+ArenaCanvasInner.displayName = 'ArenaCanvas';
+
+const ArenaCanvas = (props: ArenaCanvasProps) => <ArenaCanvasInner {...props} />;
+
+export default ArenaCanvas;
