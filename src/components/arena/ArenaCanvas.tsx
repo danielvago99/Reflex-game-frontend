@@ -59,11 +59,14 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const shapesContainerRef = useRef<PIXI.Container | null>(null);
   const parallaxRef = useRef<{ grid: PIXI.Graphics; orbs: PIXI.Graphics[]; time: number; container: PIXI.Container } | null>(null);
   const animationTimeRef = useRef(0);
+  const appDestroyedRef = useRef(false);
   const [isAppReady, setIsAppReady] = useState(false);
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
 
   const cleanupShapes = () => {
+    if (appDestroyedRef.current) return;
+
     const parent = shapesContainerRef.current || globalPixiApp?.stage;
     shapesRef.current.forEach(shape => {
       if (shape.fadeTimeout) {
@@ -148,13 +151,16 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     const teardownApp = () => {
       clearTimers();
       cleanupShapes();
+      appDestroyedRef.current = true;
 
-      if (parallaxRef.current?.container?.parent) {
-        parallaxRef.current.container.parent.removeChild(parallaxRef.current.container);
+      const parallaxContainer = parallaxRef.current?.container;
+      if (parallaxContainer?.parent && parallaxContainer.parent.children.includes(parallaxContainer)) {
+        parallaxContainer.parent.removeChild(parallaxContainer);
       }
 
-      if (shapesContainerRef.current?.parent) {
-        shapesContainerRef.current.parent.removeChild(shapesContainerRef.current);
+      const shapesContainer = shapesContainerRef.current;
+      if (shapesContainer?.parent && shapesContainer.parent.children.includes(shapesContainer)) {
+        shapesContainer.parent.removeChild(shapesContainer);
       }
 
       parallaxRef.current = null;
@@ -173,6 +179,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
           app.destroy(true, { children: true });
           return;
         }
+
+        appDestroyedRef.current = false;
 
         globalPixiApp = app;
         container.appendChild(app.canvas);
@@ -235,8 +243,14 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     createParallaxGraphics(app.renderer.width, app.renderer.height);
 
     return () => {
-      stage.removeChild(parallaxContainer);
-      stage.removeChild(shapesContainer);
+      if (!stage.destroyed && stage.children.includes(parallaxContainer)) {
+        stage.removeChild(parallaxContainer);
+      }
+
+      if (!stage.destroyed && stage.children.includes(shapesContainer)) {
+        stage.removeChild(shapesContainer);
+      }
+
       parallaxRef.current = null;
       shapesContainerRef.current = null;
     };
@@ -498,7 +512,13 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
   // Spawn random shapes
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
-    if (!app.stage || app.stage.destroyed || app.renderer?.destroyed) return;
+    if (
+      appDestroyedRef.current ||
+      !app.stage ||
+      app.stage.destroyed ||
+      app.renderer?.destroyed
+    )
+      return;
 
     const width = app.renderer.width;
     const height = app.renderer.height;
