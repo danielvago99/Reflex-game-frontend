@@ -53,6 +53,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const shapesRef = useRef<Shape[]>([]);
   const targetTimerRef = useRef<number | null>(null);
   const spawnIntervalRef = useRef<number | null>(null);
+  const initialSpawnTimersRef = useRef<number[]>([]);
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
   const shapesContainerRef = useRef<PIXI.Container | null>(null);
@@ -88,6 +89,11 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     if (spawnIntervalRef.current !== null) {
       window.clearInterval(spawnIntervalRef.current);
       spawnIntervalRef.current = null;
+    }
+
+    if (initialSpawnTimersRef.current.length) {
+      initialSpawnTimersRef.current.forEach(timer => window.clearTimeout(timer));
+      initialSpawnTimersRef.current = [];
     }
   };
 
@@ -255,7 +261,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     // Spawn initial random shapes
     for (let i = 0; i < 11; i++) {
-      setTimeout(() => spawnShape(app, false), i * 100);
+      const timer = window.setTimeout(() => spawnShape(app, false), i * 100);
+      initialSpawnTimersRef.current.push(timer);
     }
 
     // Spawn target shape after 1-2 seconds
@@ -273,16 +280,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     }, 400);
     spawnIntervalRef.current = spawnInterval;
     return () => {
-      if (targetTimerRef.current !== null) {
-        window.clearTimeout(targetTimerRef.current);
-        targetTimerRef.current = null;
-      }
-
-      if (spawnIntervalRef.current !== null) {
-        window.clearInterval(spawnIntervalRef.current);
-        spawnIntervalRef.current = null;
-      }
-
+      clearTimers();
       cleanupShapes();
     };
   }, [isActive, isAppReady, targetShape, targetColor]);
@@ -502,7 +500,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
   // Spawn random shapes
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
-    if (!app.stage) return;
+    if (!app.stage || app.stage.destroyed || app.renderer?.destroyed) return;
 
     const width = app.renderer.width;
     const height = app.renderer.height;
