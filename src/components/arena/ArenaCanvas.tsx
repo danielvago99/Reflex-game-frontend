@@ -149,12 +149,12 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       clearTimers();
       cleanupShapes();
 
-      if (parallaxRef.current?.container) {
-        app.stage.removeChild(parallaxRef.current.container);
+      if (parallaxRef.current?.container?.parent) {
+        parallaxRef.current.container.parent.removeChild(parallaxRef.current.container);
       }
 
-      if (shapesContainerRef.current) {
-        app.stage.removeChild(shapesContainerRef.current);
+      if (shapesContainerRef.current?.parent) {
+        shapesContainerRef.current.parent.removeChild(shapesContainerRef.current);
       }
 
       parallaxRef.current = null;
@@ -200,8 +200,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       if (app.canvas && container.contains(app.canvas)) {
         container.removeChild(app.canvas);
       }
-
-      teardownApp();
 
       app.destroy(true, { children: true });
 
