@@ -22,6 +22,7 @@ interface Shape {
   fadeDuration: number;
   fadeElapsed: number;
   onFadeComplete?: () => void;
+  fadeTimeout?: number;
 }
 
 // Module-level singleton - create app instance immediately
@@ -60,6 +61,23 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const [isAppReady, setIsAppReady] = useState(false);
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
+
+  const cleanupShapes = () => {
+    const parent = shapesContainerRef.current || globalPixiApp?.stage;
+    shapesRef.current.forEach(shape => {
+      if (shape.fadeTimeout) {
+        window.clearTimeout(shape.fadeTimeout);
+      }
+
+      if (parent && parent.children.includes(shape.graphics)) {
+        parent.removeChild(shape.graphics);
+      }
+    });
+
+    shapesRef.current = [];
+    currentTargetRef.current = null;
+  };
+
 
   const createParallaxGraphics = (width: number, height: number) => {
     const parallax = parallaxRef.current;
@@ -138,6 +156,15 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     return () => {
       destroyed = true;
 
+      cleanupShapes();
+
+      shapesRef.current.forEach(shape => {
+        if (shape.fadeTimeout) {
+          window.clearTimeout(shape.fadeTimeout);
+        }
+      });
+      shapesRef.current = [];
+
       if (resizeAttached) {
         window.removeEventListener('resize', handleResize);
       }
@@ -200,11 +227,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     targetSpawnCountRef.current = 0;
 
     // Clear existing shapes
-    shapesRef.current.forEach(shape => {
-      const parent = shapesContainerRef.current || app.stage;
-      parent.removeChild(shape.graphics);
-    });
-    shapesRef.current = [];
+    cleanupShapes();
 
     // Spawn initial random shapes
     for (let i = 0; i < 11; i++) {
@@ -235,6 +258,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
         window.clearInterval(spawnIntervalRef.current);
         spawnIntervalRef.current = null;
       }
+
+      cleanupShapes();
     };
   }, [isActive, isAppReady, targetShape, targetColor]);
 
@@ -256,7 +281,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
           orb.position.x += Math.cos(t + idx) * 0.08;
           orb.position.y += Math.sin(t * 1.1 + idx) * 0.08;
           orb.alpha = 0.18 + Math.sin(t * 1.5 + idx) * 0.05;
-      });
+        });
       }
 
       shapesRef.current.forEach(shape => {
@@ -334,13 +359,87 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     const topColor = lighten(color, 0.15);
     const frontColor = darken(color, 0.1);
     const sideColor = darken(color, 0.2);
-    const offset = size * 0.6;
+    const offset = size * 0.65;
+
+    const frontTopLeft = { x: -size, y: -size + offset };
+    const frontTopRight = { x: size, y: -size + offset };
+    const frontBottomRight = { x: size, y: size + offset };
+    const frontBottomLeft = { x: -size, y: size + offset };
+
+    const depth = { x: offset, y: -offset };
+
+    const topBackLeft = { x: frontTopLeft.x + depth.x, y: frontTopLeft.y + depth.y };
+    const topBackRight = { x: frontTopRight.x + depth.x, y: frontTopRight.y + depth.y };
+    const backBottomRight = { x: frontBottomRight.x + depth.x, y: frontBottomRight.y + depth.y };
+    const backBottomLeft = { x: frontBottomLeft.x + depth.x, y: frontBottomLeft.y + depth.y };
 
     graphics.clear();
-    graphics.moveTo(-size, -size + offset).lineTo(size, -size + offset).lineTo(size + offset, -size).lineTo(offset, -size).closePath().fill({ color: topColor, alpha: 0.9 });
-    graphics.moveTo(-size, -size + offset).lineTo(-size, size + offset).lineTo(offset, size).lineTo(offset, -size).closePath().fill({ color: sideColor, alpha: 0.85 });
-    graphics.moveTo(-size, size + offset).lineTo(size, size + offset).lineTo(size + offset, size).lineTo(offset, size).closePath().fill({ color: frontColor, alpha: 0.9 });
-    graphics.stroke({ color: lighten(color, 0.35), width: 1.5, alpha: 0.6 });
+
+    // Top face
+    graphics
+      .moveTo(frontTopLeft.x, frontTopLeft.y)
+      .lineTo(frontTopRight.x, frontTopRight.y)
+      .lineTo(topBackRight.x, topBackRight.y)
+      .lineTo(topBackLeft.x, topBackLeft.y)
+      .closePath()
+      .fill({ color: topColor, alpha: 0.95 });
+
+    // Right face
+    graphics
+      .moveTo(frontTopRight.x, frontTopRight.y)
+      .lineTo(frontBottomRight.x, frontBottomRight.y)
+      .lineTo(backBottomRight.x, backBottomRight.y)
+      .lineTo(topBackRight.x, topBackRight.y)
+      .closePath()
+      .fill({ color: sideColor, alpha: 0.9 });
+
+    // Left face (slightly translucent to hint depth)
+    graphics
+      .moveTo(frontTopLeft.x, frontTopLeft.y)
+      .lineTo(frontBottomLeft.x, frontBottomLeft.y)
+      .lineTo(backBottomLeft.x, backBottomLeft.y)
+      .lineTo(topBackLeft.x, topBackLeft.y)
+      .closePath()
+      .fill({ color: darken(color, 0.25), alpha: 0.4 });
+
+    // Front face
+    graphics
+      .moveTo(frontBottomLeft.x, frontBottomLeft.y)
+      .lineTo(frontBottomRight.x, frontBottomRight.y)
+      .lineTo(frontTopRight.x, frontTopRight.y)
+      .lineTo(frontTopLeft.x, frontTopLeft.y)
+      .closePath()
+      .fill({ color: frontColor, alpha: 0.95 });
+
+    // Underside glow to suggest the hidden base
+    graphics
+      .moveTo(frontBottomLeft.x, frontBottomLeft.y)
+      .lineTo(backBottomLeft.x, backBottomLeft.y)
+      .lineTo(backBottomRight.x, backBottomRight.y)
+      .lineTo(frontBottomRight.x, frontBottomRight.y)
+      .closePath()
+      .fill({ color: darken(color, 0.35), alpha: 0.25 });
+
+    graphics
+      .stroke({ color: lighten(color, 0.5), width: 1.6, alpha: 0.8 })
+      .moveTo(frontTopLeft.x, frontTopLeft.y)
+      .lineTo(topBackLeft.x, topBackLeft.y)
+      .lineTo(topBackRight.x, topBackRight.y)
+      .lineTo(frontTopRight.x, frontTopRight.y)
+      .lineTo(frontTopLeft.x, frontTopLeft.y)
+      .moveTo(frontBottomLeft.x, frontBottomLeft.y)
+      .lineTo(frontTopLeft.x, frontTopLeft.y)
+      .moveTo(frontBottomRight.x, frontBottomRight.y)
+      .lineTo(frontTopRight.x, frontTopRight.y)
+      .moveTo(frontBottomRight.x, frontBottomRight.y)
+      .lineTo(backBottomRight.x, backBottomRight.y)
+      .lineTo(topBackRight.x, topBackRight.y)
+      .moveTo(frontBottomLeft.x, frontBottomLeft.y)
+      .lineTo(backBottomLeft.x, backBottomLeft.y)
+      .lineTo(topBackLeft.x, topBackLeft.y)
+      .moveTo(backBottomLeft.x, backBottomLeft.y)
+      .lineTo(backBottomRight.x, backBottomRight.y)
+      .stroke();
   };
 
   const drawPyramid = (graphics: PIXI.Graphics, color: number, size: number) => {
@@ -434,6 +533,10 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     const beginFadeOut = () => {
       if (shape.fadeMode === 'out') return;
+      if (shape.fadeTimeout) {
+        window.clearTimeout(shape.fadeTimeout);
+        shape.fadeTimeout = undefined;
+      }
       shape.fadeMode = 'out';
       shape.fadeElapsed = 0;
       shape.fadeDuration = 600;
@@ -460,7 +563,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       };
     };
 
-    window.setTimeout(() => {
+    shape.fadeTimeout = window.setTimeout(() => {
       beginFadeOut();
     }, 2000 + Math.random() * 2000);
   };
