@@ -1,8 +1,8 @@
-import { Suspense, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Bloom, EffectComposer, Glitch, Noise } from '@react-three/postprocessing';
 import { BlendFunction, GlitchMode } from 'postprocessing';
-import { Float, Grid, Stars, Text, Trail } from '@react-three/drei';
+import { Float, Grid, Html, Stars, Trail } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Vector3 } from '@react-three/fiber';
 
@@ -62,16 +62,11 @@ const FloatingCameraHint = () => {
           <meshBasicMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={1.4} toneMapped={false} />
         </mesh>
       </Trail>
-      <Text
-        fontSize={0.14}
-        position={[0, 0.25, 0]}
-        color="#b5e8ff"
-        outlineWidth={0.005}
-        outlineColor="#0ea5e9"
-        anchorX="center"
-      >
-        Move to target
-      </Text>
+      <Html center transform distanceFactor={8} style={{ pointerEvents: 'none' }}>
+        <div className="px-2 py-1 text-xs rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.45)]">
+          Move to target
+        </div>
+      </Html>
     </group>
   );
 };
@@ -221,9 +216,11 @@ const ArenaScene = ({
     {target && <Target target={target} color={color} shape={shape} onHit={onHit} />}
 
     <Float speed={1.4} floatIntensity={0.3} rotationIntensity={0.15} position={[0, 1.9, 0]}>
-      <Text fontSize={0.24} color="#cbd5ff" outlineWidth={0.006} outlineColor="#7c3aed" anchorX="center" anchorY="middle">
-        Round {round ?? 1}/{totalRounds ?? 7}
-      </Text>
+      <Html center transform distanceFactor={6} style={{ pointerEvents: 'none' }}>
+        <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-cyan-100 tracking-wide">
+          Round {round ?? 1}/{totalRounds ?? 7}
+        </div>
+      </Html>
     </Float>
 
     <FloatingCameraHint />
@@ -318,11 +315,16 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
     };
 
     const accentColors = useMemo(() => neonPalette.sort(() => 0.5 - Math.random()).slice(0, 3), [round]);
+    const idleTarget = useMemo<TargetInstance>(
+      () => ({ id: -1, position: new THREE.Vector3(0, 0.15, 0), scale: 1 }),
+      []
+    );
+    const displayedTarget = currentTarget ?? (!isActive ? idleTarget : null);
 
     return (
-      <div className="relative w-full h-full max-w-4xl mx-auto">
+      <div className="relative w-full max-w-4xl mx-auto">
         <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl" />
-        <div className="relative bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden shadow-2xl h-full min-h-[400px] md:min-h-[500px]">
+        <div className="relative bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden shadow-2xl h-[420px] md:h-[520px]">
           <Canvas
             ref={ref}
             dpr={[1, isMobile ? 1.25 : 1.5]}
@@ -333,14 +335,12 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             performance={{ min: 0.7 }}
             style={{ width: '100%', height: '100%' }}
           >
-            <Suspense fallback={null}>
-              <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
-              <ambientLight intensity={0.2} />
-              <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
-              <pointLight position={[1.2, 0.8, -2.4]} intensity={0.9} color={accentColors[1] ?? '#7c3aed'} decay={1.2} />
-              <pointLight position={[-1.6, 1.5, 1.2]} intensity={0.8} color={accentColors[2] ?? '#22d3ee'} decay={1.1} />
-              <ArenaEffects />
-            </Suspense>
+            <ArenaScene target={displayedTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
+            <ambientLight intensity={0.2} />
+            <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
+            <pointLight position={[1.2, 0.8, -2.4]} intensity={0.9} color={accentColors[1] ?? '#7c3aed'} decay={1.2} />
+            <pointLight position={[-1.6, 1.5, 1.2]} intensity={0.8} color={accentColors[2] ?? '#22d3ee'} decay={1.1} />
+            <ArenaEffects />
           </Canvas>
 
           <div className="pointer-events-none absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.12),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(236,72,153,0.12),transparent_35%),radial-gradient(circle_at_50%_80%,rgba(124,58,237,0.12),transparent_30%)]" />
