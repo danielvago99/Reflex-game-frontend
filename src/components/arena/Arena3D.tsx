@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Glitch, Noise } from '@react-three/postprocessing';
 import { BlendFunction, GlitchMode } from 'postprocessing';
@@ -330,12 +330,14 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             flat
             performance={{ min: 0.7 }}
           >
-            <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
-            <ambientLight intensity={0.2} />
-            <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
-            <pointLight position={[1.2, 0.8, -2.4]} intensity={0.9} color={accentColors[1] ?? '#7c3aed'} decay={1.2} />
-            <pointLight position={[-1.6, 1.5, 1.2]} intensity={0.8} color={accentColors[2] ?? '#22d3ee'} decay={1.1} />
-            <ArenaEffects />
+            <Suspense fallback={null}>
+              <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
+              <ambientLight intensity={0.2} />
+              <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
+              <pointLight position={[1.2, 0.8, -2.4]} intensity={0.9} color={accentColors[1] ?? '#7c3aed'} decay={1.2} />
+              <pointLight position={[-1.6, 1.5, 1.2]} intensity={0.8} color={accentColors[2] ?? '#22d3ee'} decay={1.1} />
+              <ArenaEffects />
+            </Suspense>
           </Canvas>
 
           <div className="pointer-events-none absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.12),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(236,72,153,0.12),transparent_35%),radial-gradient(circle_at_50%_80%,rgba(124,58,237,0.12),transparent_30%)]" />
