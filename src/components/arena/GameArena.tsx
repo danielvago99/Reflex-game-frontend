@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HUD } from './HUD';
-import { ArenaCanvas } from './ArenaCanvas';
+import Arena3D from './Arena3D';
 import { BottomBar } from './BottomBar';
 import { PauseMenu } from './PauseMenu';
 import { ForfeitConfirmDialog } from './ForfeitConfirmDialog';
@@ -317,12 +317,16 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         {/* Arena Canvas */}
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
           {currentTarget && (
-            <ArenaCanvas
+            <Arena3D
               isActive={gameState === 'playing'}
               targetShape={currentTarget.shape}
               targetColor={currentTarget.color}
               onTargetAppeared={handleTargetAppeared}
               onTargetDisappeared={handleTargetDisappeared}
+              onHit={handleReact}
+              onMiss={() => !roundResolved && setLossReason(prev => prev ?? 'no-reaction')}
+              round={currentRound}
+              totalRounds={MAX_ROUNDS}
             />
           )}
 
