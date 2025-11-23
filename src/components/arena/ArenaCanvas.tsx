@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import * as PIXI from 'pixi.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 
 interface ArenaCanvasProps {
   isActive: boolean;
@@ -9,24 +12,135 @@ interface ArenaCanvasProps {
   onTargetDisappeared?: () => void;
 }
 
-interface Shape {
-  graphics: PIXI.Graphics;
-  type: 'circle' | 'square' | 'triangle';
-  color: number;
+type ShapeType = 'circle' | 'square' | 'triangle';
+
+interface ArenaShape {
+  id: string;
+  type: ShapeType;
+  color: string;
   isTarget: boolean;
+  position: [number, number, number];
+  rotationSpeed: [number, number, number];
+  floatSpeed: number;
+  floatOffset: number;
+  createdAt: number;
+  removing: boolean;
+  removeStartedAt?: number;
 }
 
-// Module-level singleton - create app instance immediately
-let globalPixiApp: PIXI.Application | null = null;
+const FADE_IN_MS = 320;
+const FADE_OUT_MS = 420;
+
+const neonPalette = [
+  '#22d3ee',
+  '#a855f7',
+  '#fb7185',
+  '#22c55e',
+  '#f97316',
+  '#38bdf8',
+  '#facc15',
+  '#67e8f9',
+];
+
+function randomPosition() {
+  const x = (Math.random() - 0.5) * 7;
+  const y = (Math.random() - 0.5) * 4;
+  const z = -4 - Math.random() * 2.5;
+  return [x, y, z] as [number, number, number];
+}
+
+function randomRotationSpeed() {
+  return [
+    0.4 + Math.random() * 0.4,
+    0.4 + Math.random() * 0.4,
+    0.2 + Math.random() * 0.3,
+  ] as [number, number, number];
+}
+
+function shapeGeometry(type: ShapeType) {
+  switch (type) {
+    case 'circle':
+      return new THREE.SphereGeometry(0.5, 24, 24);
+    case 'square':
+      return new THREE.BoxGeometry(0.8, 0.8, 0.8);
+    case 'triangle':
+    default:
+      const pyramid = new THREE.ConeGeometry(0.75, 1.1, 4);
+      pyramid.rotateY(Math.PI / 4);
+      return pyramid;
+  }
+}
+
+interface HolographicShapeProps {
+  shape: ArenaShape;
+  geometries: Record<ShapeType, THREE.BufferGeometry>;
+}
+
+function HolographicShape({ shape, geometries }: HolographicShapeProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame(({ clock }, delta) => {
+    const mesh = meshRef.current;
+    const material = materialRef.current;
+    if (!mesh || !material) return;
+
+    mesh.rotation.x += shape.rotationSpeed[0] * delta;
+    mesh.rotation.y += shape.rotationSpeed[1] * delta;
+    mesh.rotation.z += shape.rotationSpeed[2] * delta;
+
+    const floatY = Math.sin(clock.elapsedTime * shape.floatSpeed + shape.floatOffset) * 0.25;
+    mesh.position.y = shape.position[1] + floatY;
+
+    const now = performance.now();
+    const age = now - shape.createdAt;
+    let opacity = 1;
+
+    if (age < FADE_IN_MS) {
+      opacity = Math.min(age / FADE_IN_MS, 1);
+    }
+
+    if (shape.removing && shape.removeStartedAt) {
+      const fadeProgress = Math.min((now - shape.removeStartedAt) / FADE_OUT_MS, 1);
+      opacity = Math.max(0, 1 - fadeProgress);
+    }
+
+    material.opacity = Math.min(0.95, opacity);
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      position={shape.position}
+      geometry={geometries[shape.type]}
+      castShadow={false}
+      receiveShadow={false}
+    >
+      <meshStandardMaterial
+        ref={materialRef}
+        color={shape.color}
+        emissive={new THREE.Color(shape.color).multiplyScalar(0.6)}
+        metalness={0.1}
+        roughness={0.2}
+        transparent
+        opacity={0}
+        depthWrite={false}
+      />
+      <lineSegments>
+        <edgesGeometry args={[geometries[shape.type]]} />
+        <lineBasicMaterial color="#ffffff" opacity={0.18} transparent />
+      </lineSegments>
+    </mesh>
+  );
+}
 
 export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const shapesRef = useRef<Shape[]>([]);
+  const [shapes, setShapes] = useState<ArenaShape[]>([]);
+  const hasNotifiedTargetRef = useRef(false);
   const targetTimerRef = useRef<number | null>(null);
   const spawnIntervalRef = useRef<number | null>(null);
-  const hasNotifiedTargetRef = useRef(false);
-  const currentTargetRef = useRef<Shape | null>(null);
-  const [isAppReady, setIsAppReady] = useState(false);
+  const removalTimersRef = useRef(new Map<string, number>());
+  const fadeTimersRef = useRef(new Map<string, number>());
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
 
@@ -34,286 +148,205 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     isActiveRef.current = isActive;
   }, [isActive]);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  const geometries = useMemo(() => {
+    const sphere = shapeGeometry('circle');
+    const box = shapeGeometry('square');
+    const pyramid = shapeGeometry('triangle');
 
-    let destroyed = false;
-    let resizeAttached = false;
-    const app = new PIXI.Application();
-
-    const handleResize = () => {
-      app.renderer.resize(container.clientWidth, container.clientHeight);
-    };
-    
-    const initApp = async () => {
-      try {
-          await app.init({
-          resizeTo: container,
-          backgroundAlpha: 0,
-          antialias: true,
-        });
-
-        if (destroyed) {
-          app.destroy(true, { children: true });
-          return;
-        }
-
-        globalPixiApp = app;
-        container.appendChild(app.canvas);
-        setIsAppReady(true);
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        resizeAttached = true;
-      } catch (error) {
-        console.error('Failed to initialize PixiJS application:', error);
-          }
-    };
-
-    initApp();
-
-    return () => {
-      destroyed = true;
-
-      if (resizeAttached) {
-        window.removeEventListener('resize', handleResize);
-      }
-
-      if (app.canvas && container.contains(app.canvas)) {
-        container.removeChild(app.canvas);
-      }
-
-      app.destroy(true, { children: true });
-
-      if (globalPixiApp === app) {
-        globalPixiApp = null;
-      }
-
-      setIsAppReady(false);
-    };
+    return { circle: sphere, square: box, triangle: pyramid };
   }, []);
 
-  // Game logic - spawn shapes when active
   useEffect(() => {
-    if (!isActive || !isAppReady) {
-      hasNotifiedTargetRef.current = false;
-      return;
-    }
-
-    const app = globalPixiApp;
-    if (!app) return;
-    hasNotifiedTargetRef.current = false;
-    targetSpawnCountRef.current = 0;
-
-    // Clear existing shapes
-    shapesRef.current.forEach(shape => {
-      app.stage.removeChild(shape.graphics);
-    });
-    shapesRef.current = [];
-
-    // Spawn initial random shapes
-    for (let i = 0; i < 11; i++) {
-      setTimeout(() => spawnShape(app, false), i * 100);
-    }
-
-    // Spawn target shape after 1-2 seconds
-    const targetDelay = 1000 + Math.random() * 1500;
-    targetTimerRef.current = window.setTimeout(() => {
-      targetSpawnCountRef.current += 1;
-      spawnShape(app, true);
-    }, targetDelay);
-
-    // Continue spawning random shapes
-    const spawnInterval = window.setInterval(() => {
-      if (Math.random() > 0.2) { // 80% chance to spawn
-        spawnShape(app, false);
-      }
-    }, 400);
-    spawnIntervalRef.current = spawnInterval;
     return () => {
-      if (targetTimerRef.current !== null) {
-        window.clearTimeout(targetTimerRef.current);
-        targetTimerRef.current = null;
-      }
-
-      if (spawnIntervalRef.current !== null) {
-        window.clearInterval(spawnIntervalRef.current);
-        spawnIntervalRef.current = null;
-      }
+      Object.values(geometries).forEach((geom) => geom.dispose());
     };
-  }, [isActive, isAppReady, targetShape, targetColor]);
+  }, [geometries]);
 
-  // Convert hex color to number
-  const hexToNumber = (hex: string): number => {
-    return parseInt(hex.replace('#', ''), 16);
-  };
-
-  // Available colors for shapes
-  const colors = {
-    red: 0xFF0000,
-    green: 0x00FF00,
-    blue: 0x0000FF,
-    yellow: 0xFFFF00,
-    purple: 0x9333EA,
-    cyan: 0x06B6D4,
-    orange: 0xFF6B00,
-    pink: 0xFF0099,
-  };
-
-  const colorArray = Object.values(colors);
-  const targetColorNumber = hexToNumber(targetColor);
-
-  // Create shape graphics
-  const createShape = (type: 'circle' | 'square' | 'triangle', color: number, x: number, y: number, size: number): PIXI.Graphics => {
-    const graphics = new PIXI.Graphics();
-
-    if (type === 'circle') {
-      graphics.circle(0, 0, size);
-    } else if (type === 'square') {
-      graphics.rect(-size, -size, size * 2, size * 2);
-    } else if (type === 'triangle') {
-      graphics.moveTo(0, -size);
-      graphics.lineTo(size, size);
-      graphics.lineTo(-size, size);
-      graphics.closePath();
+  const clearTimers = () => {
+    if (targetTimerRef.current) {
+      window.clearTimeout(targetTimerRef.current);
+      targetTimerRef.current = null;
     }
 
-    graphics.fill({ color, alpha: 1 });
-    graphics.stroke({ color: 0xFFFFFF, width: 2, alpha: 0.3 });
+    if (spawnIntervalRef.current) {
+      window.clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
 
-    graphics.x = x;
-    graphics.y = y;
+    removalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    removalTimersRef.current.clear();
 
-    return graphics;
+    fadeTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    fadeTimersRef.current.clear();
   };
 
-  // Spawn random shapes
-  const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
-    if (!app.stage) return;
+  const removeShapeImmediately = (id: string, wasTarget: boolean) => {
+    setShapes((prev) => {
+      const next = prev.filter((shape) => shape.id !== id);
+      return next;
+    });
 
-    const width = app.renderer.width;
-    const height = app.renderer.height;
+    removalTimersRef.current.delete(id);
+    fadeTimersRef.current.delete(id);
 
-    // Random position with padding
-    const padding = 80;
-    const x = padding + Math.random() * (width - padding * 2);
-    const y = padding + Math.random() * (height - padding * 2);
+    if (wasTarget) {
+      if (hasNotifiedTargetRef.current && onTargetDisappeared) {
+        hasNotifiedTargetRef.current = false;
+        onTargetDisappeared();
+      }
+      if (isActiveRef.current && targetSpawnCountRef.current < 2) {
+        targetSpawnCountRef.current += 1;
+        const retryDelay = 800 + Math.random() * 700;
+        targetTimerRef.current = window.setTimeout(() => spawnShape(true), retryDelay);
+      }
+    }
+  };
 
-    // Random size
-    const size = 8 + Math.random() * 14;
+  const beginShapeRemoval = (id: string, wasTarget: boolean) => {
+    setShapes((prev) =>
+      prev.map((shape) => (shape.id === id ? { ...shape, removing: true, removeStartedAt: performance.now() } : shape))
+    );
 
-    let type: 'circle' | 'square' | 'triangle';
-    let color: number;
+    const fadeTimer = window.setTimeout(() => removeShapeImmediately(id, wasTarget), FADE_OUT_MS + 16);
+    fadeTimersRef.current.set(id, fadeTimer);
+  };
+
+  const spawnShape = (shouldBeTarget = false) => {
+    if (!isActiveRef.current) return;
+
+    let type: ShapeType;
+    let color: string;
 
     if (shouldBeTarget) {
       type = targetShape;
-      color = targetColorNumber;
+      color = targetColor;
     } else {
-      // Random shape and color, but not the target combination
-      const shapeTypes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
-      type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      color = colorArray[Math.floor(Math.random() * colorArray.length)];
-      
-      // If we accidentally created the target, change it
-      if (type === targetShape && color === targetColorNumber) {
-        color = colorArray.find(c => c !== targetColorNumber) || colors.red;
+      const options: ShapeType[] = ['circle', 'square', 'triangle'];
+      type = options[Math.floor(Math.random() * options.length)];
+
+      const availableColors = neonPalette.filter((c) => c.toLowerCase() !== targetColor.toLowerCase());
+      color = availableColors[Math.floor(Math.random() * availableColors.length)] || neonPalette[0];
+
+      if (type === targetShape && color.toLowerCase() === targetColor.toLowerCase()) {
+        color = neonPalette.find((c) => c.toLowerCase() !== targetColor.toLowerCase()) || neonPalette[1];
       }
     }
 
-    const graphics = createShape(type, color, x, y, size);
-    
-    // Add fade-in animation
-    graphics.alpha = 0;
-    app.stage.addChild(graphics);
-
-    const shape: Shape = {
-      graphics,
+    const shape: ArenaShape = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type,
       color,
       isTarget: shouldBeTarget,
+      position: randomPosition(),
+      rotationSpeed: randomRotationSpeed(),
+      floatSpeed: 0.8 + Math.random() * 0.6,
+      floatOffset: Math.random() * Math.PI * 2,
+      createdAt: performance.now(),
+      removing: false,
     };
 
-    shapesRef.current.push(shape);
+    setShapes((prev) => [...prev, shape]);
 
-    // Fade in
-    const fadeIn = setInterval(() => {
-      graphics.alpha += 0.1;
-      if (graphics.alpha >= 1) {
-        clearInterval(fadeIn);
-        
-        // If this is the target shape, notify parent
-        if (shouldBeTarget && !hasNotifiedTargetRef.current) {
-          hasNotifiedTargetRef.current = true;
-          onTargetAppeared();
-          currentTargetRef.current = shape;
-        }
-      }
-    }, 30);
+    const lifetime = 2000 + Math.random() * 1800;
+    const removalTimer = window.setTimeout(() => beginShapeRemoval(shape.id, shouldBeTarget), lifetime);
+    removalTimersRef.current.set(shape.id, removalTimer);
 
-    // Schedule removal after 2-4 seconds
-    window.setTimeout(() => {
-      const fadeOut = window.setInterval(() => {
-        graphics.alpha -= 0.05;
-        if (graphics.alpha <= 0) {
-          clearInterval(fadeOut);
-          app.stage.removeChild(graphics);
-          shapesRef.current = shapesRef.current.filter(s => s !== shape);
-          
-          // If this is the target shape, notify parent
-            if (shouldBeTarget) {
-            if (hasNotifiedTargetRef.current && onTargetDisappeared) {
-              hasNotifiedTargetRef.current = false;
-              onTargetDisappeared();
-              currentTargetRef.current = null;
-            }
-
-            if (isActiveRef.current && targetSpawnCountRef.current < 2) {
-              targetSpawnCountRef.current += 1;
-
-              const retryDelay = 800 + Math.random() * 700;
-              targetTimerRef.current = window.setTimeout(() => {
-                spawnShape(app, true);
-              }, retryDelay);
-            }
-          }
-        }
-      }, 30);
-    }, 2000 + Math.random() * 2000);
+    if (shouldBeTarget && !hasNotifiedTargetRef.current) {
+      hasNotifiedTargetRef.current = true;
+      onTargetAppeared();
+    }
   };
+
+  useEffect(() => {
+    if (!isActive) {
+      clearTimers();
+      setShapes([]);
+      hasNotifiedTargetRef.current = false;
+      targetSpawnCountRef.current = 0;
+      return;
+    }
+
+    hasNotifiedTargetRef.current = false;
+    targetSpawnCountRef.current = 0;
+    setShapes([]);
+
+    for (let i = 0; i < 15; i += 1) {
+      const delay = i * 70;
+      window.setTimeout(() => spawnShape(false), delay);
+    }
+
+    const targetDelay = 900 + Math.random() * 1200;
+    targetTimerRef.current = window.setTimeout(() => {
+      targetSpawnCountRef.current += 1;
+      spawnShape(true);
+    }, targetDelay);
+
+    const spawnInterval = window.setInterval(() => {
+      if (Math.random() > 0.3) {
+        spawnShape(false);
+      }
+    }, 520);
+    spawnIntervalRef.current = spawnInterval;
+
+    return () => {
+      clearTimers();
+      setShapes([]);
+      hasNotifiedTargetRef.current = false;
+      targetSpawnCountRef.current = 0;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, targetShape, targetColor]);
 
   return (
     <div className="relative w-full h-full max-w-4xl mx-auto">
-      {/* Glow effect */}
-      <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl"></div>
-      
-      {/* Main canvas container */}
-      <div 
-        ref={containerRef}
+      <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl" />
+
+      <div
         className="relative bg-black/40 backdrop-blur-lg border-2 border-white/20 rounded-3xl overflow-hidden shadow-2xl h-full min-h-[400px] md:min-h-[500px]"
       >
-        {/* Corner accents */}
-        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-cyan-400/50 pointer-events-none z-10"></div>
-        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-pink-400/50 pointer-events-none z-10"></div>
-        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-cyan-400/50 pointer-events-none z-10"></div>
-        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-pink-400/50 pointer-events-none z-10"></div>
+        <Canvas
+          className="absolute inset-0"
+          dpr={[1, 1.5]}
+          flat
+          shadows={false}
+          camera={{ position: [0, 0, 8], fov: 55 }}
+        >
+          <color attach="background" args={[new THREE.Color('black')]} />
+          <ambientLight intensity={0.7} />
+          <directionalLight position={[2.5, 3, 2]} intensity={1.2} />
 
-        {/* Scan line animation */}
+          <group position={[0, 0, 0]}>
+            {shapes.map((shape) => (
+              <HolographicShape key={shape.id} shape={shape} geometries={geometries} />
+            ))}
+          </group>
+
+          <EffectComposer multisampling={0}>
+            <Bloom intensity={0.35} luminanceThreshold={0} luminanceSmoothing={0.85} mipmapBlur radius={0.35} />
+          </EffectComposer>
+
+          <OrbitControls enablePan={false} enableZoom={false} maxPolarAngle={Math.PI / 1.8} minPolarAngle={Math.PI / 4} />
+        </Canvas>
+
+        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-cyan-400/50 pointer-events-none z-10" />
+        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-pink-400/50 pointer-events-none z-10" />
+        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-cyan-400/50 pointer-events-none z-10" />
+        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-pink-400/50 pointer-events-none z-10" />
+
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-          <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan-line"></div>
+          <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan-line" />
         </div>
 
-        {/* Grid pattern overlay */}
-        <div 
+        <div
           className="absolute inset-0 opacity-5 pointer-events-none z-10"
           style={{
             backgroundImage: `
               linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
               linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
             `,
-            backgroundSize: '20px 20px'
+            backgroundSize: '20px 20px',
           }}
-        ></div>
+        />
       </div>
     </div>
   );
