@@ -239,12 +239,20 @@ const ArenaScene = ({
 );
 
 const ArenaEffects = () => (
-  <EffectComposer multisampling={0}> 
+  <EffectComposer multisampling={0}>
     <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.55} intensity={0.9} mipmapBlur />
     <Glitch delay={new THREE.Vector2(5, 12)} duration={new THREE.Vector2(0.25, 0.5)} strength={new THREE.Vector2(0.01, 0.03)} mode={GlitchMode.CONSTANT_MILD} activeModes={[GlitchMode.CONSTANT_MILD]} />
     <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.15} />
   </EffectComposer>
 );
+
+const InvalidateOnChange = ({ deps }: { deps: ReadonlyArray<unknown> }) => {
+  const { invalidate } = useThree();
+  useEffect(() => {
+    invalidate();
+  }, deps);
+  return null;
+};
 
 const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
   ({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared, onHit, onMiss, round = 1, totalRounds = 7 }, ref) => {
@@ -305,6 +313,12 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
       };
     }, [isActive, targetShape, targetColor]);
 
+    useEffect(() => {
+      if (isActive && !currentTarget && spawnTimeoutRef.current === null) {
+        scheduleSpawn();
+      }
+    }, [isActive, currentTarget]);
+
     const handleHit = () => {
       if (!currentTarget) return;
       setCurrentTarget(null);
@@ -320,7 +334,7 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
     return (
       <div className="relative w-full h-full max-w-4xl mx-auto">
         <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl" />
-        <div className="relative bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden shadow-2xl h-full min-h-[420px] md:min-h-[520px]">
+        <div className="relative bg-black/60 backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden shadow-2xl h-full min-h-[400px] md:min-h-[500px]">
           <Canvas
             ref={ref}
             dpr={[1, isMobile ? 1.25 : 1.5]}
@@ -331,6 +345,7 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             performance={{ min: 0.7 }}
           >
             <Suspense fallback={null}>
+              <InvalidateOnChange deps={[currentTarget, targetColor, targetShape]} />
               <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
               <ambientLight intensity={0.2} />
               <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
