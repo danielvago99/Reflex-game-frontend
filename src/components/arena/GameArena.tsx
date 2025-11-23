@@ -316,19 +316,17 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
         {/* Arena Canvas */}
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
-          {currentTarget && (
-            <Arena3D
-              isActive={gameState === 'playing'}
-              targetShape={currentTarget.shape}
-              targetColor={currentTarget.color}
-              onTargetAppeared={handleTargetAppeared}
-              onTargetDisappeared={handleTargetDisappeared}
-              onHit={handleReact}
-              onMiss={() => !roundResolved && setLossReason(prev => prev ?? 'no-reaction')}
-              round={currentRound}
-              totalRounds={MAX_ROUNDS}
-            />
-          )}
+          <Arena3D
+            isActive={gameState === 'playing'}
+            targetShape={(currentTarget ?? targets[0]).shape}
+            targetColor={(currentTarget ?? targets[0]).color}
+            onTargetAppeared={handleTargetAppeared}
+            onTargetDisappeared={handleTargetDisappeared}
+            onHit={handleReact}
+            onMiss={() => !roundResolved && setLossReason(prev => prev ?? 'no-reaction')}
+            round={currentRound}
+            totalRounds={MAX_ROUNDS}
+          />
 
           {/* Target Hint Panel */}
           <AnimatePresence>

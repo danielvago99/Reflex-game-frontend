@@ -269,6 +269,14 @@ const FrameTicker = ({ active }: { active: boolean }) => {
   return null;
 };
 
+const InitialInvalidate = () => {
+  const { invalidate } = useThree();
+  useEffect(() => {
+    invalidate();
+  }, [invalidate]);
+  return null;
+};
+
 const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
   ({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared, onHit, onMiss, round = 1, totalRounds = 7 }, ref) => {
     const isMobile = useMobile();
@@ -287,9 +295,8 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
       }
     };
 
-    const scheduleSpawn = () => {
+    const spawnAfterDelay = (delay: number) => {
       clearTimers();
-      const delay = 900 + Math.random() * 1100;
       spawnTimeoutRef.current = window.setTimeout(() => {
         const position = new THREE.Vector3(
           (Math.random() - 0.5) * 2.4,
@@ -310,10 +317,15 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
           onTargetDisappeared?.();
           onMiss?.();
           if (activeRef.current) {
-            scheduleSpawn();
+            spawnAfterDelay(600 + Math.random() * 900);
           }
         }, disappearDelay);
       }, delay);
+    };
+
+    const scheduleSpawn = () => {
+      const delay = 600 + Math.random() * 900;
+      spawnAfterDelay(delay);
     };
 
     useEffect(() => {
@@ -322,7 +334,7 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
         setCurrentTarget(null);
         return;
       }
-      scheduleSpawn();
+      spawnAfterDelay(250);
       return () => {
         clearTimers();
       };
@@ -358,8 +370,10 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             camera={{ fov: 55, position: [0, 0.8, 4.4] }}
             flat
             performance={{ min: 0.7 }}
+            style={{ width: '100%', height: '100%' }}
           >
             <Suspense fallback={null}>
+              <InitialInvalidate />
               <FrameTicker active />
               <InvalidateOnChange deps={[currentTarget, targetColor, targetShape]} />
               <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
