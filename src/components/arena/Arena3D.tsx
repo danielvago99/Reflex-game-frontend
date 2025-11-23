@@ -1,5 +1,5 @@
 import { Suspense, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Bloom, EffectComposer, Glitch, Noise } from '@react-three/postprocessing';
 import { BlendFunction, GlitchMode } from 'postprocessing';
 import { Float, Grid, Stars, Text, Trail } from '@react-three/drei';
@@ -48,13 +48,11 @@ const useGridMaterial = (color: string) =>
 
 const FloatingCameraHint = () => {
   const groupRef = useRef<THREE.Group>(null);
-  const { invalidate } = useThree();
   useFrame(({ clock }) => {
     const group = groupRef.current;
     if (!group) return;
     group.rotation.z = Math.sin(clock.elapsedTime * 0.35) * 0.2;
     group.position.y = Math.sin(clock.elapsedTime * 0.6) * 0.05;
-    invalidate();
   });
   return (
     <group ref={groupRef} position={[0, 1.7, -2.3]}>
@@ -80,10 +78,8 @@ const FloatingCameraHint = () => {
 
 const NeonGrid = ({ color }: { color: string }) => {
   const material = useGridMaterial(color);
-  const { invalidate } = useThree();
   useFrame(({ clock }) => {
     material.opacity = 0.25 + Math.sin(clock.elapsedTime * 0.8) * 0.05;
-    invalidate();
   });
   return (
     <Grid
@@ -106,14 +102,12 @@ const NeonGrid = ({ color }: { color: string }) => {
 
 const FloatingPlatform = ({ position, color, speed = 1 }: { position: Vector3; color: string; speed?: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { invalidate } = useThree();
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
     if (!mesh) return;
     const t = clock.elapsedTime * speed;
     mesh.position.y = position[1] + Math.sin(t) * 0.08;
     mesh.rotation.y = Math.sin(t * 0.6) * 0.1;
-    invalidate();
   });
   return (
     <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.3} position={position}>
@@ -178,7 +172,6 @@ const Target = ({
   onHit: () => void;
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const { invalidate } = useThree();
   useFrame(({ clock }) => {
     const group = groupRef.current;
     if (!group) return;
@@ -186,7 +179,6 @@ const Target = ({
     group.position.y = target.position.y + Math.sin(t * 2) * 0.08;
     group.rotation.y += 0.8 * (1 / 60);
     group.scale.setScalar(target.scale + Math.sin(t * 3) * 0.05);
-    invalidate();
   });
 
   return (
@@ -245,37 +237,6 @@ const ArenaEffects = () => (
     <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.15} />
   </EffectComposer>
 );
-
-const InvalidateOnChange = ({ deps }: { deps: ReadonlyArray<unknown> }) => {
-  const { invalidate } = useThree();
-  useEffect(() => {
-    invalidate();
-  }, deps);
-  return null;
-};
-
-const FrameTicker = ({ active }: { active: boolean }) => {
-  const { invalidate } = useThree();
-  useEffect(() => {
-    if (!active) return;
-    let frame: number;
-    const tick = () => {
-      invalidate();
-      frame = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => cancelAnimationFrame(frame);
-  }, [active, invalidate]);
-  return null;
-};
-
-const InitialInvalidate = () => {
-  const { invalidate } = useThree();
-  useEffect(() => {
-    invalidate();
-  }, [invalidate]);
-  return null;
-};
 
 const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
   ({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared, onHit, onMiss, round = 1, totalRounds = 7 }, ref) => {
@@ -366,16 +327,13 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             ref={ref}
             dpr={[1, isMobile ? 1.25 : 1.5]}
             gl={{ antialias: !isMobile }}
-            frameloop="demand"
+            frameloop="always"
             camera={{ fov: 55, position: [0, 0.8, 4.4] }}
             flat
             performance={{ min: 0.7 }}
             style={{ width: '100%', height: '100%' }}
           >
             <Suspense fallback={null}>
-              <InitialInvalidate />
-              <FrameTicker active />
-              <InvalidateOnChange deps={[currentTarget, targetColor, targetShape]} />
               <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
               <ambientLight intensity={0.2} />
               <pointLight position={[0, 1.2, 2.6]} intensity={1.1} color={accentColors[0]} decay={1.3} />
