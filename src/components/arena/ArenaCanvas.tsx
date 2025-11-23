@@ -76,6 +76,19 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     shapesRef.current = [];
     currentTargetRef.current = null;
+    hasNotifiedTargetRef.current = false;
+  };
+
+  const clearTimers = () => {
+    if (targetTimerRef.current !== null) {
+      window.clearTimeout(targetTimerRef.current);
+      targetTimerRef.current = null;
+    }
+
+    if (spawnIntervalRef.current !== null) {
+      window.clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
   };
 
 
@@ -125,6 +138,22 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
         createParallaxGraphics(app.renderer.width, app.renderer.height);
       }
     };
+
+    const teardownApp = () => {
+      clearTimers();
+      cleanupShapes();
+
+      if (parallaxRef.current?.container) {
+        app.stage.removeChild(parallaxRef.current.container);
+      }
+
+      if (shapesContainerRef.current) {
+        app.stage.removeChild(shapesContainerRef.current);
+      }
+
+      parallaxRef.current = null;
+      shapesContainerRef.current = null;
+    };
     
     const initApp = async () => {
       try {
@@ -156,14 +185,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     return () => {
       destroyed = true;
 
-      cleanupShapes();
-
-      shapesRef.current.forEach(shape => {
-        if (shape.fadeTimeout) {
-          window.clearTimeout(shape.fadeTimeout);
-        }
-      });
-      shapesRef.current = [];
+      teardownApp();
 
       if (resizeAttached) {
         window.removeEventListener('resize', handleResize);
@@ -172,6 +194,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       if (app.canvas && container.contains(app.canvas)) {
         container.removeChild(app.canvas);
       }
+
+      teardownApp();
 
       app.destroy(true, { children: true });
 
