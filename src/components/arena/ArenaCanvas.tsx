@@ -64,14 +64,28 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
 
-  const cleanupShapes = () => {
-    if (appDestroyedRef.current) return;
+  const isAppUsable = (app?: PIXI.Application | null) => {
+    const targetApp = app ?? globalPixiApp;
+    return !!(
+      targetApp &&
+      !appDestroyedRef.current &&
+      targetApp.stage &&
+      !targetApp.stage.destroyed &&
+      targetApp.renderer &&
+      !targetApp.renderer.destroyed
+    );
+  };
+
+  const cleanupShapes = (force = false) => {
+    if (appDestroyedRef.current && !force) return;
 
     const parent = shapesContainerRef.current || globalPixiApp?.stage;
     shapesRef.current.forEach(shape => {
       if (shape.fadeTimeout) {
         window.clearTimeout(shape.fadeTimeout);
       }
+
+      if (parent && 'destroyed' in parent && (parent as any).destroyed) return;
 
       if (parent && parent.children.includes(shape.graphics)) {
         parent.removeChild(shape.graphics);
@@ -140,6 +154,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     const app = new PIXI.Application();
 
     const handleResize = () => {
+      if (appDestroyedRef.current || !isAppUsable(app)) return;
+
       app.renderer.resize(container.clientWidth, container.clientHeight);
       if (parallaxRef.current) {
         const { grid } = parallaxRef.current;
@@ -149,8 +165,16 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     };
 
     const teardownApp = () => {
+      try {
+        app.ticker?.stop();
+        // @ts-expect-error destroy may exist depending on Pixi version
+        app.ticker?.destroy?.();
+      } catch (error) {
+        console.error('Failed to stop Pixi ticker:', error);
+      }
+
       clearTimers();
-      cleanupShapes();
+      cleanupShapes(true);
       appDestroyedRef.current = true;
 
       const parallaxContainer = parallaxRef.current?.container;
@@ -209,7 +233,11 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
         container.removeChild(app.canvas);
       }
 
-      app.destroy(true, { children: true });
+      try {
+        app.destroy(true, { children: true });
+      } catch (error) {
+        console.error('Failed to destroy Pixi application:', error);
+      }
 
       if (globalPixiApp === app) {
         globalPixiApp = null;
@@ -273,19 +301,24 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     // Spawn initial random shapes
     for (let i = 0; i < 11; i++) {
-      const timer = window.setTimeout(() => spawnShape(app, false), i * 100);
+      const timer = window.setTimeout(() => {
+        if (!isAppUsable(app)) return;
+        spawnShape(app, false);
+      }, i * 100);
       initialSpawnTimersRef.current.push(timer);
     }
 
     // Spawn target shape after 1-2 seconds
     const targetDelay = 1000 + Math.random() * 1500;
     targetTimerRef.current = window.setTimeout(() => {
+      if (!isAppUsable(app)) return;
       targetSpawnCountRef.current += 1;
       spawnShape(app, true);
     }, targetDelay);
 
     // Continue spawning random shapes
     const spawnInterval = window.setInterval(() => {
+      if (!isAppUsable(app)) return;
       if (Math.random() > 0.2) { // 80% chance to spawn
         spawnShape(app, false);
       }
@@ -302,6 +335,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     const app = globalPixiApp;
     const tickerUpdate = () => {
+      if (!isAppUsable(app)) return;
+
       const deltaMs = app.ticker.deltaMS;
       animationTimeRef.current += deltaMs;
 
@@ -319,6 +354,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       }
 
       shapesRef.current.forEach(shape => {
+        if (appDestroyedRef.current) return;
+
         const graphics = shape.graphics;
         graphics.rotation += shape.rotationSpeed * deltaMs;
         const pulse = 1 + Math.sin(animationTimeRef.current * shape.pulseSpeed + shape.pulseOffset) * 0.08;
@@ -512,13 +549,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
   // Spawn random shapes
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
-    if (
-      appDestroyedRef.current ||
-      !app.stage ||
-      app.stage.destroyed ||
-      app.renderer?.destroyed
-    )
-      return;
+    if (!isAppUsable(app)) return;
 
     const width = app.renderer.width;
     const height = app.renderer.height;
@@ -551,6 +582,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     const graphics = createShape(type, color, x, y, size);
     const parent = shapesContainerRef.current || app.stage;
+    if (!parent || ('destroyed' in parent && (parent as any).destroyed)) return;
 
     graphics.alpha = 0;
     parent.addChild(graphics);
@@ -572,6 +604,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     shapesRef.current.push(shape);
 
     const beginFadeOut = () => {
+      if (!isAppUsable(app)) return;
       if (shape.fadeMode === 'out') return;
       if (shape.fadeTimeout) {
         window.clearTimeout(shape.fadeTimeout);
@@ -581,7 +614,11 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       shape.fadeElapsed = 0;
       shape.fadeDuration = 600;
       shape.onFadeComplete = () => {
-        parent.removeChild(graphics);
+        if (!isAppUsable(app)) return;
+        const resolvedParent = shapesContainerRef.current || app.stage;
+        if (resolvedParent && (!('destroyed' in resolvedParent) || !(resolvedParent as any).destroyed)) {
+          resolvedParent.removeChild(graphics);
+        }
         shapesRef.current = shapesRef.current.filter(s => s !== shape);
 
         if (shouldBeTarget) {
@@ -596,6 +633,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
             const retryDelay = 800 + Math.random() * 700;
             targetTimerRef.current = window.setTimeout(() => {
+              if (!isAppUsable(app)) return;
               spawnShape(app, true);
             }, retryDelay);
           }
@@ -604,6 +642,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     };
 
     shape.fadeTimeout = window.setTimeout(() => {
+      if (!isAppUsable(app)) return;
       beginFadeOut();
     }, 2000 + Math.random() * 2000);
   };
