@@ -1,4 +1,4 @@
-import { forwardRef, useActionState, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Glitch, Noise } from '@react-three/postprocessing';
 import { BlendFunction, GlitchMode } from 'postprocessing';
@@ -7,8 +7,6 @@ import * as THREE from 'three';
 import type { Vector3 } from '@react-three/fiber';
 
 type TargetShape = 'circle' | 'square' | 'triangle';
-
-type Arena3DAction = 'idle' | 'hit' | 'miss';
 
 interface Arena3DProps {
   isActive: boolean;
@@ -254,7 +252,6 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
     const [currentTarget, setCurrentTarget] = useState<TargetInstance | null>(null);
     const spawnTimeoutRef = useRef<number | null>(null);
     const activeRef = useRef(isActive);
-    const [action, dispatchAction] = useActionState<Arena3DAction, Arena3DAction>((_, next) => next, 'idle');
 
     useEffect(() => {
       activeRef.current = isActive;
@@ -288,7 +285,7 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
         spawnTimeoutRef.current = window.setTimeout(() => {
           setCurrentTarget(null);
           onTargetDisappeared?.();
-          dispatchAction('miss');
+          onMiss?.();
           if (activeRef.current) {
             scheduleSpawn();
           }
@@ -308,20 +305,11 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
       };
     }, [isActive, targetShape, targetColor]);
 
-    useEffect(() => {
-      if (action === 'hit') {
-        onHit?.();
-      }
-      if (action === 'miss') {
-        onMiss?.();
-      }
-    }, [action, onHit, onMiss]);
-
     const handleHit = () => {
       if (!currentTarget) return;
       setCurrentTarget(null);
       onTargetDisappeared?.();
-      dispatchAction('hit');
+      onHit?.();
       if (activeRef.current) {
         scheduleSpawn();
       }
