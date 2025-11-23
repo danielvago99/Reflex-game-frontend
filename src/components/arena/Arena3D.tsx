@@ -254,6 +254,21 @@ const InvalidateOnChange = ({ deps }: { deps: ReadonlyArray<unknown> }) => {
   return null;
 };
 
+const FrameTicker = ({ active }: { active: boolean }) => {
+  const { invalidate } = useThree();
+  useEffect(() => {
+    if (!active) return;
+    let frame: number;
+    const tick = () => {
+      invalidate();
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(frame);
+  }, [active, invalidate]);
+  return null;
+};
+
 const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
   ({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared, onHit, onMiss, round = 1, totalRounds = 7 }, ref) => {
     const isMobile = useMobile();
@@ -345,6 +360,7 @@ const Arena3DInner = forwardRef<HTMLCanvasElement, Arena3DProps>(
             performance={{ min: 0.7 }}
           >
             <Suspense fallback={null}>
+              <FrameTicker active />
               <InvalidateOnChange deps={[currentTarget, targetColor, targetShape]} />
               <ArenaScene target={currentTarget} color={targetColor} shape={targetShape} onHit={handleHit} round={round} totalRounds={totalRounds} />
               <ambientLight intensity={0.2} />
