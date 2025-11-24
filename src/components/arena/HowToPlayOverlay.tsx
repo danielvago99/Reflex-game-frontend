@@ -125,7 +125,11 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                     <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-lg blur-sm"></div>
                     <div className="relative bg-black/50 border border-white/20 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center justify-center gap-2">
-                        <Fake3DShapePreview shape={targetShape as 'circle' | 'square' | 'triangle'} className="w-6 h-6" />
+                        <Fake3DShapePreview
+                          shape={targetShape as 'circle' | 'square' | 'triangle'}
+                          className="w-6 h-6"
+                          color={targetColor}
+                        />
                         <div className="text-left">
                           <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Target</div>
                           <div className="text-sm sm:text-base text-white font-semibold leading-tight">
