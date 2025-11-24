@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Target, Zap, Trophy, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { ROUNDS_TO_WIN } from '../../features/arena/constants';
+import { Fake3DShapePreview } from './Fake3DShapePreview';
 
 interface HowToPlayOverlayProps {
   targetShape: string;
@@ -22,24 +23,6 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [onContinue]);
-
-  const shapeIcons = {
-    circle: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <circle cx="50" cy="50" r="40" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    square: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <rect x="10" y="10" width="80" height="80" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    triangle: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <polygon points="50,10 90,90 10,90" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-  };
 
   const getColorName = (color: string) => {
     const colorMap: Record<string, string> = {
@@ -141,13 +124,27 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                     {/* Lite glow on mobile */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-lg blur-sm"></div>
                     <div className="relative bg-black/50 border border-white/20 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        {shapeIcons[targetShape as keyof typeof shapeIcons]}
-                        <div className="text-left">
-                          <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Target</div>
-                          <div className="text-sm sm:text-base text-white font-semibold leading-tight">
-                            {getColorName(targetColor)} {targetShape.charAt(0).toUpperCase() + targetShape.slice(1)}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 text-left">
+                          <Target className="w-4 h-4 text-cyan-400" />
+                          <div>
+                            <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Target</div>
+                            <div className="text-sm sm:text-base text-white font-semibold leading-tight">
+                              {getColorName(targetColor)} {targetShape.charAt(0).toUpperCase() + targetShape.slice(1)}
+                            </div>
                           </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <Fake3DShapePreview
+                            shape={targetShape as 'circle' | 'square' | 'triangle'}
+                            accentColor={targetColor}
+                            label="Target Shape"
+                          />
+                          <Fake3DShapePreview
+                            shape="circle"
+                            accentColor={targetColor}
+                            label={`${getColorName(targetColor)} Color`}
+                          />
                         </div>
                       </div>
                     </div>

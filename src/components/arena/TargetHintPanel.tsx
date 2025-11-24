@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Target, MousePointerClick } from 'lucide-react';
+import { Fake3DShapePreview } from './Fake3DShapePreview';
 
 interface TargetHintPanelProps {
   targetShape: 'circle' | 'square' | 'triangle';
@@ -11,24 +12,6 @@ interface TargetHintPanelProps {
 }
 
 export function TargetHintPanel({ targetShape, targetColor, colorName, isActive, hasReacted, reactionTime }: TargetHintPanelProps) {
-  const shapeIcons = {
-    circle: (
-      <svg viewBox="0 0 100 100" className="w-4 h-4">
-        <circle cx="50" cy="50" r="40" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    square: (
-      <svg viewBox="0 0 100 100" className="w-4 h-4">
-        <rect x="10" y="10" width="80" height="80" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    triangle: (
-      <svg viewBox="0 0 100 100" className="w-4 h-4">
-        <polygon points="50,10 90,90 10,90" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -49,12 +32,12 @@ export function TargetHintPanel({ targetShape, targetColor, colorName, isActive,
             <span className="text-[10px] uppercase tracking-wider text-gray-400">Target:</span>
 
             {/* Shape Icon */}
-            <div className="flex items-center gap-1.5">
-              {shapeIcons[targetShape]}
-              <span className="text-xs" style={{ color: targetColor }}>
-                {colorName} {targetShape}
-              </span>
-            </div>
+            <Fake3DShapePreview
+              shape={targetShape}
+              accentColor={targetColor}
+              label={`${colorName} ${targetShape}`}
+              className="px-2 py-1"
+            />
 
             {/* Reaction Status */}
             {hasReacted && reactionTime !== null && (
