@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Target, Zap, Trophy, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { ROUNDS_TO_WIN } from '../../features/arena/constants';
+import { Fake3DShapePreview } from './Fake3DShapePreview';
 
 interface HowToPlayOverlayProps {
   targetShape: string;
@@ -23,24 +24,6 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [onContinue]);
 
-  const shapeIcons = {
-    circle: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <circle cx="50" cy="50" r="40" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    square: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <rect x="10" y="10" width="80" height="80" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-    triangle: (
-      <svg viewBox="0 0 100 100" className="w-5 h-5">
-        <polygon points="50,10 90,90 10,90" fill={targetColor} stroke="white" strokeWidth="2" />
-      </svg>
-    ),
-  };
-
   const getColorName = (color: string) => {
     const colorMap: Record<string, string> = {
       '#FF6B6B': 'Red',
@@ -59,6 +42,10 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
     };
     return colorMap[color] || 'Colored';
   };
+
+  const normalizedShape = (['circle', 'square', 'triangle'].includes(targetShape)
+    ? targetShape
+    : 'circle') as 'circle' | 'square' | 'triangle';
 
   return (
     <motion.div
@@ -141,12 +128,24 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                     {/* Lite glow on mobile */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-lg blur-sm"></div>
                     <div className="relative bg-black/50 border border-white/20 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        {shapeIcons[targetShape as keyof typeof shapeIcons]}
-                        <div className="text-left">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                        <Fake3DShapePreview
+                          shape={normalizedShape}
+                          color={targetColor}
+                          label={`${getColorName(targetColor)} ${targetShape.charAt(0).toUpperCase() + targetShape.slice(1)}`}
+                        />
+                        <div className="flex-1 min-w-[140px] space-y-1">
                           <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Target</div>
                           <div className="text-sm sm:text-base text-white font-semibold leading-tight">
-                            {getColorName(targetColor)} {targetShape.charAt(0).toUpperCase() + targetShape.slice(1)}
+                            Look for the {getColorName(targetColor)} {targetShape}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
+                            <span
+                              className="inline-flex h-4 w-4 rounded-full border border-white/30 shadow-sm"
+                              style={{ background: targetColor }}
+                              aria-hidden
+                            />
+                            <span className="leading-none">Color: {getColorName(targetColor)}</span>
                           </div>
                         </div>
                       </div>
