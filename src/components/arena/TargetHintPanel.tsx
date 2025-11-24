@@ -32,8 +32,8 @@ export function TargetHintPanel({ targetShape, targetColor, colorName, isActive,
             <span className="text-[10px] uppercase tracking-wider text-gray-400">Target:</span>
 
             {/* Shape Icon */}
-            <div className="flex items-center gap-1.5">
-              <Fake3DShapePreview shape={targetShape} className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <Fake3DShapePreview shape={targetShape} className="w-8 h-8" />
               <span className="text-xs" style={{ color: targetColor }}>
                 {colorName} {targetShape}
               </span>

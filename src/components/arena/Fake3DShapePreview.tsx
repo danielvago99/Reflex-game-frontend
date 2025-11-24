@@ -16,10 +16,11 @@ const neonShadows: Record<Fake3DShapePreviewProps['shape'], string> = {
 export function Fake3DShapePreview({ shape, label, className }: Fake3DShapePreviewProps) {
   const baseClasses = 'inline-flex items-center gap-2 text-white/90';
 
+  // Default bigger size for better visibility on mobile
   const badgeClasses = clsx(
     'relative flex items-center justify-center rounded-lg border border-white/10 bg-white/5 backdrop-blur-lg overflow-hidden',
     neonShadows[shape],
-    className ?? 'w-5 h-5',
+    className ?? 'w-10 h-10',
   );
 
   const circle = (
@@ -84,4 +85,3 @@ export function Fake3DShapePreview({ shape, label, className }: Fake3DShapePrevi
     </div>
   );
 }
-
