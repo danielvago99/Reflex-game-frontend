@@ -519,16 +519,33 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
     if (!isAppUsable(app)) return;
 
+    // Responsive random size – podobné na desktope, menšie na mobile
     const width = app.renderer.width;
     const height = app.renderer.height;
+    const minDim = Math.min(width, height);
+
+    // základná škála podľa veľkosti plátna
+    let scale = 1;
+
+    // veľmi malé displeje (telefóny)
+    if (minDim < 500) {
+      scale = 0.6;
+    } else if (minDim < 800) {
+      // menšie tablety / menšie notebooky
+      scale = 0.8;
+    } else {
+      // desktop a väčšie obrazovky – ponechaj skoro pôvodnú veľkosť
+      scale = 1;
+    }
+
+    const baseMin = 8 * scale;
+    const baseRange = 14 * scale;
+    const size = baseMin + Math.random() * baseRange;
 
     // Random position with padding
     const padding = 80;
     const x = padding + Math.random() * (width - padding * 2);
     const y = padding + Math.random() * (height - padding * 2);
-
-    // Random size
-    const size = 8 + Math.random() * 14;
 
     let type: 'circle' | 'square' | 'triangle';
     let color: number;
