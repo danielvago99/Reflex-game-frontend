@@ -59,7 +59,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const shapesContainerRef = useRef<PIXI.Container | null>(null);
   const parallaxRef = useRef<{ grid: PIXI.Graphics; orbs: PIXI.Graphics[]; time: number; container: PIXI.Container } | null>(null);
   const animationTimeRef = useRef(0);
-  const appDestroyedRef = useRef(false);
   const [isAppReady, setIsAppReady] = useState(false);
   const isActiveRef = useRef(isActive);
   const targetSpawnCountRef = useRef(0);
@@ -68,7 +67,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     const targetApp = app ?? globalPixiApp;
     return !!(
       targetApp &&
-      !appDestroyedRef.current &&
       targetApp.stage &&
       !targetApp.stage.destroyed &&
       targetApp.renderer &&
@@ -77,8 +75,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   };
 
   const cleanupShapes = (force = false) => {
-    if (appDestroyedRef.current && !force) return;
-
     const parent = shapesContainerRef.current || globalPixiApp?.stage;
     shapesRef.current.forEach(shape => {
       if (shape.fadeTimeout) {
@@ -151,10 +147,15 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     let destroyed = false;
     let resizeAttached = false;
-    const app = new PIXI.Application();
+    const existingApp = globalPixiApp;
+    const app = existingApp ?? new PIXI.Application();
+    if (!existingApp) {
+      globalPixiApp = app;
+    }
+    const needsInit = !app.renderer;
 
     const handleResize = () => {
-      if (appDestroyedRef.current || !isAppUsable(app)) return;
+      if (!isAppUsable(app)) return;
 
       app.renderer.resize(container.clientWidth, container.clientHeight);
       if (parallaxRef.current) {
@@ -164,50 +165,22 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       }
     };
 
-    const teardownApp = () => {
-      try {
-        app.ticker?.stop();
-        // @ts-expect-error destroy may exist depending on Pixi version
-        app.ticker?.destroy?.();
-      } catch (error) {
-        console.error('Failed to stop Pixi ticker:', error);
-      }
-
-      clearTimers();
-      cleanupShapes(true);
-      appDestroyedRef.current = true;
-
-      const parallaxContainer = parallaxRef.current?.container;
-      if (parallaxContainer?.parent && parallaxContainer.parent.children.includes(parallaxContainer)) {
-        parallaxContainer.parent.removeChild(parallaxContainer);
-      }
-
-      const shapesContainer = shapesContainerRef.current;
-      if (shapesContainer?.parent && shapesContainer.parent.children.includes(shapesContainer)) {
-        shapesContainer.parent.removeChild(shapesContainer);
-      }
-
-      parallaxRef.current = null;
-      shapesContainerRef.current = null;
-    };
-    
     const initApp = async () => {
       try {
+        if (needsInit) {
           await app.init({
-          resizeTo: container,
-          backgroundAlpha: 0,
-          antialias: true,
-        });
+            resizeTo: container,
+            backgroundAlpha: 0,
+            antialias: true,
+          });
+        }
 
         if (destroyed) {
-          app.destroy(true, { children: true });
           return;
         }
 
-        appDestroyedRef.current = false;
-
-        globalPixiApp = app;
         container.appendChild(app.canvas);
+        console.debug('[ArenaCanvas] Pixi app attached, width=', app.renderer.width, 'height=', app.renderer.height);
         setIsAppReady(true);
 
         handleResize();
@@ -215,7 +188,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
         resizeAttached = true;
       } catch (error) {
         console.error('Failed to initialize PixiJS application:', error);
-          }
+      }
     };
 
     initApp();
@@ -223,7 +196,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     return () => {
       destroyed = true;
 
-      teardownApp();
+      clearTimers();
+      cleanupShapes(true);
 
       if (resizeAttached) {
         window.removeEventListener('resize', handleResize);
@@ -231,18 +205,11 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
       if (app.canvas && container.contains(app.canvas)) {
         container.removeChild(app.canvas);
+        console.debug('[ArenaCanvas] Pixi app detached from DOM (not destroyed)');
       }
 
-      try {
-        app.destroy(true, { children: true });
-      } catch (error) {
-        console.error('Failed to destroy Pixi application:', error);
-      }
-
-      if (globalPixiApp === app) {
-        globalPixiApp = null;
-      }
-
+      parallaxRef.current = null;
+      shapesContainerRef.current = null;
       setIsAppReady(false);
     };
   }, []);
@@ -287,6 +254,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   // Game logic - spawn shapes when active
   useEffect(() => {
     if (!isActive || !isAppReady) {
+      clearTimers();
+      cleanupShapes();
       hasNotifiedTargetRef.current = false;
       return;
     }
@@ -335,6 +304,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     const app = globalPixiApp;
     const tickerUpdate = () => {
+      if (!globalPixiApp || globalPixiApp.renderer?.destroyed || globalPixiApp.stage?.destroyed) return;
       if (!isAppUsable(app)) return;
 
       const deltaMs = app.ticker.deltaMS;
@@ -354,8 +324,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       }
 
       shapesRef.current.forEach(shape => {
-        if (appDestroyedRef.current) return;
-
         const graphics = shape.graphics;
         graphics.rotation += shape.rotationSpeed * deltaMs;
         const pulse = 1 + Math.sin(animationTimeRef.current * shape.pulseSpeed + shape.pulseOffset) * 0.08;
