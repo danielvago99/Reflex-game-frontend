@@ -269,7 +269,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     cleanupShapes();
 
     // Spawn initial random shapes
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 12; i++) {
       const timer = window.setTimeout(() => {
         if (!isAppUsable(app)) return;
         spawnShape(app, false);
@@ -277,8 +277,8 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       initialSpawnTimersRef.current.push(timer);
     }
 
-    // Spawn target shape after 1-2 seconds
-    const targetDelay = 1800 + Math.random() * 1700;
+    // Spawn target shape after ~2.2–4.6 seconds
+    const targetDelay = 2200 + Math.random() * 2400;
     targetTimerRef.current = window.setTimeout(() => {
       if (!isAppUsable(app)) return;
       targetSpawnCountRef.current += 1;
@@ -288,13 +288,13 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     // Continue spawning random shapes
     const spawnInterval = window.setInterval(() => {
       if (!isAppUsable(app)) return;
-      if (shapesRef.current.length < 22) {
+      if (shapesRef.current.length < 30) {
         // spawn at high frequency but keep a cap
-        if (Math.random() > 0.15) {
+        if (Math.random() > 0.08) {
           spawnShape(app, false);
         }
       }
-    }, 350);
+    }, 300);
     spawnIntervalRef.current = spawnInterval;
     return () => {
       clearTimers();
@@ -646,7 +646,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     shape.fadeTimeout = window.setTimeout(() => {
       if (!isAppUsable(app)) return;
       beginFadeOut();
-    }, 2600 + Math.random() * 2200);
+    }, 3200 + Math.random() * 2600);
   };
 
   return (
