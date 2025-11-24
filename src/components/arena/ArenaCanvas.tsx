@@ -269,7 +269,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     cleanupShapes();
 
     // Spawn initial random shapes
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 7; i++) {
       const timer = window.setTimeout(() => {
         if (!isAppUsable(app)) return;
         spawnShape(app, false);
@@ -288,8 +288,11 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     // Continue spawning random shapes
     const spawnInterval = window.setInterval(() => {
       if (!isAppUsable(app)) return;
-      if (Math.random() > 0.35) { // 65% chance to spawn
-        spawnShape(app, false);
+      if (shapesRef.current.length < 22) {
+        // spawn at high frequency but keep a cap
+        if (Math.random() > 0.15) {
+          spawnShape(app, false);
+        }
       }
     }, 350);
     spawnIntervalRef.current = spawnInterval;
@@ -515,6 +518,15 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
     return graphics;
   };
 
+  const doesOverlap = (x: number, y: number, size: number) => {
+    return shapesRef.current.some(s => {
+      const dx = s.graphics.x - x;
+      const dy = s.graphics.y - y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < (size * 4); // minimum separation
+    });
+  };
+
   // Spawn random shapes
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
     if (!isAppUsable(app)) return;
@@ -544,8 +556,13 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
 
     // Random position with padding
     const padding = 80;
-    const x = padding + Math.random() * (width - padding * 2);
-    const y = padding + Math.random() * (height - padding * 2);
+    let x = 0, y = 0, attempts = 0;
+    do {
+      x = padding + Math.random() * (width - padding * 2);
+      y = padding + Math.random() * (height - padding * 2);
+      attempts++;
+      if (attempts > 15) break; // fallback to avoid infinite loop
+    } while (doesOverlap(x, y, size));
 
     let type: 'circle' | 'square' | 'triangle';
     let color: number;
