@@ -12,6 +12,12 @@ interface TargetHintPanelProps {
 }
 
 export function TargetHintPanel({ targetShape, targetColor, colorName, isActive, hasReacted, reactionTime }: TargetHintPanelProps) {
+  const shapeLabel: Record<TargetHintPanelProps['targetShape'], string> = {
+    circle: 'circle',
+    square: 'box',
+    triangle: 'pyramid',
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -35,7 +41,7 @@ export function TargetHintPanel({ targetShape, targetColor, colorName, isActive,
             <div className="flex items-center gap-1.5">
               <Fake3DShapePreview shape={targetShape} className="w-5 h-5" color={targetColor} />
               <span className="text-xs" style={{ color: targetColor }}>
-                {colorName} {targetShape}
+                {colorName} {shapeLabel[targetShape]}
               </span>
             </div>
 
