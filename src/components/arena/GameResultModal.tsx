@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Trophy, Target, Clock, Home, RotateCcw, Coins, X } from 'lucide-react';
+import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
@@ -101,9 +101,33 @@ export function GameResultModal({
 
   // Calculate average reaction time (exclude null values)
   const validPlayerTimes = playerTimes.filter((t): t is number => t !== null && t < 999999);
-  const avgPlayerTime = validPlayerTimes.length > 0 
+  const avgPlayerTime = validPlayerTimes.length > 0
     ? Math.round(validPlayerTimes.reduce((a, b) => a + b, 0) / validPlayerTimes.length)
     : 0;
+
+  const handleShare = async () => {
+    try {
+      const shareText = `I ${playerWon ? 'won' : 'lost'} ${playerScore}-${opponentScore} in Reflex Arena with a ${avgPlayerTime}ms average reaction time!`;
+      const shareData = {
+        title: 'Reflex Arena Result',
+        text: shareText,
+        url: typeof window !== 'undefined' ? window.location.href : undefined
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${shareText} Play here: ${shareData.url ?? ''}`.trim());
+        toast.success('Result copied! Share it with your friends.');
+      }
+    } catch (error) {
+      console.error('Error sharing result', error);
+      toast.error('Unable to share your result right now.');
+    }
+  };
 
   return (
     <motion.div
@@ -163,7 +187,7 @@ export function GameResultModal({
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
-                <div className="flex flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between min-h-[96px]">
                   <div className="flex items-center gap-3">
                     <Coins className={`w-6 h-6 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
                     <div>
@@ -179,12 +203,19 @@ export function GameResultModal({
                       </p>
                     </div>
                   </div>
-                  {playerWon && (
-                    <div className="text-right text-[11px] sm:text-xs text-gray-500 leading-tight">
-                      <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
-                      <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
-                    </div>
-                  )}
+                  <div className="text-right text-[11px] sm:text-xs text-gray-500 leading-tight">
+                    {playerWon ? (
+                      <>
+                        <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
+                        <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Total Pot: {totalPot.toFixed(2)} SOL</div>
+                        <div>Stake Lost: -{stakeAmount.toFixed(2)} SOL</div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -225,36 +256,14 @@ export function GameResultModal({
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
               <h3 className="text-sm text-gray-400 mb-3">Your Statistics</h3>
 
-              <div className="space-y-4">
-                {/* Avg Reaction Time */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/20 p-2 rounded-lg">
-                      <Clock className="w-4 h-4 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Avg Reaction</p>
-                      <p className="text-white">{avgPlayerTime}ms</p>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#06B6D4]/20 p-2 rounded-lg">
+                    <Clock className="w-4 h-4 text-[#06B6D4]" />
                   </div>
-                </div>
-
-                {/* Accuracy */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#00FFA3]/20 p-2 rounded-lg">
-                      <Target className="w-4 h-4 text-[#00FFA3]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Accuracy</p>
-                      <p className="text-white">{validPlayerTimes.length}/{MAX_ROUNDS} rounds</p>
-                    </div>
-                  </div>
-                  <div className="w-20 bg-white/10 rounded-full h-1.5">
-                    <div
-                      className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] h-1.5 rounded-full"
-                      style={{ width: `${(validPlayerTimes.length / MAX_ROUNDS) * 100}%` }}
-                    ></div>
+                  <div>
+                    <p className="text-xs text-gray-400">Avg Reaction</p>
+                    <p className="text-white">{avgPlayerTime}ms</p>
                   </div>
                 </div>
               </div>
@@ -270,13 +279,23 @@ export function GameResultModal({
                 <span>Play Again</span>
               </button>
 
-              <button
-                onClick={onBackToMenu}
-                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
-              >
-                <Home className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Back to Lobby</span>
-              </button>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2.5">
+                <button
+                  onClick={handleShare}
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                >
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Share Result</span>
+                </button>
+
+                <button
+                  onClick={onBackToMenu}
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                >
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Back to Lobby</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
