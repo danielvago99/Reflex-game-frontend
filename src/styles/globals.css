@@ -308,6 +308,33 @@ html {
   }
 }
 
+@keyframes scan-horizontal {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes particles-flow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
 /* Reduce Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,
