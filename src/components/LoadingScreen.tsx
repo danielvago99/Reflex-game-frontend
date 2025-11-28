@@ -65,11 +65,6 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
           <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED] to-transparent opacity-20"></div>
           <div className="absolute bottom-[25%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent opacity-30"></div>
           
-          {/* Corner brackets */}
-          <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-[#00FFA3]/30"></div>
-          <div className="absolute top-8 right-8 w-16 h-16 border-t-2 border-r-2 border-[#06B6D4]/30"></div>
-          <div className="absolute bottom-8 left-8 w-16 h-16 border-b-2 border-l-2 border-[#7C3AED]/30"></div>
-          <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-[#00FFA3]/30"></div>
         </div>
 
         {/* Static glowing orbs */}
@@ -124,7 +119,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
         {/* Reflex text */}
         <div className="text-center space-y-3">
-          <h1 className="text-6xl text-white tracking-wider drop-shadow-[0_0_20px_rgba(0,255,163,0.5)]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+          <h1 className="text-3xl text-white tracking-wider drop-shadow-[0_0_20px_rgba(0,255,163,0.5)]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
             REFLEX
           </h1>
         </div>
