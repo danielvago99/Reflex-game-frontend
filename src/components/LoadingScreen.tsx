@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Zap } from 'lucide-react';
-import { FuturisticBackground } from './FuturisticBackground';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -32,121 +31,109 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
     return () => clearInterval(interval);
   }, [isStatic, onComplete]);
 
+  const { radius, circumference, strokeOffset } = useMemo(() => {
+    const circleRadius = 110;
+    const circleCircumference = 2 * Math.PI * circleRadius;
+    const circleStrokeOffset = circleCircumference - (progress / 100) * circleCircumference;
+
+    return {
+      radius: circleRadius,
+      circumference: circleCircumference,
+      strokeOffset: circleStrokeOffset
+    };
+  }, [progress]);
+
   return (
-    <div className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
-      {/* Static background effects - NO ANIMATION */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(rgba(0, 255, 163, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 255, 163, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
+    <div className="h-screen-dvh bg-gradient-to-b from-[#05060d] via-[#0B0F1A] to-[#05060d] flex items-center justify-center relative overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: `
+          linear-gradient(rgba(0, 255, 163, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(6, 182, 212, 0.08) 1px, transparent 1px)
+        `,
+          backgroundSize: '70px 70px'
+        }}
+      ></div>
 
-        {/* Hexagonal Pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `radial-gradient(circle at 25px 25px, rgba(124, 58, 237, 0.3) 2px, transparent 0)`,
-          backgroundSize: '50px 50px'
-        }}></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(0,255,163,0.16),transparent_35%),radial-gradient(circle_at_80%_70%,rgba(124,58,237,0.16),transparent_40%)]"></div>
 
-        {/* Noise Texture */}
-        <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E")`
-        }}></div>
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        <div className="relative flex items-center justify-center">
+          <svg className="w-[280px] h-[280px]" viewBox="0 0 320 320" style={{ transform: 'rotate(-90deg)' }}>
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#00FFA3" />
+                <stop offset="50%" stopColor="#06B6D4" />
+                <stop offset="100%" stopColor="#7C3AED" />
+              </linearGradient>
+            </defs>
+            <circle
+              cx="160"
+              cy="160"
+              r={radius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.06)"
+              strokeWidth="2.5"
+            />
+            <circle
+              cx="160"
+              cy="160"
+              r={radius}
+              fill="none"
+              stroke="url(#progressGradient)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeOffset}
+              style={{
+                transition: 'stroke-dashoffset 0.3s ease',
+                filter: 'drop-shadow(0 0 12px rgba(0, 255, 163, 0.8))'
+              }}
+            />
+          </svg>
 
-        {/* Static Circuit Lines */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent opacity-30"></div>
-          <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#06B6D4] to-transparent opacity-20"></div>
-          <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED] to-transparent opacity-20"></div>
-          <div className="absolute bottom-[25%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent opacity-30"></div>
-          
-          {/* Corner brackets */}
-          <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-[#00FFA3]/30"></div>
-          <div className="absolute top-8 right-8 w-16 h-16 border-t-2 border-r-2 border-[#06B6D4]/30"></div>
-          <div className="absolute bottom-8 left-8 w-16 h-16 border-b-2 border-l-2 border-[#7C3AED]/30"></div>
-          <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-[#00FFA3]/30"></div>
-        </div>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ perspective: '1000px' }}>
+            <div className="absolute inset-6 rounded-full border border-white/10 blur-sm"></div>
+            <div className="absolute inset-10 rounded-full border border-[#00FFA3]/30"></div>
 
-        {/* Static glowing orbs */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00FFA3] opacity-20 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#7C3AED] opacity-20 rounded-full blur-[100px]"></div>
-        <div className="absolute top-1/2 left-1/2 w-56 h-56 bg-[#06B6D4] opacity-15 rounded-full blur-[100px]"></div>
-      </div>
-
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center gap-8">
-        {/* Reflex Icon with animations */}
-        <div className="relative" style={{ perspective: '1000px' }}>
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 -m-8">
-            <div className="w-full h-full border-2 border-[#00FFA3]/20 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
-          </div>
-          
-          {/* Middle pulsing glow */}
-          <div className="absolute inset-0 -m-4">
-            <div className="w-full h-full bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-full blur-xl animate-pulse"></div>
-          </div>
-
-          {/* Icon container with 3D rotation */}
-          <div 
-            className="relative"
-            style={{
-              animation: 'rotate3d 4s ease-in-out infinite',
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            {/* Glow effect behind */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
-            
-            {/* Main gradient container - matching Welcome page */}
-            <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#7C3AED] p-6 rounded-3xl shadow-2xl">
-              <Zap 
-                className="w-16 h-16 text-[#0B0F1A]" 
-                strokeWidth={2.5}
+            <div
+              className="relative bg-gradient-to-br from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] p-5 rounded-2xl shadow-2xl"
+              style={{
+                animation: 'rotate3d 5s ease-in-out infinite',
+                transformStyle: 'preserve-3d'
+              }}
+            >
+              <div className="absolute inset-0 bg-white/10 blur-xl rounded-2xl"></div>
+              <Zap
+                className="relative w-14 h-14 text-[#0B0F1A]"
+                strokeWidth={2.4}
                 style={{
                   animation: 'iconPulse 2s ease-in-out infinite'
                 }}
               />
             </div>
           </div>
-
-          {/* Corner accents */}
-          <div className="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-[#00FFA3] rounded-tl-lg"></div>
-          <div className="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-[#00FFA3] rounded-tr-lg"></div>
-          <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-[#06B6D4] rounded-bl-lg"></div>
-          <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-[#06B6D4] rounded-br-lg"></div>
         </div>
 
-        {/* Reflex text */}
-        <div className="text-center space-y-3">
-          <h1 className="text-6xl text-white tracking-wider drop-shadow-[0_0_20px_rgba(0,255,163,0.5)]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+        <div className="text-center space-y-1">
+          <h1
+            className="text-4xl font-semibold text-white tracking-[0.3em] drop-shadow-[0_0_15px_rgba(0,255,163,0.4)]"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
             REFLEX
           </h1>
+          <p className="text-xs uppercase text-[#7CDBFF] tracking-[0.35em]">Initializing neural link</p>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-64 space-y-2">
-          <div className="relative h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-            <div 
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(0,255,163,0.5)]"
-              style={{ width: `${progress}%` }}
-            ></div>
+        <div className="flex items-center gap-3 text-sm text-[#9FB7C5]">
+          <div className="flex gap-1">
+            <span className="w-1.5 h-1.5 bg-[#00FFA3] rounded-full animate-ping"></span>
+            <span className="w-1.5 h-1.5 bg-[#06B6D4] rounded-full animate-ping" style={{ animationDelay: '0.15s' }}></span>
+            <span className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full animate-ping" style={{ animationDelay: '0.3s' }}></span>
           </div>
-          
-          {/* Loading text */}
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-            <div className="flex gap-1">
-              <div className="w-1 h-1 bg-[#00FFA3] rounded-full animate-bounce"></div>
-              <div className="w-1 h-1 bg-[#06B6D4] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-1 h-1 bg-[#7C3AED] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-            <span className="uppercase tracking-wider">Loading</span>
-          </div>
+          <span className="uppercase tracking-widest text-xs">Loading</span>
+          <span className="text-[#00FFA3] font-semibold">{Math.min(Math.round(progress), 100)}%</span>
         </div>
       </div>
     </div>
