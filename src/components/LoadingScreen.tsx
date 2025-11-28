@@ -10,6 +10,19 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
   const [progress, setProgress] = useState(isStatic ? 100 : 0);
 
   useEffect(() => {
+    const previousBodyBg = document.body.style.backgroundColor;
+    const previousRootBg = document.documentElement.style.backgroundColor;
+
+    document.body.style.backgroundColor = '#060712';
+    document.documentElement.style.backgroundColor = '#060712';
+
+    return () => {
+      document.body.style.backgroundColor = previousBodyBg;
+      document.documentElement.style.backgroundColor = previousRootBg;
+    };
+  }, []);
+
+  useEffect(() => {
     if (isStatic) {
       setProgress(100);
       return;
@@ -45,24 +58,24 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
   return (
     <div className="relative min-h-screen w-full isolate overflow-hidden bg-[#060712] flex items-center justify-center">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#05060d] via-[#0B0F1A] to-[#05060d]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#05060d] via-[#070a14] to-[#05060d]" />
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(0,255,163,0.18),transparent_40%),radial-gradient(circle_at_80%_72%,rgba(124,58,237,0.2),transparent_42%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(0,255,163,0.16),transparent_38%),radial-gradient(circle_at_80%_72%,rgba(124,58,237,0.18),transparent_40%)]" />
 
       <div
-        className="absolute inset-0 opacity-25 pointer-events-none"
+        className="absolute inset-0 opacity-15 pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(0, 255, 163, 0.06) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(6, 182, 212, 0.06) 1px, transparent 1px)
+            linear-gradient(rgba(0, 255, 163, 0.12) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px)
           `,
-          backgroundSize: '56px 56px',
-          maskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.9), transparent 75%)'
+          backgroundSize: '48px 48px'
         }}
       ></div>
 
       <div className="relative z-10 flex flex-col items-center gap-6 px-6">
         <div className="relative flex items-center justify-center">
+          <div className="absolute inset-8 bg-[radial-gradient(circle,rgba(0,255,163,0.14),transparent_55%)] blur-3xl" />
           <svg className="w-[280px] h-[280px]" viewBox="0 0 320 320" style={{ transform: 'rotate(-90deg)' }}>
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -121,7 +134,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
         <div className="text-center space-y-1">
           <h1
-            className="text-3xl font-semibold text-white tracking-[0.32em] drop-shadow-[0_0_15px_rgba(0,255,163,0.4)]"
+            className="text-2xl font-semibold text-white tracking-[0.32em] drop-shadow-[0_0_15px_rgba(0,255,163,0.35)]"
             style={{ fontFamily: 'Orbitron, sans-serif' }}
           >
             REFLEX
