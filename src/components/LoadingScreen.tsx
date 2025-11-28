@@ -24,7 +24,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
           setTimeout(() => onComplete(), 500);
           return 100;
         }
-        return prev + 1.33; // ~75 intervals for 3 seconds (100/75 = 1.33)
+        return Math.min(prev + 1.33, 100); // ~75 intervals for 3 seconds (100/75 = 1.33)
       });
     }, 40); // 40ms * 75 intervals = 3000ms (3 seconds)
 
