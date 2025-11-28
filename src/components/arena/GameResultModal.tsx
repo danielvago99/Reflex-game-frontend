@@ -127,18 +127,18 @@ export function GameResultModal({
               : 'bg-gradient-to-r from-red-500/40 to-red-600/40'
           } animate-pulse`}></div>
 
-          <div className="relative bg-gradient-to-br from-black/90 to-[#0B0F1A]/90 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+          <div className="relative bg-gradient-to-br from-black/90 to-[#0B0F1A]/90 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="text-center mb-6">
               {playerWon ? (
                 <>
                   <div className="mb-4 relative inline-block">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-60 rounded-full animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] p-6 rounded-full shadow-2xl">
-                      <Trophy className="w-16 h-16 text-[#0B0F1A]" strokeWidth={2.5} />
+                    <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] p-5 sm:p-6 rounded-full shadow-2xl">
+                      <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-[#0B0F1A]" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <h2 className="text-4xl mb-2 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
+                  <h2 className="text-3xl sm:text-4xl mb-2 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
                     Victory!
                   </h2>
                   <p className="text-gray-400">You dominated the arena</p>
@@ -146,11 +146,11 @@ export function GameResultModal({
               ) : (
                 <>
                   <div className="mb-4">
-                    <div className="bg-red-500/20 p-6 rounded-full inline-block border-4 border-red-500/30">
-                      <X className="w-16 h-16 text-red-400" strokeWidth={2.5} />
+                    <div className="bg-red-500/20 p-5 sm:p-6 rounded-full inline-block border-4 border-red-500/30">
+                      <X className="w-12 h-12 sm:w-16 sm:h-16 text-red-400" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <h2 className="text-4xl text-red-400 mb-2">Defeat</h2>
+                  <h2 className="text-3xl sm:text-4xl text-red-400 mb-2">Defeat</h2>
                   <p className="text-gray-400">Better luck next time</p>
                 </>
               )}
@@ -163,7 +163,7 @@ export function GameResultModal({
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     <Coins className={`w-6 h-6 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
                     <div>
@@ -194,11 +194,11 @@ export function GameResultModal({
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-400 mb-2">Final Score</p>
                 <div className="flex items-center justify-center gap-4">
-                  <div className={`text-3xl ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
+                  <div className={`text-2xl sm:text-3xl ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
                     {playerScore}
                   </div>
-                  <div className="text-2xl text-gray-600">-</div>
-                  <div className={`text-3xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
+                  <div className="text-xl sm:text-2xl text-gray-600">-</div>
+                  <div className={`text-2xl sm:text-3xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
                     {opponentScore}
                   </div>
                 </div>
@@ -264,17 +264,17 @@ export function GameResultModal({
             <div className="space-y-3">
               <button
                 onClick={onPlayAgain}
-                className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-3"
+                className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 sm:py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-3"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Play Again</span>
               </button>
 
               <button
                 onClick={onBackToMenu}
-                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-3 sm:py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
               >
-                <Home className="w-5 h-5" />
+                <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Back to Lobby</span>
               </button>
             </div>
