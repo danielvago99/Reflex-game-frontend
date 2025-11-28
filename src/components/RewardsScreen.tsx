@@ -159,22 +159,22 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
   const progressPercentage = Math.min((dailyProgress / 5) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 py-6 sm:p-6 relative overflow-hidden">
       {/* Background effects */}
       <FuturisticBackground />
 
-      <div className="relative z-10 max-w-md mx-auto">
+      <div className="relative z-10 max-w-xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
+            className="p-2.5 sm:p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-2xl text-white mb-1">Rewards Center</h1>
-            <p className="text-sm text-gray-400">Earn & redeem Reflex Points</p>
+            <h1 className="text-xl sm:text-2xl text-white mb-1">Rewards Center</h1>
+            <p className="text-xs sm:text-sm text-gray-400">Earn & redeem Reflex Points</p>
           </div>
         </div>
 
@@ -195,28 +195,28 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
               <div className="absolute bottom-0 left-0 w-40 h-40 bg-[#7C3AED] rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1s' }}></div>
             </div>
             
-            <div className="relative p-6">
-              <div className="flex items-center justify-between mb-3">
+            <div className="relative p-4 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 rounded-xl border border-[#00FFA3]/50">
                     <Zap className="w-6 h-6 text-[#00FFA3] drop-shadow-[0_0_8px_rgba(0,255,163,0.8)]" />
                   </div>
                   <div>
                     <p className="text-xs text-gray-300 uppercase tracking-widest">Total Balance</p>
-                    <p className="text-sm text-[#00FFA3]">Reflex Points</p>
+                    <p className="text-xs text-[#00FFA3]">Reflex Points</p>
                   </div>
                 </div>
                 <Flame className="w-8 h-8 text-orange-500 animate-pulse" />
               </div>
-              
-              <div className="text-5xl text-white mb-2 drop-shadow-[0_0_12px_rgba(0,255,163,0.3)]">{reflexPoints.toLocaleString()}</div>
-              <p className="text-sm text-gray-400">Available for rewards & free stakes</p>
+
+              <div className="text-4xl sm:text-5xl text-white mb-2 drop-shadow-[0_0_12px_rgba(0,255,163,0.3)]">{reflexPoints.toLocaleString()}</div>
+              <p className="text-xs sm:text-sm text-gray-400">Available for rewards & free stakes</p>
             </div>
           </div>
         </div>
 
         {/* Points Breakdown - 3 Stat Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
           {/* Ambassador Points */}
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/20 to-[#00FFA3]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>

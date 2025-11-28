@@ -30,24 +30,24 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
   // ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 py-6 sm:p-6 relative overflow-hidden">
       {/* Background effects */}
       <FuturisticBackground />
 
-      <div className="relative z-10 max-w-md mx-auto">
+      <div className="relative z-10 max-w-xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all"
+            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-2.5 sm:p-3 rounded-xl transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h1 className="text-2xl text-white">Player Stats</h1>
+          <h1 className="text-xl sm:text-2xl text-white">Player Stats</h1>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-4 sm:p-6 mb-6 shadow-xl">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-50"></div>
@@ -60,7 +60,7 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
               </div>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl text-white mb-1">{playerName}</h2>
+              <h2 className="text-xl sm:text-2xl text-white mb-1">{playerName}</h2>
             </div>
           </div>
 
@@ -72,7 +72,7 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
               <div className="relative bg-gradient-to-br from-[#00FFA3]/10 to-[#06B6D4]/10 border border-[#00FFA3]/20 backdrop-blur-sm p-4 overflow-hidden" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}>
                 <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-[#00FFA3]/30 to-transparent"></div>
                 <p className="text-xs text-white mb-1 uppercase tracking-wider">Total Matches</p>
-                <p className="text-3xl text-white">156</p>
+                <p className="text-2xl sm:text-3xl text-white">156</p>
               </div>
             </div>
             
@@ -82,16 +82,16 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
               <div className="relative bg-gradient-to-br from-[#7C3AED]/10 to-[#06B6D4]/10 border border-[#7C3AED]/20 backdrop-blur-sm p-4 overflow-hidden" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}>
                 <div className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-[#7C3AED]/30 to-transparent"></div>
                 <p className="text-xs text-white mb-1 uppercase tracking-wider">Win Rate</p>
-                <p className="text-3xl text-white">68%</p>
+                <p className="text-2xl sm:text-3xl text-white">68%</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Performance Stats */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-4 sm:p-6 mb-6 shadow-xl">
           <h3 className="text-lg text-white mb-4">Performance Metrics</h3>
-          
+
           <div className="space-y-4">
             {/* Total Wins */}
             <div className="flex items-center justify-between">

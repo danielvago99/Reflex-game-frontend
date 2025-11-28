@@ -34,21 +34,21 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
   const avatarData = getAvatarData(selectedAvatar);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 py-6 sm:p-6 relative overflow-hidden">
       <FuturisticBackground />
 
-      <div className="relative z-10 max-w-md mx-auto">
+      <div className="relative z-10 max-w-xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
+            className="p-2.5 sm:p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-2xl text-white mb-1">Settings</h1>
-            <p className="text-sm text-gray-400">Manage your account & security</p>
+            <h1 className="text-xl sm:text-2xl text-white mb-1">Settings</h1>
+            <p className="text-xs sm:text-sm text-gray-400">Manage your account & security</p>
           </div>
         </div>
 
@@ -64,8 +64,8 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
               <div className="absolute bottom-0 right-0 w-4 h-px bg-gradient-to-l from-[#06B6D4] to-transparent"></div>
               <div className="absolute bottom-0 right-0 w-px h-4 bg-gradient-to-t from-[#06B6D4] to-transparent"></div>
               
-              <div className="p-5">
-                <div className="flex items-center gap-3 mb-5">
+              <div className="p-4 sm:p-5">
+                <div className="flex items-center gap-3 mb-4 sm:mb-5">
                   <div className="p-2 bg-[#00FFA3]/20 rounded-lg border border-[#00FFA3]/30">
                     <User className="w-5 h-5 text-[#00FFA3]" />
                   </div>
@@ -76,17 +76,17 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                 </div>
 
                 {/* Avatar Selection */}
-                <div className="space-y-3 mb-5">
+                <div className="space-y-3 mb-4 sm:mb-5">
                   <label className="text-xs text-gray-400 uppercase tracking-wider block">
                     Profile Picture
                   </label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     {/* Current Avatar Display */}
                     <div className="relative">
                       <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-40"></div>
-                      <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
-                        <img 
-                          src={avatarData.url} 
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
+                        <img
+                          src={avatarData.url}
                           alt="User avatar"
                           className="w-full h-full object-cover"
                         />

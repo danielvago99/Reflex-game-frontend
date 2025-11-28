@@ -74,22 +74,22 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
   const tierInfo = getTierInfo(currentTier);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 py-6 sm:p-6 relative overflow-hidden">
       {/* Background effects */}
       <FuturisticBackground />
 
-      <div className="relative z-10 max-w-md mx-auto">
+      <div className="relative z-10 max-w-xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 p-3 rounded-xl transition-all"
+            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 p-2.5 sm:p-3 rounded-xl transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-2xl text-white mb-1">Ambassador Dashboard</h1>
-            <p className="text-sm text-gray-400">Build your network. Earn rewards.</p>
+            <h1 className="text-xl sm:text-2xl text-white mb-1">Ambassador Dashboard</h1>
+            <p className="text-xs sm:text-sm text-gray-400">Build your network. Earn rewards.</p>
           </div>
         </div>
 
@@ -105,15 +105,15 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
             <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#7C3AED]/50"></div>
             <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#00FFA3]/50"></div>
             
-            <div className="p-6 relative">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-4 sm:p-6 relative">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-3 rounded-lg bg-gradient-to-br ${tierInfo.gradient} border border-white/10`}>
                     <Trophy className="w-6 h-6" style={{ color: tierInfo.color }} />
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider">Current Tier</p>
-                    <p className="text-xl text-white" style={{ color: tierInfo.color }}>{currentTier}</p>
+                    <p className="text-lg sm:text-xl text-white" style={{ color: tierInfo.color }}>{currentTier}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -163,7 +163,7 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
           {[
             { label: 'Total Invited', value: totalInvited, color: '#06B6D4', icon: Users, suffix: '' },
             { label: 'Active Players', value: activePlayers, color: '#00FFA3', icon: Target, suffix: '' },
@@ -176,8 +176,8 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
                 
                 <div className="p-3 text-center">
                   <stat.icon className="w-4 h-4 mx-auto mb-2" style={{ color: stat.color }} />
-                  <p className="text-2xl text-white mb-1">{stat.value}{stat.suffix}</p>
-                  <p className="text-xs text-gray-400">{stat.label}</p>
+                  <p className="text-xl sm:text-2xl text-white mb-1">{stat.value}{stat.suffix}</p>
+                  <p className="text-xs text-gray-400 leading-tight">{stat.label}</p>
                 </div>
               </div>
             </div>
