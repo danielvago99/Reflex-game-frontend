@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Target, Zap, Trophy, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { ROUNDS_TO_WIN } from '../../features/arena/constants';
-import { Fake3DShapePreview } from '@/components/ui/Fake3DShapePreview';
+import { Fake3DShapePreview } from '../../components/ui/Fake3DShapePreview';
 
 interface HowToPlayOverlayProps {
   targetShape: string;
