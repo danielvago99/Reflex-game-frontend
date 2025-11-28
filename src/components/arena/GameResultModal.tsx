@@ -182,19 +182,19 @@ export function GameResultModal({
 
             {/* SOL Earnings/Loss - Only for ranked matches */}
             {isRanked && (
-              <div className={`mb-5 p-3 sm:p-4 rounded-2xl border ${
+              <div className={`mb-5 px-3 sm:px-4 py-2 sm:py-3 rounded-2xl border ${
                 playerWon
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
-                <div className="flex flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5">
+                  <div className="flex items-center gap-2.5">
                     <Coins className={`w-6 h-6 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-400">
+                    <div className="leading-snug">
+                      <p className="text-[11px] sm:text-xs text-gray-400">
                         {playerWon ? 'You won' : 'You lost'}
                       </p>
-                      <p className={`leading-tight text-xl sm:text-2xl ${
+                      <p className={`text-lg sm:text-xl ${
                         playerWon
                           ? 'bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent'
                           : 'text-red-400'
@@ -203,7 +203,7 @@ export function GameResultModal({
                       </p>
                     </div>
                   </div>
-                  <div className="text-right text-[11px] sm:text-xs text-gray-500 leading-tight">
+                  <div className="text-right text-[11px] sm:text-xs text-gray-500 leading-snug">
                     {playerWon ? (
                       <>
                         <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
@@ -279,10 +279,10 @@ export function GameResultModal({
                 <span>Play Again</span>
               </button>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                 <button
                   onClick={handleShare}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
                   <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Share Result</span>
@@ -290,7 +290,7 @@ export function GameResultModal({
 
                 <button
                   onClick={onBackToMenu}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-3 sm:px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
                   <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Back to Lobby</span>
