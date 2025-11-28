@@ -158,20 +158,20 @@ export function GameResultModal({
 
             {/* SOL Earnings/Loss - Only for ranked matches */}
             {isRanked && (
-              <div className={`mb-6 p-5 rounded-2xl border ${
+              <div className={`mb-6 p-4 sm:p-5 rounded-2xl border ${
                 playerWon
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     <Coins className={`w-6 h-6 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
                     <div>
                       <p className="text-sm text-gray-400">
                         {playerWon ? 'You won' : 'You lost'}
                       </p>
-                      <p className={`text-3xl ${
-                        playerWon 
+                      <p className={`leading-tight text-2xl sm:text-3xl ${
+                        playerWon
                           ? 'bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent'
                           : 'text-red-400'
                       }`}>
@@ -180,7 +180,7 @@ export function GameResultModal({
                     </div>
                   </div>
                   {playerWon && (
-                    <div className="text-right text-xs text-gray-500">
+                    <div className="text-right text-xs sm:text-sm text-gray-500 leading-tight">
                       <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
                       <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
                     </div>
