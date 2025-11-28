@@ -46,14 +46,13 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
           REFLEX
         </h1>
 
-        <div className="w-64 mt-2">
+        <div className="w-11/12 max-w-xs mt-2">
           <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="absolute inset-0 opacity-60 bg-[linear-gradient(90deg,rgba(15,23,42,0.85)_0,rgba(15,23,42,0.85)_38%,rgba(56,189,248,0.25)_50%,rgba(15,23,42,0.85)_62%,rgba(15,23,42,0.85)_100%)] bg-[length:48px_100%]"
-              style={{ animation: 'moveGrid 1.6s linear infinite' }}
+              className="absolute inset-0 z-0 opacity-50 bg-[linear-gradient(90deg,rgba(15,23,42,0.85)_0,rgba(15,23,42,0.85)_38%,rgba(56,189,248,0.25)_50%,rgba(15,23,42,0.85)_62%,rgba(15,23,42,0.85)_100%)] bg-[length:3rem_100%] animate-[moveGrid_1.2s_linear_infinite] pointer-events-none"
             />
             <div
-              className="relative h-full rounded-full bg-[radial-gradient(circle_at_0%_50%,#00FFA3,transparent_55%),linear-gradient(to_right,#00FFA3,#06B6D4,#7C3AED)] shadow-[0_0_18px_rgba(0,255,163,0.65)] transition-[width] duration-200 ease-out"
+              className="relative z-10 h-full rounded-full bg-[radial-gradient(circle_at_0%_50%,#00FFA3,transparent_55%),linear-gradient(to_right,#00FFA3,#06B6D4,#7C3AED)] shadow-[0_0_18px_rgba(0,255,163,0.65)] transition-[width] duration-200 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
