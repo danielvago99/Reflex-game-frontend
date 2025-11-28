@@ -220,16 +220,16 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           {/* Ambassador Points */}
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/20 to-[#00FFA3]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden h-[110px]" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#7C3AED]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#00FFA3]/50"></div>
-              
-              <div className="p-3 text-center flex flex-col items-center justify-center h-full">
-                <Users className="w-5 h-5 text-[#7C3AED] mb-2" />
+
+              <div className="p-3 text-center flex flex-col items-center justify-center">
+                <Users className="w-4 h-4 text-[#7C3AED] mb-2" />
                 <div className="text-2xl text-white mb-1">{activePlayers}</div>
-                <p className="text-[9px] text-gray-400 uppercase tracking-wider leading-tight">Active<br/>Ambassadors</p>
+                <p className="text-xs text-gray-400 leading-tight">Active<br/>Ambassadors</p>
               </div>
             </div>
           </div>
@@ -237,16 +237,16 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           {/* Daily Rewards Points */}
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden h-[110px]" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#00FFA3]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#06B6D4]/50"></div>
-              
-              <div className="p-3 text-center flex flex-col items-center justify-center h-full">
-                <Target className="w-5 h-5 text-[#00FFA3] mb-2" />
+
+              <div className="p-3 text-center flex flex-col items-center justify-center">
+                <Target className="w-4 h-4 text-[#00FFA3] mb-2" />
                 <div className="text-2xl text-white mb-1">{dailyRewardsEarned}</div>
-                <p className="text-[9px] text-gray-400 uppercase tracking-wider leading-tight">Daily<br/>Streak</p>
+                <p className="text-xs text-gray-400 leading-tight">Daily<br/>Streak</p>
               </div>
             </div>
           </div>
@@ -254,16 +254,16 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           {/* Redeemed Points */}
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden h-[110px]" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+
+            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#06B6D4]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#7C3AED]/50"></div>
-              
-              <div className="p-3 text-center flex flex-col items-center justify-center h-full">
-                <Trophy className="w-5 h-5 text-[#06B6D4] mb-2" />
+
+              <div className="p-3 text-center flex flex-col items-center justify-center">
+                <Trophy className="w-4 h-4 text-[#06B6D4] mb-2" />
                 <div className="text-2xl text-white mb-1">{freeStakesAvailable}</div>
-                <p className="text-[9px] text-gray-400 uppercase tracking-wider leading-tight">Free<br/>Stakes</p>
+                <p className="text-xs text-gray-400 leading-tight">Free<br/>Stakes</p>
               </div>
             </div>
           </div>
