@@ -1,4 +1,4 @@
-import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera, Lock, Key, Database, Eye } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, getAvatarData } from './AvatarSelector';
@@ -172,105 +172,6 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-
-          {/* Security Info */}
-          <div className="relative">
-            <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
-              {/* Corner accents */}
-              <div className="absolute top-0 left-0 w-4 h-px bg-gradient-to-r from-[#06B6D4] to-transparent"></div>
-              <div className="absolute top-0 left-0 w-px h-4 bg-gradient-to-b from-[#06B6D4] to-transparent"></div>
-              <div className="absolute bottom-0 right-0 w-4 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
-              <div className="absolute bottom-0 right-0 w-px h-4 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
-              
-              <div className="p-5">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="p-2 bg-[#06B6D4]/20 rounded-lg border border-[#06B6D4]/30">
-                    <Shield className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <h2 className="text-white">Security & Privacy</h2>
-                    <p className="text-xs text-gray-400">Your data protection</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Browser Storage */}
-                  <div className="relative group">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[#00FFA3]/20 rounded-lg">
-                          <Database className="w-4 h-4 text-[#00FFA3]" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm mb-1">Browser Storage Only</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">
-                            All game data is stored locally in your browser. We do not collect, transmit, or store any personal information on external servers.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Wallet Security */}
-                  <div className="relative group">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#06B6D4]/10 to-[#7C3AED]/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[#06B6D4]/20 rounded-lg">
-                          <Lock className="w-4 h-4 text-[#06B6D4]" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm mb-1">Solana Wallet Connection</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">
-                            Your Solana wallet remains under your control. We only request transaction signatures when you initiate game actions with real SOL stakes.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Free Stakes */}
-                  <div className="relative group">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/10 to-[#00FFA3]/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[#7C3AED]/20 rounded-lg">
-                          <Key className="w-4 h-4 text-[#7C3AED]" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm mb-1">Free Stakes (No Signatures)</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">
-                            Free stakes earned through challenges are auto-approved by our DAO treasury. No wallet signature required for free gameplay.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Privacy Notice */}
-                  <div className="relative group">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#FFD93D]/10 to-[#FF6B6B]/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[#FFD93D]/20 rounded-lg">
-                          <Eye className="w-4 h-4 text-[#FFD93D]" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm mb-1">Zero Tracking</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">
-                            No analytics, no cookies, no tracking. Your gameplay data never leaves your device unless you choose to share it.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
