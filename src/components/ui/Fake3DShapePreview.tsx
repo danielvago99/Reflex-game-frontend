@@ -49,6 +49,7 @@ export function Fake3DShapePreview({ shape, label, className, color }: Fake3DSha
   const darker = adjustColor(baseColor, 0.2, false);
   const innerHighlight = adjustColor(baseColor, 0.45);
   const glowStyle = { boxShadow: `0 0 14px ${toRgba(baseColor, 0.5)}` };
+  const strokeColor = adjustColor(baseColor, 0.5);
 
   const circle = (
     <div className="relative w-full h-full">
@@ -64,23 +65,88 @@ export function Fake3DShapePreview({ shape, label, className, color }: Fake3DSha
     </div>
   );
 
-  const square = (
-    <div className="relative w-full h-full">
-      <div
-        className="absolute inset-0 rounded-sm"
-        style={{ background: `linear-gradient(135deg, ${lighter}, ${darker})` }}
-      />
-      <div
-        className="absolute top-0 left-[2px] w-full h-2 blur-[2px] rounded-sm"
-        style={{ backgroundColor: adjustColor(baseColor, 0.35) }}
-      />
-      <div
-        className="absolute top-[2px] left-[2px] w-2 h-full blur-[2px] rounded-sm"
-        style={{ backgroundColor: adjustColor(baseColor, 0.25, false) }}
-      />
-      <div className="absolute inset-[1px] rounded-sm border border-white/20" />
-    </div>
-  );
+  const square = (() => {
+    // Use SVG to mirror the isometric cube proportions used in the PIXI renderer
+    const cubeSize = 9;
+    const offset = cubeSize * 0.65;
+
+    const frontTopLeft = { x: -cubeSize, y: -cubeSize + offset };
+    const frontTopRight = { x: cubeSize, y: -cubeSize + offset };
+    const frontBottomRight = { x: cubeSize, y: cubeSize + offset };
+    const frontBottomLeft = { x: -cubeSize, y: cubeSize + offset };
+
+    const depth = { x: offset, y: -offset };
+
+    const topBackLeft = { x: frontTopLeft.x + depth.x, y: frontTopLeft.y + depth.y };
+    const topBackRight = { x: frontTopRight.x + depth.x, y: frontTopRight.y + depth.y };
+    const backBottomRight = { x: frontBottomRight.x + depth.x, y: frontBottomRight.y + depth.y };
+    const backBottomLeft = { x: frontBottomLeft.x + depth.x, y: frontBottomLeft.y + depth.y };
+
+    const coords = [
+      frontTopLeft,
+      frontTopRight,
+      frontBottomRight,
+      frontBottomLeft,
+      topBackLeft,
+      topBackRight,
+      backBottomRight,
+      backBottomLeft,
+    ];
+
+    const minX = Math.min(...coords.map(p => p.x));
+    const maxX = Math.max(...coords.map(p => p.x));
+    const minY = Math.min(...coords.map(p => p.y));
+    const maxY = Math.max(...coords.map(p => p.y));
+    const padding = 3;
+
+    const viewBox = `${minX - padding} ${minY - padding} ${maxX - minX + padding * 2} ${maxY - minY + padding * 2}`;
+
+    const topFace = `${frontTopLeft.x},${frontTopLeft.y} ${frontTopRight.x},${frontTopRight.y} ${topBackRight.x},${topBackRight.y} ${topBackLeft.x},${topBackLeft.y}`;
+    const rightFace = `${frontTopRight.x},${frontTopRight.y} ${frontBottomRight.x},${frontBottomRight.y} ${backBottomRight.x},${backBottomRight.y} ${topBackRight.x},${topBackRight.y}`;
+    const leftFace = `${frontTopLeft.x},${frontTopLeft.y} ${frontBottomLeft.x},${frontBottomLeft.y} ${backBottomLeft.x},${backBottomLeft.y} ${topBackLeft.x},${topBackLeft.y}`;
+    const frontFace = `${frontBottomLeft.x},${frontBottomLeft.y} ${frontBottomRight.x},${frontBottomRight.y} ${frontTopRight.x},${frontTopRight.y} ${frontTopLeft.x},${frontTopLeft.y}`;
+    const bottomGlow = `${frontBottomLeft.x},${frontBottomLeft.y} ${backBottomLeft.x},${backBottomLeft.y} ${backBottomRight.x},${backBottomRight.y} ${frontBottomRight.x},${frontBottomRight.y}`;
+
+    const topColor = adjustColor(baseColor, 0.15);
+    const frontColor = adjustColor(baseColor, -0.1, false);
+    const sideColor = adjustColor(baseColor, -0.2, false);
+
+    return (
+      <svg viewBox={viewBox} className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points={topFace} fill={topColor} fillOpacity="0.95" />
+        <polygon points={rightFace} fill={sideColor} fillOpacity="0.9" />
+        <polygon points={leftFace} fill={adjustColor(baseColor, -0.25, false)} fillOpacity="0.4" />
+        <polygon points={frontFace} fill={frontColor} fillOpacity="0.95" />
+        <polygon points={bottomGlow} fill={adjustColor(baseColor, -0.35, false)} fillOpacity="0.25" />
+        <polyline
+          points={`
+            ${frontTopLeft.x},${frontTopLeft.y}
+            ${topBackLeft.x},${topBackLeft.y}
+            ${topBackRight.x},${topBackRight.y}
+            ${frontTopRight.x},${frontTopRight.y}
+            ${frontTopLeft.x},${frontTopLeft.y}
+            ${frontBottomLeft.x},${frontBottomLeft.y}
+            ${frontTopLeft.x},${frontTopLeft.y}
+            ${frontBottomRight.x},${frontBottomRight.y}
+            ${frontTopRight.x},${frontTopRight.y}
+            ${frontBottomRight.x},${frontBottomRight.y}
+            ${backBottomRight.x},${backBottomRight.y}
+            ${topBackRight.x},${topBackRight.y}
+            ${frontBottomLeft.x},${frontBottomLeft.y}
+            ${backBottomLeft.x},${backBottomLeft.y}
+            ${topBackLeft.x},${topBackLeft.y}
+            ${backBottomLeft.x},${backBottomLeft.y}
+            ${backBottomRight.x},${backBottomRight.y}
+          `}
+          stroke={strokeColor}
+          strokeWidth="1.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.85}
+        />
+      </svg>
+    );
+  })();
 
   const triangle = (
     <div className="relative w-full h-full">

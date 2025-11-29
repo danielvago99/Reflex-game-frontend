@@ -280,6 +280,50 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
           </div>
         </div>
 
+        {/* Referral Link Section */}
+        <div className="relative mb-6">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
+
+          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
+            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
+
+            <div className="p-5">
+              <h3 className="text-sm text-gray-300 uppercase tracking-wider mb-3">Your Referral Link</h3>
+
+              <div className="relative mb-4">
+                <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}></div>
+                <div className="relative bg-[#0B0F1A]/50 backdrop-blur-sm p-3 text-sm text-gray-300 break-all border border-white/10" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}>
+                  {referralLink}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleCopyLink}
+                  className="relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span className="text-sm">Copy Link</span>
+                    </>
+                  )}
+                </button>
+
+                <button className="relative bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 text-white py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                  <Share2 className="w-4 h-4" />
+                  <span className="text-sm">Share</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Combined Info Box - How It Works & Rewards (Dynamic Tier Colors) */}
         <div className="relative mb-6">
           {/* Dynamic glow based on current tier */}
@@ -436,51 +480,6 @@ export function AmbassadorScreen({ onNavigate }: AmbassadorScreenProps) {
             </div>
           </div>
         </div>
-
-        {/* Referral Link Section */}
-        <div className="relative mb-6">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
-          
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
-            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
-            
-            <div className="p-5">
-              <h3 className="text-sm text-gray-300 uppercase tracking-wider mb-3">Your Referral Link</h3>
-              
-              <div className="relative mb-4">
-                <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}></div>
-                <div className="relative bg-[#0B0F1A]/50 backdrop-blur-sm p-3 text-sm text-gray-300 break-all border border-white/10" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}>
-                  {referralLink}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleCopyLink}
-                  className="relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span className="text-sm">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span className="text-sm">Copy Link</span>
-                    </>
-                  )}
-                </button>
-                
-                <button className="relative bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 text-white py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  <span className="text-sm">Share</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Referred Players List */}
         <div className="relative">
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 to-[#06B6D4]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>

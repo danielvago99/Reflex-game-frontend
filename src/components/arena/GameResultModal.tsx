@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Trophy, Target, Clock, Home, RotateCcw, Coins, X } from 'lucide-react';
+import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
@@ -101,9 +101,33 @@ export function GameResultModal({
 
   // Calculate average reaction time (exclude null values)
   const validPlayerTimes = playerTimes.filter((t): t is number => t !== null && t < 999999);
-  const avgPlayerTime = validPlayerTimes.length > 0 
+  const avgPlayerTime = validPlayerTimes.length > 0
     ? Math.round(validPlayerTimes.reduce((a, b) => a + b, 0) / validPlayerTimes.length)
     : 0;
+
+  const handleShare = async () => {
+    try {
+      const shareText = `I ${playerWon ? 'won' : 'lost'} ${playerScore}-${opponentScore} in Reflex Arena with a ${avgPlayerTime}ms average reaction time!`;
+      const shareData = {
+        title: 'Reflex Arena Result',
+        text: shareText,
+        url: typeof window !== 'undefined' ? window.location.href : undefined
+      };
+
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${shareText} Play here: ${shareData.url ?? ''}`.trim());
+        toast.success('Result copied! Share it with your friends.');
+      }
+    } catch (error) {
+      console.error('Error sharing result', error);
+      toast.error('Unable to share your result right now.');
+    }
+  };
 
   return (
     <motion.div
@@ -122,35 +146,35 @@ export function GameResultModal({
         <div className="relative">
           {/* Glow effect */}
           <div className={`absolute -inset-2 rounded-3xl blur-2xl ${
-            playerWon 
+            playerWon
               ? 'bg-gradient-to-r from-[#00FFA3]/40 to-[#06B6D4]/40'
               : 'bg-gradient-to-r from-red-500/40 to-red-600/40'
           } animate-pulse`}></div>
 
-          <div className="relative bg-gradient-to-br from-black/90 to-[#0B0F1A]/90 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
+          <div className="relative bg-gradient-to-br from-black/90 to-[#0B0F1A]/90 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
             {/* Header */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               {playerWon ? (
                 <>
-                  <div className="mb-4 relative inline-block">
+                  <div className="mb-3 relative inline-block">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-60 rounded-full animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] p-6 rounded-full shadow-2xl">
-                      <Trophy className="w-16 h-16 text-[#0B0F1A]" strokeWidth={2.5} />
+                    <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] p-4 sm:p-5 rounded-full shadow-2xl">
+                      <Trophy className="w-10 h-10 sm:w-14 sm:h-14 text-[#0B0F1A]" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <h2 className="text-4xl mb-2 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
+                  <h2 className="text-2xl sm:text-3xl mb-1 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
                     Victory!
                   </h2>
                   <p className="text-gray-400">You dominated the arena</p>
                 </>
               ) : (
                 <>
-                  <div className="mb-4">
-                    <div className="bg-red-500/20 p-6 rounded-full inline-block border-4 border-red-500/30">
-                      <X className="w-16 h-16 text-red-400" strokeWidth={2.5} />
+                  <div className="mb-3">
+                    <div className="bg-red-500/20 p-4 sm:p-5 rounded-full inline-block border-4 border-red-500/30">
+                      <X className="w-10 h-10 sm:w-14 sm:h-14 text-red-400" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <h2 className="text-4xl text-red-400 mb-2">Defeat</h2>
+                  <h2 className="text-2xl sm:text-3xl text-red-400 mb-1">Defeat</h2>
                   <p className="text-gray-400">Better luck next time</p>
                 </>
               )}
@@ -158,20 +182,20 @@ export function GameResultModal({
 
             {/* SOL Earnings/Loss - Only for ranked matches */}
             {isRanked && (
-              <div className={`mb-6 p-5 rounded-2xl border ${
+              <div className={`mb-5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border ${
                 playerWon
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Coins className={`w-6 h-6 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
-                    <div>
-                      <p className="text-sm text-gray-400">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-2">
+                    <Coins className={`w-5 h-5 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
+                    <div className="leading-snug">
+                      <p className="text-[10px] sm:text-xs text-gray-400">
                         {playerWon ? 'You won' : 'You lost'}
                       </p>
-                      <p className={`text-3xl ${
-                        playerWon 
+                      <p className={`text-base sm:text-lg ${
+                        playerWon
                           ? 'bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent'
                           : 'text-red-400'
                       }`}>
@@ -179,26 +203,33 @@ export function GameResultModal({
                       </p>
                     </div>
                   </div>
-                  {playerWon && (
-                    <div className="text-right text-xs text-gray-500">
-                      <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
-                      <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
-                    </div>
-                  )}
+                  <div className="text-right text-[10px] sm:text-xs text-gray-500 leading-snug">
+                    {playerWon ? (
+                      <>
+                        <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
+                        <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>Total Pot: {totalPot.toFixed(2)} SOL</div>
+                        <div>Stake Lost: -{stakeAmount.toFixed(2)} SOL</div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Score */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 mb-6">
-              <div className="text-center mb-4">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
+              <div className="text-center mb-3">
                 <p className="text-sm text-gray-400 mb-2">Final Score</p>
                 <div className="flex items-center justify-center gap-4">
-                  <div className={`text-3xl ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
+                  <div className={`text-xl sm:text-2xl ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
                     {playerScore}
                   </div>
-                  <div className="text-2xl text-gray-600">-</div>
-                  <div className={`text-3xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
+                  <div className="text-lg sm:text-xl text-gray-600">-</div>
+                  <div className={`text-xl sm:text-2xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
                     {opponentScore}
                   </div>
                 </div>
@@ -222,61 +253,49 @@ export function GameResultModal({
             </div>
 
             {/* Stats */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 mb-6">
-              <h3 className="text-sm text-gray-400 mb-4">Your Statistics</h3>
-              
-              <div className="space-y-4">
-                {/* Avg Reaction Time */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/20 p-2 rounded-lg">
-                      <Clock className="w-4 h-4 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Avg Reaction</p>
-                      <p className="text-white">{avgPlayerTime}ms</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
+              <h3 className="text-sm text-gray-400 mb-3">Your Statistics</h3>
 
-                {/* Accuracy */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#00FFA3]/20 p-2 rounded-lg">
-                      <Target className="w-4 h-4 text-[#00FFA3]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Accuracy</p>
-                      <p className="text-white">{validPlayerTimes.length}/{MAX_ROUNDS} rounds</p>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#06B6D4]/20 p-2 rounded-lg">
+                    <Clock className="w-4 h-4 text-[#06B6D4]" />
                   </div>
-                  <div className="w-20 bg-white/10 rounded-full h-1.5">
-                    <div
-                      className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] h-1.5 rounded-full"
-                      style={{ width: `${(validPlayerTimes.length / MAX_ROUNDS) * 100}%` }}
-                    ></div>
+                  <div>
+                    <p className="text-xs text-gray-400">Avg Reaction</p>
+                    <p className="text-white">{avgPlayerTime}ms</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <button
                 onClick={onPlayAgain}
-                className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-3"
+                className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Play Again</span>
               </button>
 
-              <button
-                onClick={onBackToMenu}
-                className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
-              >
-                <Home className="w-5 h-5" />
-                <span>Back to Lobby</span>
-              </button>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                <button
+                  onClick={handleShare}
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                >
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Share Result</span>
+                </button>
+
+                <button
+                  onClick={onBackToMenu}
+                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                >
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Back to Lobby</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
