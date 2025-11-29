@@ -1,0 +1,25 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+
+const PORT = Number(process.env.PORT || 4000);
+
+app.use(cors());
+app.use(express.json());
+
+// Healthcheck – aby si vedel, že backend žije
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'reflex-backend',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`[reflex-backend] Listening on port ${PORT}`);
+});
