@@ -1,25 +1,15 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import 'dotenv/config';
+import http from 'http';
+import { app } from './app';
+import { env } from './config/env';
+import { createWsServer } from './ws/server';
+import { logger } from './utils/logger';
 
-dotenv.config();
+const server = http.createServer(app);
 
-const app = express();
+// Attach WebSocket server
+createWsServer(server);
 
-const PORT = Number(process.env.PORT || 4000);
-
-app.use(cors());
-app.use(express.json());
-
-// Healthcheck – aby si vedel, že backend žije
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'reflex-backend',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`[reflex-backend] Listening on port ${PORT}`);
+server.listen(env.PORT, () => {
+  logger.info(`Backend server listening on http://localhost:${env.PORT}`);
 });
