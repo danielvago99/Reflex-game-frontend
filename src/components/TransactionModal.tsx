@@ -69,7 +69,7 @@ export function TransactionModal({
       setTimeout(() => {
         // Simulate success (90% chance) or error (10% chance)
         const success = Math.random() > 0.1;
-        
+
         if (success) {
           const mockTxId = generateMockTxId();
           setTxId(mockTxId);
@@ -77,11 +77,6 @@ export function TransactionModal({
           toast.success('Transaction confirmed', {
             description: 'Stake is now active',
           });
-          
-          // Call onConfirm after successful transaction
-          setTimeout(() => {
-            onConfirm();
-          }, 500);
         } else {
           setErrorMessage('Transaction failed. Insufficient funds or network error.');
           setState('error');
@@ -343,7 +338,10 @@ export function TransactionModal({
 
               {/* Action Button */}
               <button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onConfirm();
+                  onOpenChange(false);
+                }}
                 className="w-full px-4 py-3 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] rounded-lg transition-all"
               >
                 Continue to Game
