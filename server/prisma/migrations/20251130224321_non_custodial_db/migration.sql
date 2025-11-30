@@ -1,10 +1,4 @@
 -- CreateEnum
-CREATE TYPE "WalletTransactionType" AS ENUM ('deposit', 'withdraw', 'game_stake', 'game_win', 'referral_reward');
-
--- CreateEnum
-CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'completed', 'failed');
-
--- CreateEnum
 CREATE TYPE "LobbyMode" AS ENUM ('random', 'friend', 'bot');
 
 -- CreateEnum
@@ -25,9 +19,6 @@ CREATE TYPE "AmbassadorTier" AS ENUM ('bronze', 'silver', 'gold');
 -- CreateEnum
 CREATE TYPE "RewardType" AS ENUM ('reflex_points', 'sol_bonus');
 
--- CreateEnum
-CREATE TYPE "FreeStakeSource" AS ENUM ('signup', 'bonus', 'daily_reward', 'weekly_reward', 'manual_grant', 'rewards_center');
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -41,39 +32,11 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Wallet" (
-    "id" TEXT NOT NULL,
-    "address" TEXT NOT NULL,
-    "balance" DECIMAL(18,6) NOT NULL DEFAULT 0,
-    "encryptedPrivateKey" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" TEXT NOT NULL,
-
-    CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "WalletTransaction" (
-    "id" TEXT NOT NULL,
-    "type" "WalletTransactionType" NOT NULL,
-    "amount" DECIMAL(18,6) NOT NULL,
-    "status" "TransactionStatus" NOT NULL,
-    "txHash" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "walletId" TEXT NOT NULL,
-    "gameSessionId" TEXT,
-
-    CONSTRAINT "WalletTransaction_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "GameLobby" (
     "id" TEXT NOT NULL,
     "code" TEXT,
     "mode" "LobbyMode" NOT NULL,
     "status" "LobbyStatus" NOT NULL DEFAULT 'waiting',
-    "stakeLamports" DECIMAL(18,6),
-    "isFreeStake" BOOLEAN NOT NULL DEFAULT false,
     "bestOf" INTEGER NOT NULL DEFAULT 1,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -133,9 +96,6 @@ CREATE TABLE "GamePlayer" (
     "isBot" BOOLEAN NOT NULL DEFAULT false,
     "reactionMs" INTEGER,
     "result" "PlayerMatchResult",
-    "usedFreeStakeGrantId" TEXT,
-    "stakeLamports" DECIMAL(18,6),
-    "payoutLamports" DECIMAL(18,6),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "GamePlayer_pkey" PRIMARY KEY ("id")
@@ -255,23 +215,9 @@ CREATE TABLE "ReferralReward" (
     "referrerId" TEXT NOT NULL,
     "referredId" TEXT,
     "ambassadorId" TEXT,
+    "referralId" TEXT,
 
     CONSTRAINT "ReferralReward_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "FreeStakeGrant" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "amount" DECIMAL(18,6) NOT NULL,
-    "remainingAmount" DECIMAL(18,6) NOT NULL,
-    "source" "FreeStakeSource" NOT NULL,
-    "matchId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "expiresAt" TIMESTAMP(3),
-    "consumedAt" TIMESTAMP(3),
-
-    CONSTRAINT "FreeStakeGrant_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -279,12 +225,6 @@ CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_walletAddress_key" ON "User"("walletAddress");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Wallet_address_key" ON "Wallet"("address");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Wallet_userId_key" ON "Wallet"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GameLobby_code_key" ON "GameLobby"("code");
@@ -320,15 +260,6 @@ CREATE UNIQUE INDEX "AmbassadorProfile_userId_key" ON "AmbassadorProfile"("userI
 CREATE UNIQUE INDEX "AmbassadorProfile_code_key" ON "AmbassadorProfile"("code");
 
 -- AddForeignKey
-ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "WalletTransaction" ADD CONSTRAINT "WalletTransaction_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "WalletTransaction" ADD CONSTRAINT "WalletTransaction_gameSessionId_fkey" FOREIGN KEY ("gameSessionId") REFERENCES "GameSession"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "GameLobby" ADD CONSTRAINT "GameLobby_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -338,25 +269,22 @@ ALTER TABLE "LobbyPlayer" ADD CONSTRAINT "LobbyPlayer_lobbyId_fkey" FOREIGN KEY 
 ALTER TABLE "LobbyPlayer" ADD CONSTRAINT "LobbyPlayer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GameSession" ADD CONSTRAINT "GameSession_lobbyId_fkey" FOREIGN KEY ("lobbyId") REFERENCES "GameLobby"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "GameSession" ADD CONSTRAINT "GameSession_winnerId_fkey" FOREIGN KEY ("winnerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GameMatch" ADD CONSTRAINT "GameMatch_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "GameSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "GameSession" ADD CONSTRAINT "GameSession_lobbyId_fkey" FOREIGN KEY ("lobbyId") REFERENCES "GameLobby"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GameMatch" ADD CONSTRAINT "GameMatch_winningPlayerId_fkey" FOREIGN KEY ("winningPlayerId") REFERENCES "GamePlayer"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GameMatch" ADD CONSTRAINT "GameMatch_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "GameSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GamePlayer" ADD CONSTRAINT "GamePlayer_matchId_fkey" FOREIGN KEY ("matchId") REFERENCES "GameMatch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GamePlayer" ADD CONSTRAINT "GamePlayer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GamePlayer" ADD CONSTRAINT "GamePlayer_usedFreeStakeGrantId_fkey" FOREIGN KEY ("usedFreeStakeGrantId") REFERENCES "FreeStakeGrant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GameResult" ADD CONSTRAINT "GameResult_matchId_fkey" FOREIGN KEY ("matchId") REFERENCES "GameMatch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -398,7 +326,4 @@ ALTER TABLE "ReferralReward" ADD CONSTRAINT "ReferralReward_referredId_fkey" FOR
 ALTER TABLE "ReferralReward" ADD CONSTRAINT "ReferralReward_ambassadorId_fkey" FOREIGN KEY ("ambassadorId") REFERENCES "AmbassadorProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FreeStakeGrant" ADD CONSTRAINT "FreeStakeGrant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "FreeStakeGrant" ADD CONSTRAINT "FreeStakeGrant_matchId_fkey" FOREIGN KEY ("matchId") REFERENCES "GameMatch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ReferralReward" ADD CONSTRAINT "ReferralReward_referralId_fkey" FOREIGN KEY ("referralId") REFERENCES "Referral"("id") ON DELETE SET NULL ON UPDATE CASCADE;
