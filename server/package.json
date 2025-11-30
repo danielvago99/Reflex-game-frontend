@@ -13,6 +13,7 @@
   "format:fix": "prettier 'src/**/*.{ts,tsx,js,json}' --write",
   "prisma:generate": "prisma generate",
   "prisma:migrate": "prisma migrate dev",
+  "postinstall": "prisma generate",
   "test": "vitest"
 },
   "keywords": [],
