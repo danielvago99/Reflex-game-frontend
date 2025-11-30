@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// prisma/schema.prisma
+// Final schema for Reflex backend (Prisma 7)
 
 generator client {
   provider = "prisma-client-js"
@@ -10,4 +7,450 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // URL je v prisma.config.ts cez env("DATABASE_URL")
+}
+
+//
+// ENUMS
+//
+
+enum WalletTransactionType {
+  deposit
+  withdraw
+  game_stake
+  game_win
+  referral_reward
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum LobbyMode {
+  random
+  friend
+  bot
+}
+
+enum LobbyStatus {
+  waiting
+  starting
+  in_progress
+  completed
+  cancelled
+}
+
+enum SessionStatus {
+  waiting
+  active
+  completed
+  cancelled
+  expired
+}
+
+enum PlayerMatchResult {
+  win
+  lose
+  disconnect
+  timeout
+}
+
+enum ReferralStatus {
+  pending
+  active
+  inactive
+}
+
+enum AmbassadorTier {
+  bronze
+  silver
+  gold
+}
+
+enum RewardType {
+  reflex_points
+  sol_bonus
+}
+
+enum FreeStakeSource {
+  signup
+  bonus
+  daily_reward
+  weekly_reward
+  manual_grant
+  rewards_center
+}
+
+//
+// CORE USER / WALLET
+//
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  walletAddress String?  @unique
+  avatar        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // wallet
+  wallet        Wallet?
+
+  // game relations
+  createdLobbies    GameLobby[]     @relation("LobbyCreator")
+  lobbyPlayers      LobbyPlayer[]
+  gamePlayers       GamePlayer[]
+  sessionsWon       GameSession[]   @relation("SessionWinner")
+  resultsAsWinner   GameResult[]    @relation("Winner")
+  resultsAsLoser    GameResult[]    @relation("Loser")
+
+  // referral / ambassador
+  ambassadorProfile AmbassadorProfile?
+  referralsMade     Referral[]       @relation("Referrer")
+  referralsReceived Referral[]       @relation("Referred")
+  referralRewardsAsReferrer ReferralReward[] @relation("ReferrerRewards")
+  referralRewardsAsReferred ReferralReward[] @relation("ReferredRewards")
+
+  // progression
+  stats            PlayerStats?
+  dailyChallenge   DailyChallengeProgress?
+  weeklyStreak     WeeklyStreak?
+  freeStakeGrants  FreeStakeGrant[]
+
+  leaderboardEntries LeaderboardEntry[]
+}
+
+model Wallet {
+  id                  String   @id @default(uuid())
+  address             String   @unique
+  balance             Decimal  @default(0) @db.Decimal(18, 6)
+  encryptedPrivateKey String?
+
+  createdAt           DateTime @default(now())
+
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String @unique
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String              @id @default(uuid())
+  type        WalletTransactionType
+  amount      Decimal             @db.Decimal(18, 6)
+  status      TransactionStatus
+  txHash      String?
+  createdAt   DateTime            @default(now())
+
+  wallet      Wallet              @relation(fields: [walletId], references: [id])
+  walletId    String
+
+  gameSession GameSession?        @relation(fields: [gameSessionId], references: [id])
+  gameSessionId String?
+}
+
+//
+// LOBBY / SESSION / MATCH
+//
+
+model GameLobby {
+  id          String      @id @default(uuid())
+  code        String?     @unique
+  mode        LobbyMode
+  status      LobbyStatus @default(waiting)
+
+  // economy
+  stakeLamports Decimal?  @db.Decimal(18, 6)
+  isFreeStake   Boolean   @default(false)
+
+  bestOf      Int         @default(1)
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  creator     User        @relation("LobbyCreator", fields: [creatorId], references: [id])
+  creatorId   String
+
+  players     LobbyPlayer[]
+  sessions    GameSession[]
+}
+
+model LobbyPlayer {
+  id          String    @id @default(uuid())
+  lobby       GameLobby @relation(fields: [lobbyId], references: [id])
+  lobbyId     String
+
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+
+  seatNumber  Int?
+  isReady     Boolean   @default(false)
+  isCreator   Boolean   @default(false)
+
+  @@unique([lobbyId, userId])
+}
+
+model GameSession {
+  id          String        @id @default(uuid())
+  lobby       GameLobby     @relation(fields: [lobbyId], references: [id])
+  lobbyId     String
+
+  roundNumber Int           @default(1)
+  status      SessionStatus @default(waiting)
+
+  startedAt   DateTime?
+  endedAt     DateTime?
+
+  winner      User?         @relation("SessionWinner", fields: [winnerId], references: [id])
+  winnerId    String?
+
+  matches     GameMatch[]
+
+  walletTransactions WalletTransaction[]
+}
+
+model GameMatch {
+  id             String      @id @default(uuid())
+
+  session        GameSession @relation(fields: [sessionId], references: [id])
+  sessionId      String
+
+  mode           LobbyMode
+
+  targetShape    String?
+  targetColor    String?
+
+  createdAt      DateTime   @default(now())
+  startedAt      DateTime?
+  targetShownAt  DateTime?
+  completedAt    DateTime?
+
+  // víťazný hráč v tomto matche
+  winningPlayer  GamePlayer? @relation("MatchWinner", fields: [winningPlayerId], references: [id])
+  winningPlayerId String?
+
+  // všetci hráči v matche
+  players        GamePlayer[] @relation("MatchPlayers")
+
+  resultSummary  GameResult?
+
+  // free stake grantes viazané na tento match
+  freeStakeGrants FreeStakeGrant[]
+}
+
+model GamePlayer {
+  id           String   @id @default(uuid())
+
+  // príslušnosť k matchu
+  match        GameMatch @relation("MatchPlayers", fields: [matchId], references: [id])
+  matchId      String
+
+  user         User?     @relation(fields: [userId], references: [id])
+  userId       String?
+
+  isBot        Boolean   @default(false)
+
+  reactionMs   Int?
+  result       PlayerMatchResult?
+
+  usedFreeStakeGrant FreeStakeGrant? @relation(fields: [usedFreeStakeGrantId], references: [id])
+  usedFreeStakeGrantId String?
+
+  stakeLamports  Decimal? @db.Decimal(18, 6)
+  payoutLamports Decimal? @db.Decimal(18, 6)
+
+  createdAt    DateTime   @default(now())
+
+  // matche, v ktorých bol tento GamePlayer označený ako víťaz
+  winningMatches GameMatch[] @relation("MatchWinner")
+}
+
+model GameResult {
+  id               String    @id @default(uuid())
+  match            GameMatch @relation(fields: [matchId], references: [id])
+  matchId          String    @unique
+
+  winner           User?     @relation("Winner", fields: [winnerId], references: [id])
+  winnerId         String?
+
+  loser            User?     @relation("Loser", fields: [loserId], references: [id])
+  loserId          String?
+
+  winnerReactionMs Int?
+  loserReactionMs  Int?
+
+  createdAt        DateTime  @default(now())
+}
+
+//
+// STATS & LEADERBOARD
+//
+
+model PlayerStats {
+  id                String   @id @default(uuid())
+  user              User     @relation(fields: [userId], references: [id])
+  userId            String   @unique
+
+  totalMatches      Int      @default(0)
+  totalWins         Int      @default(0)
+  totalLosses       Int      @default(0)
+  winRate           Float    @default(0)
+
+  bestReactionMs    Int?
+  averageReactionMs Float?
+
+  currentStreak     Int      @default(0)
+  bestStreak        Int      @default(0)
+
+  // jediná "bank" hodnota pre Reflex body
+  totalReflexPoints Int      @default(0)
+
+  totalSolWagered   Decimal  @default(0) @db.Decimal(18, 6)
+  totalSolWon       Decimal  @default(0) @db.Decimal(18, 6)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model LeaderboardEntry {
+  id            String   @id @default(uuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+
+  snapshotDate  DateTime @default(now())
+  rating        Int      @default(0)
+  rank          Int?
+
+  matchesPlayed Int      @default(0)
+  wins          Int      @default(0)
+
+  @@index([snapshotDate])
+}
+
+//
+// DAILY / WEEKLY REWARDS
+//
+
+model DailyChallengeProgress {
+  id            String   @id @default(uuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+
+  // "date-only", ale uložené ako DateTime (napr. polnoc UTC)
+  date          DateTime
+  matchesPlayed Int      @default(0)
+  completed     Boolean  @default(false)
+  rewardClaimed Boolean  @default(false) // +10 Reflex bodov
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([date])
+}
+
+model WeeklyStreak {
+  id                  String   @id @default(uuid())
+  user                User     @relation(fields: [userId], references: [id])
+  userId              String   @unique
+
+  currentStreakDays   Int      @default(0)
+  lastActiveDate      DateTime?
+  weekStartDate       DateTime?
+  weekEndDate         DateTime?
+  weeklyRewardClaimed Boolean  @default(false) // +50 Reflex bodov
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+//
+// REFERRAL / AMBASSADOR / REWARDS
+//
+
+model Referral {
+  id            String         @id @default(uuid())
+
+  referrer      User           @relation("Referrer", fields: [referrerId], references: [id])
+  referrerId    String
+
+  referred      User           @relation("Referred", fields: [referredId], references: [id])
+  referredId    String
+
+  status        ReferralStatus @default(pending)
+
+  createdAt     DateTime       @default(now())
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
+
+  @@unique([referrerId, referredId])
+}
+
+model AmbassadorProfile {
+  id               String         @id @default(uuid())
+  user             User           @relation(fields: [userId], references: [id])
+  userId           String         @unique
+
+  code             String         @unique
+  tier             AmbassadorTier @default(bronze)
+
+  totalReferrals   Int            @default(0)
+  activeReferrals  Int            @default(0)
+
+  totalReflexEarned Int           @default(0)
+  totalSolBonus     Decimal       @default(0) @db.Decimal(18, 6)
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  rewards          ReferralReward[]
+}
+
+model ReferralReward {
+  id          String     @id @default(uuid())
+
+  type        RewardType // reflex_points | sol_bonus
+  amount      Decimal    @db.Decimal(18, 6)
+  // pre reflex_points v appke drž hodnotu ako celé číslo (10, 50, ...)
+
+  createdAt   DateTime   @default(now())
+
+  referrer    User       @relation("ReferrerRewards", fields: [referrerId], references: [id])
+  referrerId  String
+
+  referred    User?      @relation("ReferredRewards", fields: [referredId], references: [id])
+  referredId  String?
+
+  ambassador  AmbassadorProfile? @relation(fields: [ambassadorId], references: [id])
+  ambassadorId String?
+}
+
+//
+// FREE STAKE – jediný sink pre Reflex body
+//
+
+model FreeStakeGrant {
+  id              String   @id @default(uuid())
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String
+
+  // 0.05 / 0.1 / 0.2 SOL
+  amount          Decimal  @db.Decimal(18, 6)
+  remainingAmount Decimal  @db.Decimal(18, 6)
+
+  source          FreeStakeSource
+
+  match           GameMatch? @relation(fields: [matchId], references: [id])
+  matchId         String?
+
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime?
+  consumedAt      DateTime?
+
+  usedByPlayers   GamePlayer[]
 }
