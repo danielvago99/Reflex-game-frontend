@@ -47,6 +47,7 @@
     "prisma": "^7.0.1",
     "rate-limit-redis": "^4.3.0",
     "redis": "^5.10.0",
+    "tweetnacl": "^1.0.3",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
