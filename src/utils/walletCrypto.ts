@@ -86,6 +86,15 @@ export async function deriveSolanaKeypair(seedPhrase: string[]): Promise<Keypair
   return Keypair.fromSeed(seed.slice(0, 32));
 }
 
+export async function signMessageWithSeedPhrase(
+  seedPhrase: string[],
+  message: string | Uint8Array
+): Promise<Uint8Array> {
+  const keypair = await deriveSolanaKeypair(seedPhrase);
+  const messageBytes = typeof message === 'string' ? encoder.encode(message) : message;
+  return keypair.sign(messageBytes);
+}
+
 type SaltSource = Uint8Array | ArrayBufferLike;
 
 function normalizeSalt(salt: SaltSource): Uint8Array {
