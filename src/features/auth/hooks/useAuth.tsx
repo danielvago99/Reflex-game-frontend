@@ -31,19 +31,44 @@ const AuthContext = createContext<UseAuthResult | undefined>(undefined);
 const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 
 async function fetchNonce(address: string) {
-  const response = await fetch(
-    `${API_BASE_URL}/api/auth/nonce?address=${encodeURIComponent(address)}`,
-    {
-      method: 'GET',
-      credentials: 'include',
-    },
-  );
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/nonce?address=${encodeURIComponent(address)}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    );
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch login nonce');
+    if (!response.ok) {
+      const errorText = await response.text();
+      let message = 'Failed to fetch login nonce';
+
+      if (errorText) {
+        try {
+          const parsed = JSON.parse(errorText) as { error?: string; message?: string };
+          if (typeof parsed.error === 'string' && parsed.error.trim() !== '') {
+            message = parsed.error;
+          } else if (typeof parsed.message === 'string' && parsed.message.trim() !== '') {
+            message = parsed.message;
+          } else if (errorText.trim() !== '') {
+            message = errorText.trim();
+          }
+        } catch {
+          if (errorText.trim() !== '') {
+            message = errorText.trim();
+          }
+        }
+      }
+
+      throw new Error(message);
+    }
+
+    return (await response.json()) as { address: string; nonce: string; message: string };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch login nonce';
+    throw new Error(message);
   }
-
-  return (await response.json()) as { address: string; nonce: string; message: string };
 }
 
 async function submitLogin(body: { address: string; signature: string; nonce: string }) {
@@ -56,7 +81,26 @@ async function submitLogin(body: { address: string; signature: string; nonce: st
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || 'Login failed');
+    let message = 'Login failed';
+
+    if (errorText) {
+      try {
+        const parsed = JSON.parse(errorText) as { error?: string; message?: string };
+        if (typeof parsed.error === 'string' && parsed.error.trim() !== '') {
+          message = parsed.error;
+        } else if (typeof parsed.message === 'string' && parsed.message.trim() !== '') {
+          message = parsed.message;
+        } else if (errorText.trim() !== '') {
+          message = errorText.trim();
+        }
+      } catch {
+        if (errorText.trim() !== '') {
+          message = errorText.trim();
+        }
+      }
+    }
+
+    throw new Error(message);
   }
 
   const data = (await response.json()) as { user: AuthUser };
