@@ -158,7 +158,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
             icon={ArrowRight}
             fullWidth
           >
-            Go to Dashboard
+            Unlock Wallet
           </WalletButton>
         </div>
       </div>
