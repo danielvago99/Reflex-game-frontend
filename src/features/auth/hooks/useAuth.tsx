@@ -1,10 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useWallet } from '../../wallet/context/WalletProvider';
 
-const API_BASE_URL =
+const rawBaseUrl =
   import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL.trim() !== ''
-    ? import.meta.env.VITE_BACKEND_URL
+    ? import.meta.env.VITE_BACKEND_URL.trim()
     : window.location.origin;
+
+const normalizedBaseUrl = rawBaseUrl.replace(/\/$/, '');
+const API_BASE_URL = normalizedBaseUrl.endsWith('/api')
+  ? normalizedBaseUrl
+  : `${normalizedBaseUrl}/api`;
+
+const buildApiUrl = (path: string) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
 export interface AuthUser {
   id: string;
@@ -33,7 +40,7 @@ const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 async function fetchNonce(address: string) {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/auth/nonce?address=${encodeURIComponent(address)}`,
+      buildApiUrl(`/auth/nonce?address=${encodeURIComponent(address)}`),
       {
         method: 'GET',
         credentials: 'include',
@@ -72,7 +79,7 @@ async function fetchNonce(address: string) {
 }
 
 async function submitLogin(body: { address: string; signature: string; nonce: string }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  const response = await fetch(buildApiUrl('/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -117,7 +124,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const response = await fetch(buildApiUrl('/auth/me'), {
         method: 'GET',
         credentials: 'include',
       });
@@ -196,7 +203,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(buildApiUrl('/auth/logout'), {
         method: 'POST',
         credentials: 'include',
       });
