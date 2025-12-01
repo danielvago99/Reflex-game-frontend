@@ -3,11 +3,15 @@ import { FuturisticBackground } from './FuturisticBackground';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
-  onWalletConnect?: (address: string, provider: string) => void;
+  onWalletConnect?: (
+    address: string,
+    provider: string,
+    signMessage?: (message: string) => Promise<Uint8Array>
+  ) => void;
 }
 
 export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProps) {
-    const handleConnectWallet = () => {
+  const handleConnectWallet = () => {
     if (onWalletConnect) {
       onWalletConnect('DemoWalletPublicKey123456789', 'Phantom');
       return;

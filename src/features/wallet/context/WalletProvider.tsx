@@ -13,6 +13,7 @@ import {
   storeEncryptedWallet,
   updateWalletRecord,
   validateSeedPhrase,
+  signMessageWithSeedPhrase,
   type EncryptedWalletRecord
 } from '../../../utils/walletCrypto';
 import { biometricsUtils } from '../../../utils/biometrics';
@@ -31,6 +32,7 @@ interface WalletContextValue {
   importFromSeed: (seedPhrase: string[], password: string, biometric?: boolean) => Promise<EncryptedWalletRecord>;
   importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<string[]>;
   connectExternalWallet: (address: string, provider: string) => void;
+  signMessage: (message: string | Uint8Array) => Promise<Uint8Array>;
   logout: () => Promise<void>;
 }
 
@@ -104,7 +106,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(record.publicKey);
     setBiometric(Boolean(record.biometricEnabled && record.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = createEmptyVault();
+    vaultRef.current = { seed: seedPhrase, password: '', biometric: biometricEnabled };
     return record;
   };
 
@@ -187,13 +189,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(publicKey);
     setBiometric(Boolean(normalized.biometricEnabled && normalized.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = createEmptyVault();
+    vaultRef.current = { seed, password: '', biometric: Boolean(normalized.biometricEnabled) };
     return seed;
   };
 
   const connectExternalWallet = (walletAddress: string, walletProvider: string) => {
     setAddress(walletAddress);
     setProvider(walletProvider);
+  };
+
+  const signMessage = async (message: string | Uint8Array) => {
+    if (!vaultRef.current.seed.length) {
+      throw new Error('Wallet is locked. Unlock or create a wallet to sign messages.');
+    }
+
+    return signMessageWithSeedPhrase(vaultRef.current.seed, message);
   };
 
   const logout = async () => {
@@ -218,6 +228,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       importFromSeed,
       importFromKeystore,
       connectExternalWallet,
+      signMessage,
       logout
     }),
     [address, biometric, hasStoredWalletState, provider]

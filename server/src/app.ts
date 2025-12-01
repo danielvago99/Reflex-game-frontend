@@ -7,6 +7,7 @@ import { env } from './config/env';
 import { router } from './routes';
 import { logger } from './utils/logger';
 import { initSentry, sentryErrorHandler } from './config/sentry';
+import { cookieParser } from './middleware/cookies';
 
 export const app = express();
 
@@ -23,6 +24,7 @@ app.use(
 
 // JSON body parsing
 app.use(express.json());
+app.use(cookieParser());
 
 // Logging
 app.use(

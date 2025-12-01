@@ -9,7 +9,7 @@ export default function WalletReadyRoute() {
   return (
     <WalletReadyScreen
       walletAddress={address}
-      onContinue={() => navigate('/dashboard')}
+      onContinue={() => navigate('/wallet/unlock')}
     />
   );
 }

@@ -1,20 +1,35 @@
 import { useNavigate } from 'react-router-dom';
 import { ImportWalletScreen } from '../../../components/wallet/ImportWalletScreen';
 import { useWallet } from '../context/WalletProvider';
+import { useAuth } from '../../auth/hooks/useAuth';
+import { toast } from 'sonner';
 
 export default function ImportWalletRoute() {
   const navigate = useNavigate();
   const { importFromSeed, importFromKeystore } = useWallet();
+  const { loginWithInAppWallet } = useAuth();
 
   return (
     <ImportWalletScreen
       onImportSeed={async (seedPhrase, password) => {
-        await importFromSeed(seedPhrase, password);
-        navigate('/dashboard');
+        try {
+          await importFromSeed(seedPhrase, password);
+          await loginWithInAppWallet();
+          navigate('/dashboard');
+        } catch (error) {
+          console.error('Failed to import wallet from seed', error);
+          toast.error(error instanceof Error ? error.message : 'Unable to import wallet');
+        }
       }}
       onImportKeystore={async (record, password) => {
-        await importFromKeystore(record, password);
-        navigate('/dashboard');
+        try {
+          await importFromKeystore(record, password);
+          await loginWithInAppWallet();
+          navigate('/dashboard');
+        } catch (error) {
+          console.error('Failed to import wallet from keystore', error);
+          toast.error(error instanceof Error ? error.message : 'Unable to import wallet');
+        }
       }}
       onBack={() => navigate('/wallet/unlock')}
     />
