@@ -7,9 +7,9 @@ export default function UnlockWalletRoute() {
   const navigate = useNavigate();
   const { loginWithInAppWallet } = useAuth();
 
-  const handleUnlocked = async () => {
+  const handleUnlocked = async (publicKey: string) => {
     try {
-      await loginWithInAppWallet();
+      await loginWithInAppWallet(publicKey);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed after unlocking wallet', error);
