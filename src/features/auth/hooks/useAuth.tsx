@@ -14,7 +14,7 @@ export interface UseAuthResult {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-  loginWithInAppWallet: () => Promise<void>;
+  loginWithInAppWallet: (walletAddress?: string) => Promise<void>;
   loginWithExternalWallet: (params: {
     address: string;
     signMessage: (message: string) => Promise<Uint8Array>;
@@ -124,8 +124,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const loginWithInAppWallet = useCallback(async () => {
-    if (!address) {
+  const loginWithInAppWallet = useCallback(async (walletAddress?: string) => {
+    const activeAddress = walletAddress ?? address;
+
+    if (!activeAddress) {
       throw new Error('Create or unlock your in-app wallet before logging in.');
     }
 
@@ -133,7 +135,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Wallet is not ready to sign messages.');
     }
 
-    await performLogin(address, signMessage);
+    await performLogin(activeAddress, signMessage);
   }, [address, performLogin, signMessage]);
 
   const loginWithExternalWallet = useCallback(

@@ -8,7 +8,7 @@ import { useWallet } from '../../features/wallet/context/WalletProvider';
 import { biometricsUtils } from '../../utils/biometrics';
 
 interface UnlockWalletScreenProps {
-  onUnlocked: () => void;
+  onUnlocked: (publicKey: string) => void;
   onBack: () => void;
   onRecoveryMethod: () => void;
 }
@@ -74,11 +74,11 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
         return;
       }
 
-      await unlock(password);
+      const { publicKey } = await unlock(password);
       setBiometricVerified(true);
       setUnlocking(false);
       setTimeout(() => {
-        onUnlocked();
+        onUnlocked(publicKey);
       }, 500);
     } catch (error) {
       const updatedAttempts = await getUnlockAttempts().catch(() => failedAttempts);
@@ -102,9 +102,9 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
     setErrorMessage('');
 
     try {
-      await unlock(password);
+      const { publicKey } = await unlock(password);
       setUnlocking(false);
-      onUnlocked();
+      onUnlocked(publicKey);
     } catch (error) {
       setUnlocking(false);
       const newAttempts = await getUnlockAttempts();

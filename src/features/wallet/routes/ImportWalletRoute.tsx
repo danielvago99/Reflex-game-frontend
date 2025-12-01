@@ -13,8 +13,8 @@ export default function ImportWalletRoute() {
     <ImportWalletScreen
       onImportSeed={async (seedPhrase, password) => {
         try {
-          await importFromSeed(seedPhrase, password);
-          await loginWithInAppWallet();
+          const record = await importFromSeed(seedPhrase, password);
+          await loginWithInAppWallet(record.publicKey);
           navigate('/dashboard');
         } catch (error) {
           console.error('Failed to import wallet from seed', error);
@@ -23,8 +23,8 @@ export default function ImportWalletRoute() {
       }}
       onImportKeystore={async (record, password) => {
         try {
-          await importFromKeystore(record, password);
-          await loginWithInAppWallet();
+          const { publicKey } = await importFromKeystore(record, password);
+          await loginWithInAppWallet(publicKey);
           navigate('/dashboard');
         } catch (error) {
           console.error('Failed to import wallet from keystore', error);
