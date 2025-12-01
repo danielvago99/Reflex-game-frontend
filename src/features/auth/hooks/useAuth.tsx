@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useWallet } from '../../wallet/context/WalletProvider';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:4000';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 
 export interface AuthUser {
   id: string;
