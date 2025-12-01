@@ -43,7 +43,7 @@ router.get('/nonce', async (req, res) => {
   const nonce = crypto.randomBytes(32).toString('hex');
   const nonceKey = getNonceKey(address);
 
-  await redisClient.setEx(nonceKey, 300, nonce);
+  await redisClient.set(nonceKey, nonce, { ex: 300}); // Expires in 5 minutes
 
   const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
 

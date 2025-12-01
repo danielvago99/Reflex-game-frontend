@@ -1,19 +1,33 @@
-import { createClient } from 'redis';
-import { env } from '../config/env';
-import { logger } from '../utils/logger';
+import { Redis } from "@upstash/redis";
+import { env } from "../config/env";
+import { logger } from "../utils/logger";
 
-if (!env.REDIS_URL) {
-  throw new Error('REDIS_URL must be set to use Redis-backed features');
+// ==============================
+// Validate environment variables
+// ==============================
+
+if (!env.UPSTASH_REDIS_REST_URL) {
+  throw new Error("Missing UPSTASH_REDIS_REST_URL");
 }
 
-export const redisClient = createClient({
-  url: env.REDIS_URL,
+if (!env.UPSTASH_REDIS_REST_TOKEN) {
+  throw new Error("Missing UPSTASH_REDIS_REST_TOKEN");
+}
+
+// ==============================
+// Create Upstash Redis client
+// ==============================
+
+export const redisClient = new Redis({
+  url: env.UPSTASH_REDIS_REST_URL,
+  token: env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-redisClient.on('error', (err) => {
-  logger.error({ err }, 'Redis client error');
-});
+// ==============================
+// Test connection (REST ping)
+// ==============================
 
-redisClient.connect().catch((err) => {
-  logger.error({ err }, 'Failed to connect to Redis');
-});
+redisClient
+  .ping()
+  .then((res) => logger.info({ res }, "Connected to Upstash Redis"))
+  .catch((err) => logger.error({ err }, "Upstash Redis connection failed"));
