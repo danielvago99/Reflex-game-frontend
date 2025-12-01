@@ -8,6 +8,7 @@ import { prisma } from '../db/prisma';
 import { redisClient } from '../db/redis';
 import { attachUser, requireAuth } from '../middleware/auth';
 import { env } from '../config/env';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -22,6 +23,26 @@ const loginSchema = z.object({
 });
 
 const getNonceKey = (address: string) => `auth:nonce:${address}`;
+
+const waitForRedisReady = async (
+  attempts = 10,
+  delayMs = 500,
+): Promise<void> => {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await redisClient.ping();
+      return;
+    } catch (error) {
+      logger.warn({ error, attempt }, 'Redis not ready, retrying');
+
+      if (attempt === attempts) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+};
 
 router.get('/nonce', async (req, res) => {
   const parsed = addressQuerySchema.safeParse(req.query);
@@ -43,6 +64,7 @@ router.get('/nonce', async (req, res) => {
   const nonce = crypto.randomBytes(32).toString('hex');
   const nonceKey = getNonceKey(address);
 
+  await waitForRedisReady();
   await redisClient.set(nonceKey, nonce, { ex: 300}); // Expires in 5 minutes
 
   const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
@@ -71,6 +93,7 @@ router.post('/login', async (req, res) => {
   }
 
   const nonceKey = getNonceKey(address);
+  await waitForRedisReady();
   const expectedNonce = await redisClient.get(nonceKey);
 
   if (!expectedNonce || expectedNonce !== nonce) {
@@ -115,6 +138,7 @@ router.post('/login', async (req, res) => {
     path: '/',
   });
 
+  await waitForRedisReady();
   await redisClient.del(nonceKey);
 
   return res.json({
