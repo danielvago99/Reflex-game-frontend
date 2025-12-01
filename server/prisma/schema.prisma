@@ -158,7 +158,7 @@ model GameSession {
 model GameMatch {
   id            String    @id @default(uuid())
   sessionId     String
-  mode          LobbyMode // random / friend / bot
+  mode          LobbyMode
   targetShape   String?
   targetColor   String?
   createdAt     DateTime  @default(now())
@@ -166,7 +166,6 @@ model GameMatch {
   targetShownAt DateTime?
   completedAt   DateTime?
 
-  // víťaz v rámci tohto matchu
   winningPlayerId String?
   winningPlayer   GamePlayer? @relation("MatchWinner", fields: [winningPlayerId], references: [id])
 
@@ -187,7 +186,6 @@ model GamePlayer {
   match GameMatch @relation(fields: [matchId], references: [id])
   user  User?     @relation(fields: [userId], references: [id])
 
-  // spätná väzba pre víťazné zápasy
   winningMatches GameMatch[] @relation("MatchWinner")
 }
 
@@ -212,23 +210,28 @@ model GameResult {
  */
 
 model PlayerStats {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  totalMatches      Int      @default(0)
-  totalWins         Int      @default(0)
-  totalLosses       Int      @default(0)
-  winRate           Float    @default(0)
+  id                String @id @default(uuid())
+  userId            String @unique
+  totalMatches      Int    @default(0)
+  totalWins         Int    @default(0)
+  totalLosses       Int    @default(0)
+  winRate           Float  @default(0)
   bestReactionMs    Int?
   averageReactionMs Float?
-  currentStreak     Int      @default(0)
-  bestStreak        Int      @default(0)
-  totalReflexPoints Int      @default(0)
-  // tieto dve sú len štatistické agregáty (čítané z on-chain / indexera),
-  // backend z nich nikdy nerobí "source of truth" pre peniaze
-  totalSolWagered   Decimal  @default(0) @db.Decimal(18, 6)
-  totalSolWon       Decimal  @default(0) @db.Decimal(18, 6)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  currentStreak     Int    @default(0)
+  bestStreak        Int    @default(0)
+
+  totalReflexPoints Int @default(0)
+
+  totalSolWagered Decimal @default(0) @db.Decimal(18, 6)
+  totalSolWon     Decimal @default(0) @db.Decimal(18, 6)
+
+  freeStakes005 Int @default(0)
+  freeStakes010 Int @default(0)
+  freeStakes020 Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -256,10 +259,10 @@ model LeaderboardEntry {
 model DailyChallengeProgress {
   id            String   @id @default(uuid())
   userId        String   @unique
-  date          DateTime // normalized day (UTC) – 1 záznam na deň
-  matchesPlayed Int      @default(0) // cieľ: 5
-  completed     Boolean  @default(false) // true, ak matchesPlayed >= 5
-  rewardClaimed Boolean  @default(false) // true, ak dostal 10 Reflex points
+  date          DateTime
+  matchesPlayed Int      @default(0)
+  completed     Boolean  @default(false)
+  rewardClaimed Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -271,11 +274,11 @@ model DailyChallengeProgress {
 model WeeklyStreak {
   id                  String    @id @default(uuid())
   userId              String    @unique
-  currentStreakDays   Int       @default(0) // počet dní v rade s completed daily
+  currentStreakDays   Int       @default(0)
   lastActiveDate      DateTime?
   weekStartDate       DateTime?
   weekEndDate         DateTime?
-  weeklyRewardClaimed Boolean   @default(false) // true, ak dostal 50 Reflex points
+  weeklyRewardClaimed Boolean   @default(false)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -324,19 +327,18 @@ model AmbassadorProfile {
 model ReferralReward {
   id        String     @id @default(uuid())
   type      RewardType
-  amount    Decimal    @db.Decimal(18, 6) // pri reflex_points interpretuj ako počet bodov
+  amount    Decimal    @db.Decimal(18, 6)
   createdAt DateTime   @default(now())
 
-  // kto dostal reward (referrer/ambassador)
   referrerId String
   referrer   User   @relation("ReferrerRewards", fields: [referrerId], references: [id])
 
-  // za koho bol reward (optional)
   referredId String?
   referred   User?   @relation("ReferredRewards", fields: [referredId], references: [id])
 
   ambassadorId String?
   ambassador   AmbassadorProfile? @relation(fields: [ambassadorId], references: [id])
-  referral     Referral?          @relation(fields: [referralId], references: [id])
-  referralId   String?
+
+  referralId String?
+  referral   Referral? @relation(fields: [referralId], references: [id])
 }

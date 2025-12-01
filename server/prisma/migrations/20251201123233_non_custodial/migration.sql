@@ -22,8 +22,8 @@ CREATE TYPE "RewardType" AS ENUM ('reflex_points', 'sol_bonus');
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "username" TEXT NOT NULL,
-    "walletAddress" TEXT,
+    "walletAddress" TEXT NOT NULL,
+    "username" TEXT,
     "avatar" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -129,6 +129,9 @@ CREATE TABLE "PlayerStats" (
     "totalReflexPoints" INTEGER NOT NULL DEFAULT 0,
     "totalSolWagered" DECIMAL(18,6) NOT NULL DEFAULT 0,
     "totalSolWon" DECIMAL(18,6) NOT NULL DEFAULT 0,
+    "freeStakes005" INTEGER NOT NULL DEFAULT 0,
+    "freeStakes010" INTEGER NOT NULL DEFAULT 0,
+    "freeStakes020" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -221,10 +224,10 @@ CREATE TABLE "ReferralReward" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+CREATE UNIQUE INDEX "User_walletAddress_key" ON "User"("walletAddress");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_walletAddress_key" ON "User"("walletAddress");
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GameLobby_code_key" ON "GameLobby"("code");
