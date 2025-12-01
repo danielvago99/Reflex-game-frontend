@@ -2,12 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EncryptingWalletScreen } from '../../../components/wallet/EncryptingWalletScreen';
 import { useWallet } from '../context/WalletProvider';
-import { useAuth } from '../../auth/hooks/useAuth';
 
 export default function EncryptingWalletRoute() {
   const navigate = useNavigate();
   const { encryptAndStore, getVaultStatus } = useWallet();
-  const { loginWithInAppWallet } = useAuth();
 
   const handleComplete = async () => {
     const vaultStatus = getVaultStatus();
@@ -22,7 +20,6 @@ export default function EncryptingWalletRoute() {
 
     try {
       await encryptAndStore();
-      await loginWithInAppWallet();
       navigate('/wallet/ready');
     } catch (error) {
       console.error('Encryption failed', error);
