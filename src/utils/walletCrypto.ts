@@ -5,6 +5,7 @@ import { generateMnemonic, validateMnemonic, mnemonicToSeed } from '@scure/bip39
 import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
 import { argon2idAsync } from '@noble/hashes/argon2';
 import { Keypair } from '@solana/web3.js';
+import nacl from 'tweetnacl';
 import { openDB } from 'idb';
 
 // Argon2id is the sole KDF for wallet encryption; tweak the parameters below to strengthen or relax derivation cost.
@@ -92,7 +93,7 @@ export async function signMessageWithSeedPhrase(
 ): Promise<Uint8Array> {
   const keypair = await deriveSolanaKeypair(seedPhrase);
   const messageBytes = typeof message === 'string' ? encoder.encode(message) : message;
-  return keypair.sign(messageBytes);
+  return nacl.sign.detached(messageBytes, keypair.secretKey);
 }
 
 type SaltSource = Uint8Array | ArrayBufferLike;
