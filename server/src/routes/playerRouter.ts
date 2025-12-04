@@ -47,6 +47,13 @@ const serializeStats = (stats: PlayerStats) => ({
   updatedAt: stats.updatedAt,
 });
 
+const matchResultSchema = z.object({
+  result: z.enum(['win', 'loss']),
+  reactionMs: z.number().int().positive().nullable().optional(),
+  stakeAmount: z.number().nonnegative().default(0),
+  profit: z.number().default(0),
+});
+
 playerRouter.get('/me/profile', requireAuth, async (req, res) => {
   const userId = req.user?.id;
 
@@ -130,6 +137,67 @@ playerRouter.get('/me/stats', requireAuth, async (req, res) => {
     return res.json({ stats: serializeStats(stats) });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to load player stats' });
+  }
+});
+
+playerRouter.post('/me/stats/match', requireAuth, async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const parsed = matchResultSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    return res.status(400).json({ error: firstIssue.message });
+  }
+
+  const { result, reactionMs, stakeAmount, profit } = parsed.data;
+
+  try {
+    const stats = await ensurePlayerStats(userId);
+
+    const totalMatches = stats.totalMatches + 1;
+    const totalWins = stats.totalWins + (result === 'win' ? 1 : 0);
+    const totalLosses = stats.totalLosses + (result === 'loss' ? 1 : 0);
+    const winRate = totalMatches > 0 ? totalWins / totalMatches : 0;
+
+    let bestReactionMs = stats.bestReactionMs ?? undefined;
+    if (reactionMs) {
+      bestReactionMs = bestReactionMs ? Math.min(bestReactionMs, reactionMs) : reactionMs;
+    }
+
+    const averageReactionMs = reactionMs
+      ? Math.round(
+          ((stats.averageReactionMs ?? 0) * stats.totalMatches + reactionMs) /
+            (stats.totalMatches + 1),
+        )
+      : stats.averageReactionMs ?? null;
+
+    const currentStreak = result === 'win' ? stats.currentStreak + 1 : 0;
+    const bestStreak = Math.max(stats.bestStreak, currentStreak);
+
+    const updatedStats = await prisma.playerStats.update({
+      where: { id: stats.id },
+      data: {
+        totalMatches,
+        totalWins,
+        totalLosses,
+        winRate,
+        bestReactionMs,
+        averageReactionMs,
+        currentStreak,
+        bestStreak,
+        totalSolWagered: new Prisma.Decimal(stats.totalSolWagered).plus(stakeAmount),
+        totalSolWon: new Prisma.Decimal(stats.totalSolWon).plus(profit),
+      },
+    });
+
+    return res.json({ stats: serializeStats(updatedStats) });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to record match result' });
   }
 });
 

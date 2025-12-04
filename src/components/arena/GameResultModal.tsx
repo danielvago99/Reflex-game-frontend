@@ -1,10 +1,12 @@
 import { motion } from 'motion/react';
 import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 
 interface GameResultModalProps {
   playerScore: number;
@@ -43,9 +45,16 @@ export function GameResultModal({
     weeklyBonusEarned: boolean;
     weeklyBonus: number;
   } | null>(null);
+  const recordedRef = useRef(false);
 
   // Record match completion for daily challenge and match history
   useEffect(() => {
+    if (recordedRef.current) {
+      return;
+    }
+
+    recordedRef.current = true;
+
     // Determine match result
     const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
     
@@ -61,6 +70,26 @@ export function GameResultModal({
       playerScore,
       opponentScore
     });
+
+    const recordStats = async () => {
+      try {
+        await fetch(`${API_BASE_URL}/api/me/stats/match`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            result: matchResult,
+            reactionMs: avgPlayerTime || undefined,
+            stakeAmount,
+            profit,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to sync match result', error);
+      }
+    };
+
+    void recordStats();
     
     // Only record daily challenge progress for ranked and friend matches
     if (matchType === 'ranked' || matchType === 'friend') {
