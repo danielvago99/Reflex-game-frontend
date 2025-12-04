@@ -12,6 +12,9 @@ import { cookieParser } from './middleware/cookies';
 
 export const app = express();
 
+// Trust proxy headers when running behind a load balancer (e.g., Render)
+app.set('trust proxy', true);
+
 // Security headers
 app.use(helmet());
 
