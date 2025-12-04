@@ -9,6 +9,7 @@ import { redisClient } from '../db/redis';
 import { attachUser, requireAuth } from '../middleware/auth';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { ensurePlayerStats } from '../utils/playerStats';
 
 const router = Router();
 
@@ -121,6 +122,8 @@ router.post('/login', async (req, res) => {
       username,
     },
   });
+
+  await ensurePlayerStats(user.id);
 
   const token = jwt.sign(
     {

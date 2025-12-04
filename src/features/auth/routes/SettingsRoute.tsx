@@ -1,15 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { SettingsScreen } from '../../../components/SettingsScreen';
-import { useGame } from '../../arena/context/GameProvider';
 import { useWallet } from '../../wallet/context/WalletProvider';
 import { ScreenPaths, screenToPath, type AppScreen } from '../../../shared/types/navigation';
+import { usePlayerProfile } from '../../../hooks/usePlayerProfile';
 
 const isScreen = (value: string): value is AppScreen => value in ScreenPaths;
 
 export default function SettingsRoute() {
   const navigate = useNavigate();
-  const { playerName, setPlayerName } = useGame();
   const { logout } = useWallet();
+  const { profile, updateProfile, refresh, loading } = usePlayerProfile();
 
   const handleNavigate = (screen: string) => {
     if (isScreen(screen)) {
@@ -17,11 +17,18 @@ export default function SettingsRoute() {
     }
   };
 
+  const handleUpdateProfile = async (updates: { username?: string; avatar?: string | null }) => {
+    await updateProfile(updates);
+    await refresh();
+  };
+
   return (
     <SettingsScreen
-      currentName={playerName}
+      currentName={profile?.username || 'Player'}
+      currentAvatar={profile?.avatar}
+      loading={loading}
       onNavigate={handleNavigate}
-      onUpdateName={setPlayerName}
+      onUpdateProfile={handleUpdateProfile}
       onLogout={logout}
     />
   );

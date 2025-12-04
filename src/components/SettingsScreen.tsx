@@ -1,34 +1,84 @@
 import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { AvatarSelector, getAvatarData } from './AvatarSelector';
+import { AvatarSelector, getAvatarData, getDefaultAvatarUrl } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 
 interface SettingsScreenProps {
   currentName: string;
+  currentAvatar?: string | null;
+  loading?: boolean;
   onNavigate: (screen: string) => void;
-  onUpdateName: (newName: string) => void;
+  onUpdateProfile: (updates: { username?: string; avatar?: string | null }) => Promise<void>;
   onLogout: () => void;
 }
 
-export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout }: SettingsScreenProps) {
+export function SettingsScreen({ currentName, currentAvatar, loading, onNavigate, onUpdateProfile, onLogout }: SettingsScreenProps) {
   const [newName, setNewName] = useState(currentName);
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'gradient-1';
-  });
+  const [selectedAvatar, setSelectedAvatar] = useState(currentAvatar || localStorage.getItem('userAvatar') || getDefaultAvatarUrl());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const isBusy = saving || Boolean(loading);
 
-  const handleSaveName = () => {
-    if (newName.trim() && newName !== currentName) {
-      onUpdateName(newName.trim());
+  useEffect(() => {
+    setNewName(currentName);
+  }, [currentName]);
+
+  useEffect(() => {
+    if (currentAvatar) {
+      setSelectedAvatar(currentAvatar);
+      localStorage.setItem('userAvatar', currentAvatar);
+    }
+  }, [currentAvatar]);
+
+  const handleSaveProfile = async () => {
+    const trimmedName = newName.trim();
+    const updates: { username?: string; avatar?: string | null } = {};
+
+    if (trimmedName && trimmedName !== currentName) {
+      updates.username = trimmedName;
+    }
+
+    if (selectedAvatar && selectedAvatar !== (currentAvatar || getDefaultAvatarUrl())) {
+      updates.avatar = selectedAvatar;
+    }
+
+    if (!Object.keys(updates).length) {
       setIsEditing(false);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+      await onUpdateProfile(updates);
+      setSuccess('Profile updated successfully');
+      setIsEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleAvatarSelect = (avatarId: string) => {
-    setSelectedAvatar(avatarId);
-    localStorage.setItem('userAvatar', avatarId);
+  const handleAvatarSelect = async (avatarUrl: string) => {
+    setSelectedAvatar(avatarUrl);
+    localStorage.setItem('userAvatar', avatarUrl);
+
+    try {
+      setSaving(true);
+      setError(null);
+      await onUpdateProfile({ avatar: avatarUrl });
+      setSuccess('Avatar updated');
+      setShowAvatarSelector(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update avatar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const avatarData = getAvatarData(selectedAvatar);
@@ -75,6 +125,9 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                   </div>
                 </div>
 
+                {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
+                {!error && success && <p className="text-sm text-[#00FFA3] mb-3">{success}</p>}
+
                 {/* Avatar Selection */}
                 <div className="space-y-3 mb-5">
                   <label className="text-xs text-gray-400 uppercase tracking-wider block">
@@ -85,7 +138,7 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     <div className="relative">
                       <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-40"></div>
                       <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
-                        <img 
+                        <img
                           src={avatarData.url} 
                           alt="User avatar"
                           className="w-full h-full object-cover"
@@ -97,6 +150,7 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     <button
                       onClick={() => setShowAvatarSelector(true)}
                       className="relative flex-1 group"
+                      disabled={isBusy}
                     >
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
                       <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 hover:border-[#00FFA3]/50 text-white p-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
@@ -148,13 +202,13 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={handleSaveName}
-                        disabled={!newName.trim() || newName === currentName}
+                        onClick={handleSaveProfile}
+                        disabled={isBusy || !newName.trim() || newName === currentName}
                         className={`relative group ${!newName.trim() || newName === currentName ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
                         <div className={`relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] text-[#0B0F1A] px-4 py-3 rounded-lg transition-all ${!newName.trim() || newName === currentName ? '' : 'hover:shadow-[0_0_20px_rgba(0,255,163,0.4)]'}`}>
-                          <span className="text-sm">Save</span>
+                          <span className="text-sm">{isBusy ? 'Saving...' : 'Save'}</span>
                         </div>
                       </button>
                       <button

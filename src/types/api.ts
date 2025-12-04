@@ -9,11 +9,18 @@
 
 export interface User {
   id: string;
-  username: string;
+  username?: string | null;
   walletAddress: string;
-  avatar?: string;
+  avatar?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PlayerProfile {
+  id: string;
+  walletAddress: string;
+  username: string | null;
+  avatar: string | null;
 }
 
 export interface Wallet {
@@ -122,17 +129,24 @@ export interface ReferralReward {
 // ============================================================================
 
 export interface PlayerStats {
+  id: string;
   userId: string;
-  totalGames: number;
-  wins: number;
-  losses: number;
-  winRate: number;
-  averageReactionTime: number;
-  bestReactionTime: number;
-  totalWinnings: number;
+  totalMatches: number;
+  totalWins: number;
   totalLosses: number;
+  winRate: number;
+  bestReactionMs: number | null;
+  averageReactionMs: number | null;
   currentStreak: number;
-  longestStreak: number;
+  bestStreak: number;
+  totalReflexPoints: number;
+  totalSolWagered: number;
+  totalSolWon: number;
+  freeStakes005: number;
+  freeStakes010: number;
+  freeStakes020: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LeaderboardEntry {

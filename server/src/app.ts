@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import pinoHttp from 'pino-http';
 import { env } from './config/env';
 import { router } from './routes';
+import { playerRouter } from './routes/playerRouter';
 import { logger } from './utils/logger';
 import { initSentry, sentryErrorHandler } from './config/sentry';
 import { cookieParser } from './middleware/cookies';
@@ -47,6 +48,7 @@ initSentry(app);
 
 // Routes
 app.use('/api', router);
+app.use('/api', playerRouter);
 
 // Sentry error handler (must be after routes)
 app.use(sentryErrorHandler);

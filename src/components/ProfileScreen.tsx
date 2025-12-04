@@ -1,18 +1,37 @@
-import { ArrowLeft, TrendingUp, Trophy, Clock, Coins, Award } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { ArrowLeft, TrendingUp, Trophy, Clock, Coins } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getAvatarData } from './AvatarSelector';
+import { getAvatarData, getDefaultAvatarUrl } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
+import type { PlayerStats } from '../types/api';
 
 interface ProfileScreenProps {
   onNavigate: (screen: string) => void;
   playerName?: string;
+  avatarUrl?: string | null;
+  stats?: PlayerStats | null;
 }
 
-export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: ProfileScreenProps) {
+export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a', avatarUrl, stats }: ProfileScreenProps) {
   const [userAvatar, setUserAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'gradient-1';
+    return localStorage.getItem('userAvatar') || getDefaultAvatarUrl();
   });
+
+  useEffect(() => {
+    if (avatarUrl) {
+      setUserAvatar(avatarUrl);
+      localStorage.setItem('userAvatar', avatarUrl);
+    }
+  }, [avatarUrl]);
+
+  const totalMatches = stats?.totalMatches ?? 0;
+  const totalWins = stats?.totalWins ?? 0;
+  const totalLosses = stats?.totalLosses ?? 0;
+  const winRateValue = stats ? (stats.winRate > 1 ? stats.winRate : stats.winRate * 100) : 0;
+  const winRateDisplay = Math.min(100, Math.max(0, Math.round(winRateValue)));
+  const averageReaction = stats?.averageReactionMs ?? null;
+  const bestReaction = stats?.bestReactionMs ?? null;
+  const totalEarnings = stats?.totalSolWon ?? 0;
+  const bestStreak = stats?.bestStreak ?? 0;
 
   const avatarData = getAvatarData(userAvatar);
 
@@ -72,7 +91,7 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
               <div className="relative bg-gradient-to-br from-[#00FFA3]/10 to-[#06B6D4]/10 border border-[#00FFA3]/20 backdrop-blur-sm p-4 overflow-hidden" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}>
                 <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-[#00FFA3]/30 to-transparent"></div>
                 <p className="text-xs text-white mb-1 uppercase tracking-wider">Total Matches</p>
-                <p className="text-3xl text-white">156</p>
+                <p className="text-3xl text-white">{totalMatches}</p>
               </div>
             </div>
             
@@ -82,7 +101,7 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
               <div className="relative bg-gradient-to-br from-[#7C3AED]/10 to-[#06B6D4]/10 border border-[#7C3AED]/20 backdrop-blur-sm p-4 overflow-hidden" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}>
                 <div className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-[#7C3AED]/30 to-transparent"></div>
                 <p className="text-xs text-white mb-1 uppercase tracking-wider">Win Rate</p>
-                <p className="text-3xl text-white">68%</p>
+                <p className="text-3xl text-white">{winRateDisplay}%</p>
               </div>
             </div>
           </div>
@@ -101,10 +120,10 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Total Wins</p>
-                  <p className="text-xl text-white">106</p>
+                  <p className="text-xl text-white">{totalWins}</p>
                 </div>
               </div>
-              <span className="text-sm text-[#00FFA3]">68% win rate</span>
+              <span className="text-sm text-[#00FFA3]">{winRateDisplay}% win rate</span>
             </div>
 
             {/* Avg Reaction Time */}
@@ -115,10 +134,10 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Avg Reaction Time</p>
-                  <p className="text-xl text-white">256ms</p>
+                  <p className="text-xl text-white">{averageReaction ? `${averageReaction}ms` : '--'}</p>
                 </div>
               </div>
-              <span className="text-sm text-[#06B6D4]">Top 15%</span>
+              <span className="text-sm text-[#06B6D4]">Losses: {totalLosses}</span>
             </div>
 
             {/* Best Time */}
@@ -129,10 +148,10 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Best Reaction</p>
-                  <p className="text-xl text-white">189ms</p>
+                  <p className="text-xl text-white">{bestReaction ? `${bestReaction}ms` : '--'}</p>
                 </div>
               </div>
-              <span className="text-sm text-[#7C3AED]">Personal best</span>
+              <span className="text-sm text-[#7C3AED]">Best streak: {bestStreak}</span>
             </div>
 
             {/* SOL Earnings */}
@@ -144,7 +163,7 @@ export function ProfileScreen({ onNavigate, playerName = 'Player_0x4f2a' }: Prof
                 <div>
                   <p className="text-sm text-gray-400">Total Earnings</p>
                   <p className="text-xl bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
-                    12.84 SOL
+                    {totalEarnings.toFixed(2)} SOL
                   </p>
                 </div>
               </div>
