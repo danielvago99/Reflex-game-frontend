@@ -134,9 +134,11 @@ router.post('/login', async (req, res) => {
     { expiresIn: '7d' },
   );
 
+  const secureCookie = env.FRONTEND_ORIGIN.startsWith('https://');
+
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: secureCookie,
     sameSite: 'lax',
     path: '/',
   });
@@ -155,9 +157,11 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (_req, res) => {
+  const secureCookie = env.FRONTEND_ORIGIN.startsWith('https://');
+
   res.clearCookie('auth_token', {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: secureCookie,
     sameSite: 'lax',
     path: '/',
   });
