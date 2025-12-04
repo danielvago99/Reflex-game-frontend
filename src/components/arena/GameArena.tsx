@@ -14,6 +14,8 @@ import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
+import { useDashboard } from '../../hooks/useDashboard';
+import { useWebSocketEvent } from '../../hooks/useWebSocket';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -31,6 +33,7 @@ interface Target {
 }
 
 export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType = 'bot' }: GameArenaProps) {
+  const { refreshDashboard } = useDashboard();
   // Game state
   const [gameState, setGameState] = useState<GameState>('countdown');
   const [currentRound, setCurrentRound] = useState(1);
@@ -58,6 +61,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     playerScore >= ROUNDS_TO_WIN ||
     opponentScore >= ROUNDS_TO_WIN ||
     currentRound >= MAX_ROUNDS;
+
+  useWebSocketEvent('game:end', () => {
+    void refreshDashboard();
+  }, [refreshDashboard]);
 
   // Detect mobile
   const isMobile = window.innerWidth < 640;

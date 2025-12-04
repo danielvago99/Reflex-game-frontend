@@ -1,34 +1,94 @@
 import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useDashboard } from '../hooks/useDashboard';
+import { ENV } from '../config/env';
 
 interface SettingsScreenProps {
-  currentName: string;
   onNavigate: (screen: string) => void;
-  onUpdateName: (newName: string) => void;
   onLogout: () => void;
 }
 
-export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout }: SettingsScreenProps) {
-  const [newName, setNewName] = useState(currentName);
+export function SettingsScreen({ onNavigate, onLogout }: SettingsScreenProps) {
+  const { data: dashboard, loading, error, refreshDashboard } = useDashboard();
+  const [newName, setNewName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
     return localStorage.getItem('userAvatar') || 'gradient-1';
   });
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const currentName = useMemo(() => dashboard?.profile.username ?? '', [dashboard]);
+
+  useEffect(() => {
+    if (dashboard?.profile.username) {
+      setNewName(dashboard.profile.username);
+    }
+
+    if (dashboard?.profile.avatar) {
+      setSelectedAvatar(dashboard.profile.avatar);
+    }
+  }, [dashboard]);
+
+  const handleSubmit = async (avatarOverride?: string) => {
+    if (!dashboard?.profile) return;
+
+    const payload: { username?: string; avatar?: string } = {};
+    if (newName.trim() && newName.trim() !== dashboard.profile.username) {
+      payload.username = newName.trim();
+    }
+
+    const nextAvatar = avatarOverride ?? selectedAvatar;
+    if (nextAvatar && nextAvatar !== dashboard.profile.avatar) {
+      payload.avatar = nextAvatar;
+    }
+
+    if (!payload.username && !payload.avatar) {
+      return;
+    }
+
+    setSaving(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch(`${ENV.API_BASE_URL}/user/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to update profile');
+      }
+
+      await refreshDashboard();
+      setIsEditing(false);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Unable to update profile');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSaveName = () => {
-    if (newName.trim() && newName !== currentName) {
-      onUpdateName(newName.trim());
-      setIsEditing(false);
+    if (!newName.trim() && selectedAvatar === dashboard?.profile.avatar) {
+      return;
     }
+
+    void handleSubmit();
   };
 
   const handleAvatarSelect = (avatarId: string) => {
     setSelectedAvatar(avatarId);
     localStorage.setItem('userAvatar', avatarId);
+    setShowAvatarSelector(false);
+    void handleSubmit(avatarId);
   };
 
   const avatarData = getAvatarData(selectedAvatar);
@@ -51,6 +111,22 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
             <p className="text-sm text-gray-400">Manage your account & security</p>
           </div>
         </div>
+
+        {loading && (
+          <div className="mb-4 text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg p-3">
+            Loading profile...
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 text-sm text-red-300 bg-red-900/30 border border-red-500/30 rounded-lg p-3">
+            {error}
+          </div>
+        )}
+        {submitError && (
+          <div className="mb-4 text-sm text-red-300 bg-red-900/30 border border-red-500/30 rounded-lg p-3">
+            {submitError}
+          </div>
+        )}
 
         <div className="space-y-5">
           {/* Profile Settings */}
@@ -149,12 +225,12 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={handleSaveName}
-                        disabled={!newName.trim() || newName === currentName}
-                        className={`relative group ${!newName.trim() || newName === currentName ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={saving || !newName.trim() || (newName === currentName && selectedAvatar === dashboard?.profile.avatar)}
+                        className={`relative group ${saving || !newName.trim() || (newName === currentName && selectedAvatar === dashboard?.profile.avatar) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className={`relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] text-[#0B0F1A] px-4 py-3 rounded-lg transition-all ${!newName.trim() || newName === currentName ? '' : 'hover:shadow-[0_0_20px_rgba(0,255,163,0.4)]'}`}>
-                          <span className="text-sm">Save</span>
+                        <div className={`relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] text-[#0B0F1A] px-4 py-3 rounded-lg transition-all ${saving || !newName.trim() || (newName === currentName && selectedAvatar === dashboard?.profile.avatar) ? '' : 'hover:shadow-[0_0_20px_rgba(0,255,163,0.4)]'}`}>
+                          <span className="text-sm">{saving ? 'Saving...' : 'Save'}</span>
                         </div>
                       </button>
                       <button

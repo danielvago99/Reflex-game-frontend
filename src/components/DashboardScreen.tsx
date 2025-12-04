@@ -1,12 +1,12 @@
 import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
 import { getReflexPoints } from '../utils/reflexPoints';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { getRecentMatches } from '../utils/matchHistory';
+import { useDashboard } from '../hooks/useDashboard';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -15,35 +15,52 @@ interface DashboardScreenProps {
   balance?: number;
 }
 
-export function DashboardScreen({ 
-  onNavigate, 
+export function DashboardScreen({
+  onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
   balance = 5.42
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [reflexPoints, setReflexPoints] = useState(0);
   const [userAvatar, setUserAvatar] = useState(() => {
     return localStorage.getItem('userAvatar') || 'gradient-1';
   });
 
   // Recent matches data - empty array means no matches
   const [recentMatches, setRecentMatches] = useState<Array<{ result: string; amount: string; time: string; color: string }>>([]);
+  const { data: dashboard, loading, error } = useDashboard();
 
   useEffect(() => {
-    // Load fresh data on mount
-    setReflexPoints(getReflexPoints());
     setRecentMatches(getRecentMatches());
   }, []); // Only run on mount since we use key prop to force remount
 
-  const avatarData = getAvatarData(userAvatar);
+  const selectedAvatar = dashboard?.profile.avatar ?? userAvatar;
+  const avatarData = getAvatarData(selectedAvatar);
+  const avatarUrl = avatarData?.url || selectedAvatar;
+  const displayName = dashboard?.profile.username || playerName;
+  const totalReflexPoints = dashboard?.stats?.totalReflexPoints ?? getReflexPoints();
+  const totalWins = dashboard?.stats?.totalWins ?? 0;
+  const freeStakesAvailable = dashboard?.stats
+    ? dashboard.stats.freeStakes.stake005 + dashboard.stats.freeStakes.stake010 + dashboard.stats.freeStakes.stake020
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
       <FuturisticBackground />
       
       <div className="relative z-10 max-w-md mx-auto">
+        {loading && (
+          <div className="mb-4 text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg p-3">
+            Loading your dashboard...
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 text-sm text-red-300 bg-red-900/30 border border-red-500/30 rounded-lg p-3">
+            {error}
+          </div>
+        )}
+
         {/* Header with Avatar and Balance */}
         <div className="relative mb-4 xs:mb-6">
           {/* Outer glow - static, no animation */}
@@ -68,15 +85,15 @@ export function DashboardScreen({
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-40"></div>
                   <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border-2 border-[#00FFA3] flex items-center justify-center overflow-hidden shadow-xl">
-                    <img 
-                      src={avatarData.url} 
+                    <img
+                      src={avatarUrl}
                       alt="User avatar"
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl text-white mb-1">{playerName}</h2>
+                  <h2 className="text-xl text-white mb-1">{displayName}</h2>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-[#00FFA3] rounded-full"></div>
                     <span className="text-sm text-gray-400">Online</span>
@@ -117,7 +134,7 @@ export function DashboardScreen({
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full"></div>
-                        <span className="text-xs text-gray-400">{reflexPoints} RP</span>
+                        <span className="text-xs text-gray-400">{totalReflexPoints} RP</span>
                       </div>
                     </div>
                     
@@ -167,6 +184,37 @@ export function DashboardScreen({
             </div>
           </div>
         </div>
+
+        {dashboard && (
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <p className="text-xs uppercase text-gray-400 tracking-wider mb-1">Wins</p>
+              <p className="text-2xl text-white font-semibold">{totalWins}</p>
+              <p className="text-xs text-gray-400 mt-1">Win rate {(dashboard.stats?.winRate ?? 0).toFixed(1)}%</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <p className="text-xs uppercase text-gray-400 tracking-wider mb-1">Reflex Points</p>
+              <p className="text-2xl text-[#00FFA3] font-semibold">{totalReflexPoints}</p>
+              <p className="text-xs text-gray-400 mt-1">Free stakes left: {freeStakesAvailable}</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <p className="text-xs uppercase text-gray-400 tracking-wider mb-1">Ambassador</p>
+              <p className="text-xl text-white font-semibold">{dashboard.ambassador?.tier ?? 'Not enrolled'}</p>
+              {dashboard.ambassador && (
+                <p className="text-xs text-gray-400 mt-1">Code: {dashboard.ambassador.code}</p>
+              )}
+            </div>
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+              <p className="text-xs uppercase text-gray-400 tracking-wider mb-1">Daily Challenge</p>
+              <p className="text-sm text-white font-semibold">
+                {dashboard.dailyChallenge?.completed ? 'Completed' : 'In progress'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Matches played: {dashboard.dailyChallenge?.matchesPlayed ?? 0}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Main Action Buttons */}
         <div className="space-y-3 mb-6">
