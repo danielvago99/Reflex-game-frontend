@@ -11,8 +11,8 @@ import { cookieParser } from './middleware/cookies';
 
 export const app = express();
 
-// Trust the first proxy (e.g., Render/Heroku) so rate limiting can read X-Forwarded-For
-app.set('trust proxy', true);
+// Trust only the first proxy (e.g., Render/Heroku) so rate limiting can read X-Forwarded-For
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(helmet());
