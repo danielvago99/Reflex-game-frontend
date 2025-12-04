@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
 import { getReflexPoints } from '../utils/reflexPoints';
-import { getAvatarData } from './AvatarSelector';
+import { getAvatarData, getDefaultAvatarUrl } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { getRecentMatches } from '../utils/matchHistory';
 
@@ -13,19 +13,23 @@ interface DashboardScreenProps {
   playerName?: string;
   walletAddress?: string;
   balance?: number;
+  avatarUrl?: string;
+  reflexPoints?: number;
 }
 
-export function DashboardScreen({ 
-  onNavigate, 
+export function DashboardScreen({
+  onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
-  balance = 5.42
+  balance = 5.42,
+  avatarUrl,
+  reflexPoints: reflexPointsValue,
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [reflexPoints, setReflexPoints] = useState(0);
   const [userAvatar, setUserAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'gradient-1';
+    return localStorage.getItem('userAvatar') || getDefaultAvatarUrl();
   });
 
   // Recent matches data - empty array means no matches
@@ -36,6 +40,19 @@ export function DashboardScreen({
     setReflexPoints(getReflexPoints());
     setRecentMatches(getRecentMatches());
   }, []); // Only run on mount since we use key prop to force remount
+
+  useEffect(() => {
+    if (avatarUrl) {
+      setUserAvatar(avatarUrl);
+      localStorage.setItem('userAvatar', avatarUrl);
+    }
+  }, [avatarUrl]);
+
+  useEffect(() => {
+    if (reflexPointsValue !== undefined) {
+      setReflexPoints(reflexPointsValue);
+    }
+  }, [reflexPointsValue]);
 
   const avatarData = getAvatarData(userAvatar);
 

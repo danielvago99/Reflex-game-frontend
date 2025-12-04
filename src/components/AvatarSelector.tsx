@@ -3,7 +3,7 @@ import { Check, CheckCircle2 } from 'lucide-react';
 
 interface AvatarSelectorProps {
   currentAvatar: string;
-  onSelect: (avatar: string) => void;
+  onSelect: (avatarUrl: string) => void;
   onClose: () => void;
 }
 
@@ -43,11 +43,11 @@ const AVATARS = [
 ];
 
 export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelectorProps) {
-  const [selectedAvatar, setSelectedAvatar] = useState(currentAvatar);
+  const [selectedAvatar, setSelectedAvatar] = useState(() => getAvatarData(currentAvatar).url);
 
-  const handleSelect = (avatarId: string) => {
-    setSelectedAvatar(avatarId);
-    onSelect(avatarId);
+  const handleSelect = (avatarUrl: string) => {
+    setSelectedAvatar(avatarUrl);
+    onSelect(avatarUrl);
   };
 
   return (
@@ -80,11 +80,11 @@ export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelec
           <div className="p-6">
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
               {AVATARS.map((avatar) => {
-                const isSelected = selectedAvatar === avatar.id;
+                const isSelected = selectedAvatar === avatar.url;
                 return (
                   <button
                     key={avatar.id}
-                    onClick={() => handleSelect(avatar.id)}
+                    onClick={() => handleSelect(avatar.url)}
                     className="relative group"
                   >
                     {/* Outer glow effect */}
@@ -145,6 +145,10 @@ export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelec
 }
 
 // Helper function to get avatar data by ID
-export function getAvatarData(avatarId: string) {
-  return AVATARS.find(avatar => avatar.id === avatarId) || AVATARS[0];
+export function getAvatarData(avatarValue: string) {
+  return AVATARS.find(avatar => avatar.id === avatarValue || avatar.url === avatarValue) || AVATARS[0];
+}
+
+export function getDefaultAvatarUrl() {
+  return AVATARS[0].url;
 }
