@@ -1,13 +1,12 @@
 import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
-import { getReflexPoints } from '../utils/reflexPoints';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
-import { getRecentMatches } from '../utils/matchHistory';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
+import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -17,6 +16,8 @@ interface DashboardScreenProps {
   avatarUrl?: string;
   stats?: PlayerStats;
   isLoading?: boolean;
+  recentMatches?: MatchHistoryEntry[];
+  matchesLoading?: boolean;
 }
 
 export function DashboardScreen({
@@ -26,18 +27,12 @@ export function DashboardScreen({
   balance = 0,
   avatarUrl,
   stats,
-  isLoading
+  isLoading,
+  recentMatches = [],
+  matchesLoading = false
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-
-  // Recent matches data - empty array means no matches
-  const [recentMatches, setRecentMatches] = useState<Array<{ result: string; amount: string; time: string; color: string }>>([]);
-
-  useEffect(() => {
-    // Load fresh data on mount
-    setRecentMatches(getRecentMatches());
-  }, []); // Only run on mount since we use key prop to force remount
 
   const avatarData = useMemo(() => {
     if (avatarUrl) {
@@ -48,12 +43,53 @@ export function DashboardScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const reflexPoints = stats?.totalReflexPoints ?? getReflexPoints();
+  const reflexPoints = stats?.totalReflexPoints ?? 0;
   const walletBalance = useMemo(() => {
     if (typeof stats?.totalSolWon === 'number') return stats.totalSolWon;
     return balance;
   }, [balance, stats?.totalSolWon]);
   const displayedReflexPoints = isLoading && !stats ? '—' : reflexPoints;
+
+  const formattedMatches = useMemo(() => {
+    const now = Date.now();
+
+    return recentMatches.map((match) => {
+      const isWin = match.result === 'win';
+      const resultLabel = isWin ? 'Victory' : 'Defeat';
+      const amount = isWin
+        ? match.profit != null
+          ? `+${match.profit.toFixed(4)} SOL`
+          : 'Won'
+        : match.stakeAmount != null
+          ? `-${match.stakeAmount.toFixed(4)} SOL`
+          : 'Lost';
+
+      const timestamp = match.createdAt ? new Date(match.createdAt).getTime() : now;
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      let timeStr = '';
+      if (days > 0) timeStr = `${days}d ago`;
+      else if (hours > 0) timeStr = `${hours}h ago`;
+      else if (minutes > 0) timeStr = `${minutes}m ago`;
+      else timeStr = 'Just now';
+
+      const scoreLine =
+        match.playerScore != null && match.opponentScore != null
+          ? ` (${match.playerScore}-${match.opponentScore})`
+          : '';
+
+      return {
+        result: `${resultLabel}${scoreLine}`,
+        amount,
+        time: timeStr,
+        color: isWin ? '#00FFA3' : '#FF4444',
+        id: match.id,
+      };
+    });
+  }, [recentMatches]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
@@ -274,26 +310,30 @@ export function DashboardScreen({
               </div>
               
               <div className="space-y-2">
-                {recentMatches.length === 0 ? (
+                {matchesLoading ? (
+                  <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                    <p className="text-sm text-gray-400">Loading recent matches...</p>
+                  </div>
+                ) : formattedMatches.length === 0 ? (
                   // Empty State - Motivational
                   <div className="relative">
                     <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-8 text-center">
                       {/* Decorative elements */}
                       <div className="absolute top-2 left-2 w-16 h-16 border-t-2 border-l-2 border-[#00FFA3]/20 rounded-tl-lg"></div>
                       <div className="absolute bottom-2 right-2 w-16 h-16 border-b-2 border-r-2 border-[#06B6D4]/20 rounded-br-lg"></div>
-                      
+
                       <div className="relative">
                         {/* Icon */}
                         <div className="mx-auto mb-4 p-4 bg-white/5 rounded-full border border-white/10 w-16 h-16 flex items-center justify-center">
                           <Gamepad2 className="w-8 h-8 text-gray-400" />
                         </div>
-                        
+
                         {/* Text */}
                         <h4 className="text-white mb-2">No Matches Yet</h4>
                         <p className="text-sm text-gray-400 mb-4 max-w-xs mx-auto">
                           Jump into your first game and test your reflexes. Compete against others and win SOL!
                         </p>
-                        
+
                         {/* CTA */}
                         <button
                           onClick={() => onNavigate('lobby')}
@@ -307,8 +347,8 @@ export function DashboardScreen({
                   </div>
                 ) : (
                   // Match List
-                  recentMatches.map((match, i) => (
-                    <div key={i} className="relative group">
+                  formattedMatches.map((match, i) => (
+                    <div key={match.id ?? i} className="relative group">
                       <div className="flex items-center justify-between py-3 px-3 bg-white/5 backdrop-blur-sm border-l-2 transition-all hover:bg-white/10" style={{ borderColor: match.color }}>
                         <div className="flex items-center gap-3">
                           <div className="relative">
@@ -322,7 +362,7 @@ export function DashboardScreen({
                           <p className="text-xs text-gray-500">{match.time}</p>
                         </div>
                       </div>
-                      {i < recentMatches.length - 1 && <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent mt-2"></div>}
+                      {i < formattedMatches.length - 1 && <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent mt-2"></div>}
                     </div>
                   ))
                 )}

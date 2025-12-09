@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
+import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
 
 interface ProfileScreenProps {
   onNavigate: (screen: string) => void;
@@ -11,6 +12,8 @@ interface ProfileScreenProps {
   avatarUrl?: string;
   stats?: PlayerStats;
   isLoading?: boolean;
+  matchHistory?: MatchHistoryEntry[];
+  matchHistoryLoading?: boolean;
 }
 
 export function ProfileScreen({
@@ -19,6 +22,8 @@ export function ProfileScreen({
   avatarUrl,
   stats,
   isLoading,
+  matchHistory = [],
+  matchHistoryLoading = false,
 }: ProfileScreenProps) {
   const avatarData = useMemo(() => {
     if (avatarUrl) {
@@ -36,18 +41,43 @@ export function ProfileScreen({
   const bestReaction = stats?.bestReactionMs ?? null;
   const totalEarnings = stats?.totalSolWon ?? 0;
 
-  const matchHistory: any[] = [
-    // Empty by default - will show empty state when matchHistory.length === 0
-  ];
+  const formattedHistory = (matchHistory ?? []).map((match) => {
+    const isWin = match.result === 'win' || match.result === 'Win';
+    const opponentLabel = match.opponent ?? 'Unknown opponent';
+    const stake = match.stakeAmount != null ? match.stakeAmount.toString() : '—';
+    const earning = isWin
+      ? match.profit != null
+        ? `+${match.profit}`
+        : '+0'
+      : match.stakeAmount != null
+        ? `-${match.stakeAmount}`
+        : '-';
+    const reaction = match.reactionTimeMs != null ? `${match.reactionTimeMs}ms` : '—';
 
-  // Example with matches (comment out to see empty state):
-  // const matchHistory = [
-  //   { id: 1, opponent: 'Player_0x89d2', result: 'Win', stake: '0.1', earning: '+0.18', time: '245ms', date: '2h ago' },
-  //   { id: 2, opponent: 'CryptoNinja', result: 'Win', stake: '0.1', earning: '+0.18', time: '238ms', date: '5h ago' },
-  //   { id: 3, opponent: 'Bot_Advanced', result: 'Win', stake: '0.5', earning: '+0.90', time: '221ms', date: '1d ago' },
-  //   { id: 4, opponent: 'Player_0x12a4', result: 'Loss', stake: '0.1', earning: '-0.10', time: '289ms', date: '1d ago' },
-  //   { id: 5, opponent: 'ReflexMaster', result: 'Loss', stake: '0.1', earning: '-0.10', time: '312ms', date: '2d ago' },
-  // ];
+    const createdAt = match.createdAt ? new Date(match.createdAt).getTime() : null;
+    const now = Date.now();
+    const diff = createdAt ? now - createdAt : 0;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    let timeAgo = 'Just now';
+    if (createdAt) {
+      if (days > 0) timeAgo = `${days}d ago`;
+      else if (hours > 0) timeAgo = `${hours}h ago`;
+      else if (minutes > 0) timeAgo = `${minutes}m ago`;
+    }
+
+    return {
+      id: match.id,
+      opponent: opponentLabel,
+      result: isWin ? 'Win' : 'Loss',
+      stake,
+      earning,
+      time: reaction,
+      date: timeAgo,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
@@ -178,7 +208,11 @@ export function ProfileScreen({
           <h3 className="text-lg text-white mb-4">Recent Match History</h3>
           
           <div className="space-y-3">
-            {matchHistory.length === 0 ? (
+            {matchHistoryLoading ? (
+              <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center text-sm text-gray-400">
+                Loading match history...
+              </div>
+            ) : formattedHistory.length === 0 ? (
               // Empty State
               <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-8 text-center">
                 <div className="mx-auto mb-4 p-4 bg-white/5 rounded-full border border-white/10 w-16 h-16 flex items-center justify-center">
@@ -191,7 +225,7 @@ export function ProfileScreen({
               </div>
             ) : (
               // Match List
-              matchHistory.map((match) => (
+              formattedHistory.map((match) => (
                 <div
                   key={match.id}
                   className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all"
@@ -215,7 +249,7 @@ export function ProfileScreen({
                       <p className="text-xs text-gray-500">{match.time}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-xs text-gray-400">
                     <span>Stake: {match.stake} SOL</span>
                     <div className="w-1 h-1 bg-gray-600 rounded-full"></div>

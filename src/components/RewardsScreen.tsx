@@ -1,21 +1,25 @@
 import { ArrowLeft, Zap, Gift, Target, Trophy, Clock, Flame, Star, TrendingUp, Coins, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { addFreeStake, getFreeStakes } from '../utils/reflexPoints';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
+import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
+import type { AmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 
 interface RewardsScreenProps {
   onNavigate: (screen: string) => void;
+  stats?: PlayerStats;
+  ambassadorStats?: AmbassadorData | null;
+  isLoading?: boolean;
 }
 
-export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
+export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }: RewardsScreenProps) {
   const [reflexPoints, setReflexPoints] = useState(0);
   const [dailyProgress, setDailyProgress] = useState(0); // Matches played today
   const [canClaimDaily, setCanClaimDaily] = useState(false);
   const [lastDailyClaim, setLastDailyClaim] = useState<Date | null>(null);
   const [streak, setStreak] = useState(3);
-  const [ambassadorRewards, setAmbassadorRewards] = useState(250);
+  const [ambassadorRewards, setAmbassadorRewards] = useState(0);
   const [dailyRewardsEarned, setDailyRewardsEarned] = useState(0);
   const [activePlayers, setActivePlayers] = useState(0); // Changed from ambassadorPointsTotal
   const [freeStakesAvailable, setFreeStakesAvailable] = useState(0);
@@ -24,47 +28,29 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
   const [freeStakes020, setFreeStakes020] = useState(0);
 
   useEffect(() => {
-    // Load from localStorage
-    const points = parseInt(localStorage.getItem('reflexPoints') || '0');
-    const progress = parseInt(localStorage.getItem('dailyMatchProgress') || '0');
-    const lastClaim = localStorage.getItem('lastDailyRewardClaim');
-    const currentStreak = parseInt(localStorage.getItem('dailyStreak') || '0');
-    const ambassadorPoints = parseInt(localStorage.getItem('ambassadorRewardPoints') || '250');
-    const dailyTotal = parseInt(localStorage.getItem('dailyRewardsTotal') || '0');
-    const activeAmbassadors = parseInt(localStorage.getItem('activeAmbassadors') || '0'); // Sync with Ambassador Dashboard
-    
-    // Get free stakes from utility
-    const allFreeStakes = getFreeStakes();
-    const stakes005 = allFreeStakes.filter(s => s.amount === 0.05).length;
-    const stakes010 = allFreeStakes.filter(s => s.amount === 0.10 || s.amount === 0.1).length;
-    const stakes020 = allFreeStakes.filter(s => s.amount === 0.20 || s.amount === 0.2).length;
-
-    setReflexPoints(points);
-    setDailyProgress(progress);
-    setStreak(currentStreak);
-    setAmbassadorRewards(ambassadorPoints);
-    setDailyRewardsEarned(dailyTotal);
-    setActivePlayers(activeAmbassadors); // Now synced with Ambassador Dashboard
-    setFreeStakes005(stakes005);
-    setFreeStakes010(stakes010);
-    setFreeStakes020(stakes020);
-    
-    // Calculate total free stakes
-    const totalFreeStakes = stakes005 + stakes010 + stakes020;
+    const totalFreeStakes = freeStakes005 + freeStakes010 + freeStakes020;
     setFreeStakesAvailable(totalFreeStakes);
+    setCanClaimDaily(dailyProgress >= 5);
+  }, [dailyProgress, freeStakes005, freeStakes010, freeStakes020]);
 
-    if (lastClaim) {
-      const lastClaimDate = new Date(parseInt(lastClaim));
-      setLastDailyClaim(lastClaimDate);
-      
-      // Check if can claim (24 hours passed AND 5 matches played)
-      const now = new Date();
-      const hoursSinceLastClaim = (now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60);
-      setCanClaimDaily(hoursSinceLastClaim >= 24 && progress >= 5);
-    } else {
-      setCanClaimDaily(progress >= 5);
+  useEffect(() => {
+    if (stats) {
+      setReflexPoints(stats.totalReflexPoints ?? 0);
+      setDailyProgress(stats.totalMatches ?? 0);
+      setStreak(stats.currentStreak ?? 0);
+      setDailyRewardsEarned(Number(stats.totalSolWon ?? 0));
+      setFreeStakes005(stats.freeStakes005 ?? 0);
+      setFreeStakes010(stats.freeStakes010 ?? 0);
+      setFreeStakes020(stats.freeStakes020 ?? 0);
     }
-  }, []);
+  }, [stats]);
+
+  useEffect(() => {
+    if (ambassadorStats) {
+      setActivePlayers(ambassadorStats.activeReferrals ?? 0);
+      setAmbassadorRewards(ambassadorStats.totalRewards ?? 0);
+    }
+  }, [ambassadorStats]);
 
   const claimDailyReward = () => {
     if (!canClaimDaily) return;
@@ -72,27 +58,17 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
     const baseReward = 10;
     const totalReward = baseReward;
 
-    // Update reflex points
     const newPoints = reflexPoints + totalReward;
     setReflexPoints(newPoints);
-    localStorage.setItem('reflexPoints', newPoints.toString());
 
-    // Update daily rewards total
     const newDailyTotal = dailyRewardsEarned + totalReward;
     setDailyRewardsEarned(newDailyTotal);
-    localStorage.setItem('dailyRewardsTotal', newDailyTotal.toString());
 
-    // Update streak
     const newStreak = streak + 1;
     setStreak(newStreak);
-    localStorage.setItem('dailyStreak', newStreak.toString());
 
-    // Reset daily progress
     setDailyProgress(0);
-    localStorage.setItem('dailyMatchProgress', '0');
 
-    // Update last claim time
-    localStorage.setItem('lastDailyRewardClaim', Date.now().toString());
     setLastDailyClaim(new Date());
     setCanClaimDaily(false);
 
@@ -107,15 +83,11 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
 
     const newPoints = reflexPoints + ambassadorRewards;
     setReflexPoints(newPoints);
-    localStorage.setItem('reflexPoints', newPoints.toString());
 
-    // Update ambassador total
     const newAmbassadorTotal = activePlayers + ambassadorRewards;
     setActivePlayers(newAmbassadorTotal);
-    localStorage.setItem('ambassadorPointsTotal', newAmbassadorTotal.toString());
 
     setAmbassadorRewards(0);
-    localStorage.setItem('ambassadorRewardPoints', '0');
 
     toast.success('Ambassador Rewards Claimed!', {
       description: `+${ambassadorRewards} Reflex Points added to your account`,
@@ -131,24 +103,12 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
       return;
     }
 
-    // Deduct Reflex Points
     const newPoints = reflexPoints - cost;
     setReflexPoints(newPoints);
-    localStorage.setItem('reflexPoints', newPoints.toString());
 
-    // Add free stake to the user's account using utility
-    addFreeStake(amount);
-
-    // Update local UI state
-    const allFreeStakes = getFreeStakes();
-    const stakes005 = allFreeStakes.filter(s => s.amount === 0.05).length;
-    const stakes010 = allFreeStakes.filter(s => s.amount === 0.10 || s.amount === 0.1).length;
-    const stakes020 = allFreeStakes.filter(s => s.amount === 0.20 || s.amount === 0.2).length;
-    
-    setFreeStakes005(stakes005);
-    setFreeStakes010(stakes010);
-    setFreeStakes020(stakes020);
-    setFreeStakesAvailable(stakes005 + stakes010 + stakes020);
+    if (amount === 0.05) setFreeStakes005((prev) => prev + 1);
+    else if (amount === 0.1 || amount === 0.10) setFreeStakes010((prev) => prev + 1);
+    else if (amount === 0.2 || amount === 0.20) setFreeStakes020((prev) => prev + 1);
 
     toast.success('Stake Redeemed!', {
       description: `You received ${amount} SOL free stake. -${cost} Reflex Points`,
