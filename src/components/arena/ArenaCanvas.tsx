@@ -294,7 +294,7 @@ export function ArenaCanvas({
       clearTimers();
       cleanupShapes();
     };
-  }, [isActive, isAppReady, targetShape, targetColor]);
+  }, [isActive, isAppReady]);
 
   useEffect(() => {
     if (!isActive || !isAppReady || !globalPixiApp) return;
