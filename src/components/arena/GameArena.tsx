@@ -56,6 +56,12 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
 
+  const defaultTarget: Target = {
+    shape: 'circle',
+    color: '#06B6D4',
+    colorName: 'Cyan',
+  };
+
   const { isConnected, send } = useWebSocket({ autoConnect: true });
 
   const MAX_PAUSES = 3;
@@ -84,7 +90,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setRoundResolved(false);
     setLossReason(null);
     setShowHowToPlay(true);
-    prepareRound(1);
+    setHasRequestedInitialRound(false);
   };
 
   // Players (get from profile in real app)
@@ -189,11 +195,11 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       return;
     }
 
-    if (!hasRequestedInitialRound) {
+    if (!hasRequestedInitialRound && gameState === 'playing') {
       prepareRound(currentRound);
       setHasRequestedInitialRound(true);
     }
-  }, [isConnected, hasRequestedInitialRound, prepareRound, currentRound]);
+  }, [isConnected, hasRequestedInitialRound, prepareRound, currentRound, gameState]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
@@ -343,7 +349,6 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           <CountdownOverlay
             onComplete={() => {
               setGameState('playing');
-              prepareRound(currentRound);
             }}
           />
         )}
@@ -397,10 +402,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         />
       )}
 
-      {showHowToPlay && currentTarget && (
+      {showHowToPlay && (
         <HowToPlayOverlay
-          targetShape={currentTarget.shape}
-          targetColor={currentTarget.color}
+          targetShape={(currentTarget ?? defaultTarget).shape}
+          targetColor={(currentTarget ?? defaultTarget).color}
           onContinue={() => setShowHowToPlay(false)}
         />
       )}
