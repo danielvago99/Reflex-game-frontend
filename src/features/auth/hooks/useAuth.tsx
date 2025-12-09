@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useWallet } from '../../wallet/context/WalletProvider';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 
 export interface AuthUser {
   id: string;
@@ -21,6 +21,7 @@ export interface UseAuthResult {
   }) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateProfile: (updates: { username?: string; avatar?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<UseAuthResult | undefined>(undefined);
@@ -160,6 +161,36 @@ function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (updates: { username?: string; avatar?: string }) => {
+    if (!updates.username && !updates.avatar) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update profile');
+      }
+
+      const data = (await response.json()) as { user: AuthUser };
+      setUser((prev) => ({ ...prev, ...data.user }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to update profile';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const value: UseAuthResult = {
     user,
     loading,
@@ -168,6 +199,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     loginWithExternalWallet,
     logout,
     refresh,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

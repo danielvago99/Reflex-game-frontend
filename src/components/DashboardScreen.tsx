@@ -1,5 +1,5 @@
 import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
@@ -7,37 +7,58 @@ import { getReflexPoints } from '../utils/reflexPoints';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { getRecentMatches } from '../utils/matchHistory';
+import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
   playerName?: string;
   walletAddress?: string;
   balance?: number;
+  avatarUrl?: string;
+  stats?: PlayerStats;
+  isLoading?: boolean;
 }
 
-export function DashboardScreen({ 
-  onNavigate, 
+export function DashboardScreen({
+  onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
-  balance = 5.42
+  balance = 0,
+  avatarUrl,
+  stats,
+  isLoading
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [reflexPoints, setReflexPoints] = useState(0);
-  const [userAvatar, setUserAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'gradient-1';
-  });
 
   // Recent matches data - empty array means no matches
   const [recentMatches, setRecentMatches] = useState<Array<{ result: string; amount: string; time: string; color: string }>>([]);
 
   useEffect(() => {
     // Load fresh data on mount
-    setReflexPoints(getReflexPoints());
     setRecentMatches(getRecentMatches());
   }, []); // Only run on mount since we use key prop to force remount
 
-  const avatarData = getAvatarData(userAvatar);
+  const avatarData = useMemo(() => {
+    if (avatarUrl) {
+      return { id: 'custom-avatar', url: avatarUrl, style: 'custom' };
+    }
+
+    const storedAvatar = localStorage.getItem('userAvatar') || 'gradient-1';
+    return getAvatarData(storedAvatar);
+  }, [avatarUrl]);
+
+  const reflexPoints = stats?.totalReflexPoints ?? getReflexPoints();
+  const winRate = stats?.winRate ?? 0;
+  const totalMatches = stats?.totalMatches ?? 0;
+  const totalWins = stats?.totalWins ?? 0;
+  const totalLosses = stats?.totalLosses ?? 0;
+  const walletBalance = useMemo(() => {
+    if (typeof stats?.totalSolWon === 'string') return parseFloat(stats.totalSolWon);
+    if (typeof stats?.totalSolWon === 'number') return stats.totalSolWon;
+    return balance;
+  }, [balance, stats?.totalSolWon]);
+  const displayedReflexPoints = isLoading && !stats ? '—' : reflexPoints;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
@@ -81,6 +102,9 @@ export function DashboardScreen({
                     <div className="w-2 h-2 bg-[#00FFA3] rounded-full"></div>
                     <span className="text-sm text-gray-400">Online</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {isLoading ? 'Syncing stats...' : `W ${totalWins} / L ${totalLosses}`}
+                  </p>
                 </div>
               </div>
               
@@ -117,17 +141,32 @@ export function DashboardScreen({
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full"></div>
-                        <span className="text-xs text-gray-400">{reflexPoints} RP</span>
+                        <span className="text-xs text-gray-400">{displayedReflexPoints} RP</span>
                       </div>
                     </div>
-                    
+
                     <div className="mb-3">
                       <p className="text-3xl text-[#00FFA3] font-bold drop-shadow-[0_0_10px_rgba(0,255,163,0.6)]">
-                        {balance.toFixed(4)}
+                        {isLoading ? '—' : walletBalance.toFixed(4)}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
                     </div>
-                    
+
+                    <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Matches</p>
+                        <p className="text-white text-sm">{isLoading ? '—' : totalMatches}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Wins</p>
+                        <p className="text-[#00FFA3] text-sm">{isLoading ? '—' : totalWins}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Win Rate</p>
+                        <p className="text-white text-sm">{isLoading ? '—' : `${Math.round(winRate * 100)}%`}</p>
+                      </div>
+                    </div>
+
                     {/* Action Buttons Grid */}
                     <div className="grid grid-cols-2 gap-2">
                       <button

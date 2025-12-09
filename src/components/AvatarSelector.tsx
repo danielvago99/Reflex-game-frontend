@@ -148,3 +148,9 @@ export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelec
 export function getAvatarData(avatarId: string) {
   return AVATARS.find(avatar => avatar.id === avatarId) || AVATARS[0];
 }
+
+export function findAvatarIdByUrl(url?: string | null) {
+  if (!url) return null;
+  const match = AVATARS.find((avatar) => avatar.url === url);
+  return match?.id ?? null;
+}

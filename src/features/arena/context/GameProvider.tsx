@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 export type MatchType = 'ranked' | 'friend' | 'bot';
 
@@ -21,8 +22,15 @@ const defaultMatch: MatchDetails = { isRanked: false, stakeAmount: 0, matchType:
 const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [playerName, setPlayerName] = useState('Player_0x4f2a');
   const [matchDetails, setMatchDetailsState] = useState<MatchDetails>(defaultMatch);
+
+  useEffect(() => {
+    if (user?.username || user?.walletAddress) {
+      setPlayerName(user.username ?? user.walletAddress ?? 'Player_0x4f2a');
+    }
+  }, [user?.username, user?.walletAddress]);
 
   const setMatchDetails = (details: MatchDetails) => setMatchDetailsState(details);
   const resetMatch = () => setMatchDetailsState(defaultMatch);

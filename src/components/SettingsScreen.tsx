@@ -1,23 +1,39 @@
 import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { AvatarSelector, getAvatarData } from './AvatarSelector';
+import { AvatarSelector, findAvatarIdByUrl, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 
 interface SettingsScreenProps {
   currentName: string;
+  avatarUrl?: string;
   onNavigate: (screen: string) => void;
   onUpdateName: (newName: string) => void;
+  onUpdateAvatar: (avatarUrl: string) => void;
   onLogout: () => void;
 }
 
-export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout }: SettingsScreenProps) {
+export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateName, onUpdateAvatar, onLogout }: SettingsScreenProps) {
   const [newName, setNewName] = useState(currentName);
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
-    return localStorage.getItem('userAvatar') || 'gradient-1';
+    return findAvatarIdByUrl(avatarUrl) || localStorage.getItem('userAvatar') || 'gradient-1';
   });
+
+  const avatarData = avatarUrl ? { id: 'custom-avatar', url: avatarUrl, style: 'custom' } : getAvatarData(selectedAvatar);
+
+  useEffect(() => {
+    setNewName(currentName);
+  }, [currentName]);
+
+  useEffect(() => {
+    const matchedAvatar = findAvatarIdByUrl(avatarUrl);
+    if (matchedAvatar) {
+      setSelectedAvatar(matchedAvatar);
+      localStorage.setItem('userAvatar', matchedAvatar);
+    }
+  }, [avatarUrl]);
 
   const handleSaveName = () => {
     if (newName.trim() && newName !== currentName) {
@@ -29,9 +45,10 @@ export function SettingsScreen({ currentName, onNavigate, onUpdateName, onLogout
   const handleAvatarSelect = (avatarId: string) => {
     setSelectedAvatar(avatarId);
     localStorage.setItem('userAvatar', avatarId);
+    const avatar = getAvatarData(avatarId);
+    onUpdateAvatar(avatar.url);
+    setShowAvatarSelector(false);
   };
-
-  const avatarData = getAvatarData(selectedAvatar);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
