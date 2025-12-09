@@ -22,7 +22,7 @@ interface DashboardResponse {
 }
 
 export function useUserDashboard() {
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, refresh: refreshAuth } = useAuth();
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +39,13 @@ export function useUserDashboard() {
         credentials: 'include',
       });
 
+      if (response.status === 401) {
+        setUser(null);
+        setError('Please log in to view your dashboard.');
+        await refreshAuth();
+        return;
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Failed to load dashboard');
@@ -52,7 +59,7 @@ export function useUserDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [authUser]);
+  }, [authUser, refreshAuth]);
 
   useEffect(() => {
     if (authUser) {
