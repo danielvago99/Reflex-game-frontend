@@ -16,7 +16,14 @@ declare global {
 }
 
 export const attachUser = (req: Request, _res: Response, next: NextFunction) => {
-  const token = req.cookies?.auth_token;
+  const cookieToken = req.cookies?.auth_token;
+  const authHeader = req.get('authorization');
+
+  const headerToken = authHeader?.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : undefined;
+
+  const token = cookieToken ?? headerToken;
 
   if (!token) {
     return next();

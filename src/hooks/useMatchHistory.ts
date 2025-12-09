@@ -31,12 +31,19 @@ export function useMatchHistory(limit = 5) {
     try {
       const baseUrl = ENV.API_BASE_URL.replace(/\/$/, '');
       const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const response = await fetch(`${apiBaseUrl}/game/history?page=1&limit=${limit}`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('auth_token');
+        }
         const message = await response.text();
         throw new Error(message || 'Failed to load match history');
       }

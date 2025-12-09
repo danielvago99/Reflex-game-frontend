@@ -71,14 +71,19 @@ export function useUserDashboard() {
     setError(null);
 
     try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
       const response = await fetch(`${API_BASE_URL}/api/user/dashboard`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (response.status === 401) {
         setUser(null);
         setError('Please log in to view your dashboard.');
+        localStorage.removeItem('auth_token');
         await refreshAuth();
         return;
       }
