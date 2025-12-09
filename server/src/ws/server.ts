@@ -103,14 +103,16 @@ const finalizeRound = (
     winner,
   });
 
-  sendMessage(socket, 'round:result', {
-    round: state.round,
-    playerTime,
-    botTime,
-    winner,
-    reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
-    scores: state.scores,
-  });
+  setTimeout(() => {
+    sendMessage(socket, 'round:result', {
+      round: state.round,
+      playerTime,
+      botTime,
+      winner,
+      reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
+      scores: state.scores,
+    });
+  }, 1000);
 
   const isMatchOver =
     state.scores.player >= ROUNDS_TO_WIN ||
@@ -123,7 +125,7 @@ const finalizeRound = (
 };
 
 const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
-  const delay = 1500 + Math.random() * 2000;
+  const delay = 5000 + Math.random() * 5000;
 
   state.showTimeout = setTimeout(() => {
     state.targetShownAt = Date.now();
