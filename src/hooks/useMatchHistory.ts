@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { API_BASE_URL } from '../features/auth/hooks/useAuth';
+import { ENV } from '../config/env';
 
 export interface MatchHistoryEntry {
   id: string;
@@ -29,7 +29,9 @@ export function useMatchHistory(limit = 5) {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/game/history?page=1&limit=${limit}`, {
+      const baseUrl = ENV.API_BASE_URL.replace(/\/$/, '');
+      const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+      const response = await fetch(`${apiBaseUrl}/game/history?page=1&limit=${limit}`, {
         method: 'GET',
         credentials: 'include',
       });
