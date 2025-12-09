@@ -308,16 +308,14 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
         {/* Arena Canvas */}
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
-          {currentTarget && (
-            <ArenaCanvas
-              isActive={gameState === 'playing'}
-              targetShape={currentTarget.shape}
-              targetColor={currentTarget.color}
-              onTargetAppeared={handleTargetAppeared}
-              onTargetDisappeared={handleTargetDisappeared}
-              targetShowSignal={targetShowSignal}
-            />
-          )}
+          <ArenaCanvas
+            isActive={gameState === 'playing'}
+            targetShape={(currentTarget ?? defaultTarget).shape}
+            targetColor={(currentTarget ?? defaultTarget).color}
+            onTargetAppeared={handleTargetAppeared}
+            onTargetDisappeared={handleTargetDisappeared}
+            targetShowSignal={targetShowSignal}
+          />
 
           {/* Target Hint Panel */}
           <AnimatePresence>
