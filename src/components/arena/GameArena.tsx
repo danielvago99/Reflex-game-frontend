@@ -177,11 +177,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   }, []);
 
   useWebSocketEvent<WSRoundPrepare>('round:prepare', payload => {
+    console.log('round:prepare payload received:', payload);
     setCurrentTarget(payload.target);
     setLossReason(null);
   }, []);
 
   useWebSocketEvent<WSRoundShowTarget>('round:show_target', payload => {
+    console.log('round:show_target payload received:', payload);
     setTargetShowSignal(signal => signal + 1);
     setRoundResolved(false);
     setHasSentClick(false);
@@ -195,11 +197,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       return;
     }
 
-    if (!hasRequestedInitialRound && gameState === 'playing') {
+    const shouldPrepareInitialRound = gameState === 'playing' && !hasRequestedInitialRound;
+
+    if (shouldPrepareInitialRound) {
       prepareRound(currentRound);
       setHasRequestedInitialRound(true);
     }
-  }, [isConnected, hasRequestedInitialRound, prepareRound, currentRound, gameState]);
+  }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
@@ -310,8 +314,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
           <ArenaCanvas
             isActive={gameState === 'playing'}
-            targetShape={(currentTarget ?? defaultTarget).shape}
-            targetColor={(currentTarget ?? defaultTarget).color}
+            targetShape={(currentTarget || defaultTarget).shape}
+            targetColor={(currentTarget || defaultTarget).color}
             onTargetAppeared={handleTargetAppeared}
             onTargetDisappeared={handleTargetDisappeared}
             targetShowSignal={targetShowSignal}
