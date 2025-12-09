@@ -49,10 +49,6 @@ export function DashboardScreen({
   }, [avatarUrl]);
 
   const reflexPoints = stats?.totalReflexPoints ?? getReflexPoints();
-  const winRate = stats?.winRate ?? 0;
-  const totalMatches = stats?.totalMatches ?? 0;
-  const totalWins = stats?.totalWins ?? 0;
-  const totalLosses = stats?.totalLosses ?? 0;
   const walletBalance = useMemo(() => {
     if (typeof stats?.totalSolWon === 'string') return parseFloat(stats.totalSolWon);
     if (typeof stats?.totalSolWon === 'number') return stats.totalSolWon;
@@ -102,9 +98,6 @@ export function DashboardScreen({
                     <div className="w-2 h-2 bg-[#00FFA3] rounded-full"></div>
                     <span className="text-sm text-gray-400">Online</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {isLoading ? 'Syncing stats...' : `W ${totalWins} / L ${totalLosses}`}
-                  </p>
                 </div>
               </div>
               
@@ -150,21 +143,6 @@ export function DashboardScreen({
                         {isLoading ? '—' : walletBalance.toFixed(4)}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Matches</p>
-                        <p className="text-white text-sm">{isLoading ? '—' : totalMatches}</p>
-                      </div>
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Wins</p>
-                        <p className="text-[#00FFA3] text-sm">{isLoading ? '—' : totalWins}</p>
-                      </div>
-                      <div className="bg-white/5 border border-white/5 rounded-lg p-2">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">Win Rate</p>
-                        <p className="text-white text-sm">{isLoading ? '—' : `${Math.round(winRate * 100)}%`}</p>
-                      </div>
                     </div>
 
                     {/* Action Buttons Grid */}
