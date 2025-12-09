@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ export function GameResultModal({
   const platformFee = totalPot * 0.15;
   const winnerPayout = totalPot - platformFee;
   const netProfit = winnerPayout - stakeAmount;
+  const hasRecordedRef = useRef(false);
   const [challengeUpdate, setChallengeUpdate] = useState<{
     newProgress: number;
     dailyCompleted: boolean;
@@ -46,6 +47,9 @@ export function GameResultModal({
 
   // Record match completion for daily challenge and match history
   useEffect(() => {
+    if (hasRecordedRef.current) return;
+    hasRecordedRef.current = true;
+
     // Determine match result
     const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
     
