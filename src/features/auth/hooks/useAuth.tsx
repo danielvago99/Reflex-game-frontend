@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useWallet } from '../../wallet/context/WalletProvider';
 
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
@@ -66,8 +66,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sessionVersionRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const refreshVersion = sessionVersionRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -77,21 +79,31 @@ function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.status === 401) {
-        setUser(null);
+        if (refreshVersion === sessionVersionRef.current) {
+          setUser(null);
+        }
         return;
       }
 
       if (!response.ok) {
-        setError('Failed to load session');
+        if (refreshVersion === sessionVersionRef.current) {
+          setError('Failed to load session');
+        }
         return;
       }
 
       const data = (await response.json()) as { user: AuthUser };
-      setUser(data.user);
+      if (refreshVersion === sessionVersionRef.current) {
+        setUser(data.user);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to verify session');
+      if (refreshVersion === sessionVersionRef.current) {
+        setError(err instanceof Error ? err.message : 'Unable to verify session');
+      }
     } finally {
-      setLoading(false);
+      if (refreshVersion === sessionVersionRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -113,6 +125,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
           nonce: nonceResponse.nonce,
         });
 
+        sessionVersionRef.current += 1;
         setUser(loggedInUser);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Login failed';
@@ -157,6 +170,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
     } finally {
+      sessionVersionRef.current += 1;
       setUser(null);
     }
   }, []);
