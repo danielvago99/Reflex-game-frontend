@@ -91,6 +91,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setLossReason(null);
     setShowHowToPlay(true);
     setHasRequestedInitialRound(false);
+    setTargetShowSignal(0);
   };
 
   // Players (get from profile in real app)
@@ -111,6 +112,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       setRoundResolved(false);
       setLossReason(null);
       setHasSentClick(false);
+      setTargetShowSignal(0);
       setCurrentTarget(null);
 
       if (!isConnected) {
