@@ -32,8 +32,8 @@ export const ENV = {
   PLATFORM_FEE_PERCENTAGE: 15, // 15% platform fee
   
   // Feature Flags
-  USE_MOCK_DATA: import.meta.env.VITE_USE_MOCK_DATA !== 'false', // Default to mock data until backend is ready
-  ENABLE_WEBSOCKET: import.meta.env.VITE_ENABLE_WEBSOCKET === 'true',
+  USE_MOCK_DATA: import.meta.env.VITE_USE_MOCK_DATA !== 'true', // Default to mock data until backend is ready
+  ENABLE_WEBSOCKET: import.meta.env.VITE_ENABLE_WEBSOCKET === 'false',
   ENABLE_BLOCKCHAIN: import.meta.env.VITE_ENABLE_BLOCKCHAIN === 'true',
 } as const;
 
