@@ -13,7 +13,10 @@ const env_1 = require("./config/env");
 const routes_1 = require("./routes");
 const logger_1 = require("./utils/logger");
 const sentry_1 = require("./config/sentry");
+const cookies_1 = require("./middleware/cookies");
 exports.app = (0, express_1.default)();
+// Trust only the first proxy (e.g., Render/Heroku) so rate limiting can read X-Forwarded-For
+exports.app.set('trust proxy', 1);
 // Security headers
 exports.app.use((0, helmet_1.default)());
 // CORS
@@ -23,6 +26,7 @@ exports.app.use((0, cors_1.default)({
 }));
 // JSON body parsing
 exports.app.use(express_1.default.json());
+exports.app.use((0, cookies_1.cookieParser)());
 // Logging
 exports.app.use((0, pino_http_1.default)({
     logger: logger_1.logger,
