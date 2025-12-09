@@ -41,6 +41,11 @@ const adjustColor = (color: number, factor: number) => {
 const lighten = (color: number, percent: number) => adjustColor(color, 1 + percent);
 const darken = (color: number, percent: number) => adjustColor(color, 1 - percent);
 
+// Convert hex color to number
+const hexToNumber = (hex: string): number => {
+  return parseInt(hex.replace('#', ''), 16);
+};
+
 const createOrbGraphic = (color: number, radius: number) => {
   const orb = new PIXI.Graphics();
   orb.circle(0, 0, radius * 1.4).fill({ color, alpha: 0.08 });
@@ -63,6 +68,8 @@ export function ArenaCanvas({
   const initialSpawnTimersRef = useRef<number[]>([]);
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
+  const targetShapeRef = useRef(targetShape);
+  const targetColorNumberRef = useRef(hexToNumber(targetColor));
   const shapesContainerRef = useRef<PIXI.Container | null>(null);
   const parallaxRef = useRef<{ grid: PIXI.Graphics; orbs: PIXI.Graphics[]; time: number; container: PIXI.Container } | null>(null);
   const animationTimeRef = useRef(0);
@@ -142,6 +149,11 @@ export function ArenaCanvas({
   useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
+
+  useEffect(() => {
+    targetShapeRef.current = targetShape;
+    targetColorNumberRef.current = hexToNumber(targetColor);
+  }, [targetShape, targetColor]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -367,11 +379,6 @@ export function ArenaCanvas({
     };
   }, [isAppReady, onTargetAppeared]);
 
-  // Convert hex color to number
-  const hexToNumber = (hex: string): number => {
-    return parseInt(hex.replace('#', ''), 16);
-  };
-
   // Available colors for shapes
   const colors = {
     red: 0xFF0000,
@@ -385,7 +392,6 @@ export function ArenaCanvas({
   };
 
   const colorArray = Object.values(colors);
-  const targetColorNumber = hexToNumber(targetColor);
 
   const drawGlowingSphere = (graphics: PIXI.Graphics, color: number, size: number) => {
     const outerGlow = lighten(color, 0.3);
@@ -536,6 +542,9 @@ export function ArenaCanvas({
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
     if (!isAppUsable(app)) return;
 
+    const currentTargetShape = targetShapeRef.current;
+    const targetColorNumber = targetColorNumberRef.current;
+
     // Responsive random size – podobné na desktope, menšie na mobile
     const width = app.renderer.width;
     const height = app.renderer.height;
@@ -573,16 +582,16 @@ export function ArenaCanvas({
     let color: number;
 
     if (shouldBeTarget) {
-      type = targetShape;
+      type = currentTargetShape;
       color = targetColorNumber;
     } else {
       // Random shape and color, but not the target combination
       const shapeTypes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
       type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
       color = colorArray[Math.floor(Math.random() * colorArray.length)];
-      
+
       // If we accidentally created the target, change it
-      if (type === targetShape && color === targetColorNumber) {
+      if (type === currentTargetShape && color === targetColorNumber) {
         color = colorArray.find(c => c !== targetColorNumber) || colors.red;
       }
     }
