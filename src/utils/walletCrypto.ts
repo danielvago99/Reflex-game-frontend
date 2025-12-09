@@ -21,6 +21,14 @@ const ATTEMPT_STORE = 'attempts';
 const ACTIVE_KEY = 'active_wallet';
 const MAX_UNLOCK_ATTEMPTS = 5;
 
+type WalletStorage = {
+  get: <T>(store: string, key: string) => Promise<T | undefined>;
+  put: (store: string, value: unknown, key: string) => Promise<void>;
+  delete: (store: string, key: string) => Promise<void>;
+};
+
+let storagePromise: Promise<WalletStorage> | null = null;
+
 export interface EncryptedWalletRecord {
   ciphertext: string;
   iv: string;
@@ -47,6 +55,41 @@ async function getDb() {
       }
     }
   });
+}
+
+async function createStorage(): Promise<WalletStorage> {
+  try {
+    const db = await getDb();
+    return {
+      get: (store, key) => db.get(store, key),
+      put: (store, value, key) => db.put(store, value, key),
+      delete: (store, key) => db.delete(store, key)
+    };
+  } catch (error) {
+    console.warn('IndexedDB unavailable, falling back to in-memory wallet store', error);
+    const walletStore = new Map<string, unknown>();
+    const attemptStore = new Map<string, unknown>();
+
+    const resolveStore = (store: string) => (store === WALLET_STORE ? walletStore : attemptStore);
+
+    return {
+      get: async <T>(store, key) => resolveStore(store).get(key) as T | undefined,
+      put: async (store, value, key) => {
+        resolveStore(store).set(key, value);
+      },
+      delete: async (store, key) => {
+        resolveStore(store).delete(key);
+      }
+    };
+  }
+}
+
+async function getStorage(): Promise<WalletStorage> {
+  if (!storagePromise) {
+    storagePromise = createStorage();
+  }
+
+  return storagePromise;
 }
 
 const encoder = new TextEncoder();
@@ -193,13 +236,13 @@ export function getPasswordStrength(password: string): {
 }
 
 export async function storeEncryptedWallet(record: EncryptedWalletRecord): Promise<void> {
-  const db = await getDb();
-  await db.put(WALLET_STORE, record, ACTIVE_KEY);
+  const storage = await getStorage();
+  await storage.put(WALLET_STORE, record, ACTIVE_KEY);
 }
 
 export async function getEncryptedWallet(): Promise<EncryptedWalletRecord | null> {
-  const db = await getDb();
-  const record = (await db.get(WALLET_STORE, ACTIVE_KEY)) as EncryptedWalletRecord | null;
+  const storage = await getStorage();
+  const record = (await storage.get<EncryptedWalletRecord>(WALLET_STORE, ACTIVE_KEY)) || null;
   if (!record) return null;
 
   return {
@@ -209,15 +252,15 @@ export async function getEncryptedWallet(): Promise<EncryptedWalletRecord | null
 }
 
 export async function hasWallet(): Promise<boolean> {
-  const db = await getDb();
-  const record = await db.get(WALLET_STORE, ACTIVE_KEY);
+  const storage = await getStorage();
+  const record = await storage.get(WALLET_STORE, ACTIVE_KEY);
   return !!record;
 }
 
 export async function deleteWallet(): Promise<void> {
-  const db = await getDb();
-  await db.delete(WALLET_STORE, ACTIVE_KEY);
-  await db.delete(ATTEMPT_STORE, ACTIVE_KEY);
+  const storage = await getStorage();
+  await storage.delete(WALLET_STORE, ACTIVE_KEY);
+  await storage.delete(ATTEMPT_STORE, ACTIVE_KEY);
 }
 
 export async function updateWalletRecord(update: Partial<EncryptedWalletRecord>): Promise<EncryptedWalletRecord> {
@@ -238,20 +281,20 @@ export async function updateWalletRecord(update: Partial<EncryptedWalletRecord>)
 }
 
 export async function getUnlockAttempts(): Promise<number> {
-  const db = await getDb();
-  return (await db.get(ATTEMPT_STORE, ACTIVE_KEY)) || 0;
+  const storage = await getStorage();
+  return (await storage.get<number>(ATTEMPT_STORE, ACTIVE_KEY)) || 0;
 }
 
 export async function incrementUnlockAttempts(): Promise<number> {
-  const db = await getDb();
+  const storage = await getStorage();
   const next = (await getUnlockAttempts()) + 1;
-  await db.put(ATTEMPT_STORE, next, ACTIVE_KEY);
+  await storage.put(ATTEMPT_STORE, next, ACTIVE_KEY);
   return next;
 }
 
 export async function resetUnlockAttempts(): Promise<void> {
-  const db = await getDb();
-  await db.put(ATTEMPT_STORE, 0, ACTIVE_KEY);
+  const storage = await getStorage();
+  await storage.put(ATTEMPT_STORE, 0, ACTIVE_KEY);
 }
 
 export function isUnlockBlocked(attempts: number): boolean {
