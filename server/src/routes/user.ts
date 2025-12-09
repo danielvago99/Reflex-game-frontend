@@ -102,21 +102,31 @@ router.post('/game/end', attachUser, requireAuth, async (req, res) => {
 
   const { result, score } = parsed.data;
 
-  const updatedStats = await prisma.playerStats.upsert({
-    where: { userId: authUser.id },
-    create: {
-      userId: authUser.id,
-      wins: result === 'win' ? 1 : 0,
-      losses: result === 'loss' ? 1 : 0,
-      reflexPoints: score,
-      freeStakes: -1,
-    },
-    update: {
-      wins: { increment: result === 'win' ? 1 : 0 },
-      losses: { increment: result === 'loss' ? 1 : 0 },
-      reflexPoints: { increment: score },
-      freeStakes: { decrement: 1 },
-    },
+  const updatedStats = await prisma.$transaction(async (tx) => {
+    const stats = await tx.playerStats.upsert({
+      where: { userId: authUser.id },
+      create: {
+        userId: authUser.id,
+        totalMatches: 1,
+        totalWins: result === 'win' ? 1 : 0,
+        totalLosses: result === 'loss' ? 1 : 0,
+        totalReflexPoints: score,
+      },
+      update: {
+        totalMatches: { increment: 1 },
+        totalWins: { increment: result === 'win' ? 1 : 0 },
+        totalLosses: { increment: result === 'loss' ? 1 : 0 },
+        totalReflexPoints: { increment: score },
+      },
+    });
+
+    const winRate =
+      stats.totalMatches > 0 ? stats.totalWins / stats.totalMatches : 0;
+
+    return tx.playerStats.update({
+      where: { id: stats.id },
+      data: { winRate },
+    });
   });
 
   return res.json({ stats: updatedStats });
