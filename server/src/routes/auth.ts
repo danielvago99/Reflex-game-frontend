@@ -133,7 +133,7 @@ router.post('/login', async (req, res) => {
 
   res.cookie('auth_token', token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'none',
     path: '/',
   });
@@ -154,7 +154,7 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (_req, res) => {
   res.clearCookie('auth_token', {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'none',
     path: '/',
   });
