@@ -13,6 +13,7 @@ export interface MatchRecord {
 
 const STORAGE_KEY = 'reflex_match_history';
 const MAX_STORED_MATCHES = 20; // Store up to 20 recent matches
+export const MATCH_HISTORY_UPDATED_EVENT = 'reflex:match-history-updated';
 
 // Get match history from localStorage
 export function getMatchHistory(): MatchRecord[] {
@@ -44,8 +45,16 @@ export function addMatchToHistory(match: Omit<MatchRecord, 'id' | 'timestamp'>):
     
     // Keep only the most recent matches
     const trimmedHistory = history.slice(0, MAX_STORED_MATCHES);
-    
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedHistory));
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(MATCH_HISTORY_UPDATED_EVENT, {
+          detail: newMatch,
+        })
+      );
+    }
   } catch (error) {
     console.error('Error saving match to history:', error);
   }

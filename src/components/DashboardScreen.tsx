@@ -50,7 +50,6 @@ export function DashboardScreen({
 
   const reflexPoints = stats?.totalReflexPoints ?? getReflexPoints();
   const walletBalance = useMemo(() => {
-    if (typeof stats?.totalSolWon === 'string') return parseFloat(stats.totalSolWon);
     if (typeof stats?.totalSolWon === 'number') return stats.totalSolWon;
     return balance;
   }, [balance, stats?.totalSolWon]);
