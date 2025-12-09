@@ -204,5 +204,10 @@ export const WS_EVENTS = {
     result: (handler: MessageHandler) => wsService.on('game:result', handler),
     end: (handler: MessageHandler) => wsService.on('game:end', handler)
   },
+  round: {
+    prepare: (handler: MessageHandler) => wsService.on('round:prepare', handler),
+    showTarget: (handler: MessageHandler) => wsService.on('round:show_target', handler),
+    result: (handler: MessageHandler) => wsService.on('round:result', handler)
+  },
   error: (handler: MessageHandler) => wsService.on('error', handler)
 };

@@ -228,7 +228,7 @@ export interface WSMessage<T = any> {
   timestamp: number;
 }
 
-export type WSMessageType = 
+export type WSMessageType =
   | 'lobby:update'
   | 'lobby:player_joined'
   | 'lobby:player_left'
@@ -238,6 +238,11 @@ export type WSMessageType =
   | 'game:player_clicked'
   | 'game:result'
   | 'game:end'
+  | 'round:prepare'
+  | 'round:show_target'
+  | 'round:result'
+  | 'round:ready'
+  | 'player:click'
   | 'error'
   | 'ping'
   | 'pong';
@@ -272,4 +277,31 @@ export interface WSGameResult {
 export interface WSError {
   code: string;
   message: string;
+}
+
+export interface WSRoundPrepare {
+  round: number;
+  target: {
+    shape: 'circle' | 'square' | 'triangle';
+    color: string;
+    colorName: string;
+  };
+  instruction: string;
+}
+
+export interface WSRoundShowTarget {
+  round: number;
+  timestampStart: number;
+}
+
+export interface WSRoundResult {
+  round: number;
+  playerTime: number;
+  botTime: number;
+  winner: 'player' | 'bot' | 'none';
+  reason?: 'early-click' | 'no-reaction' | 'slower';
+  scores: {
+    player: number;
+    bot: number;
+  };
 }

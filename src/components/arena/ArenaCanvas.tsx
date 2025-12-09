@@ -7,6 +7,7 @@ interface ArenaCanvasProps {
   targetColor: string;
   onTargetAppeared: () => void;
   onTargetDisappeared?: () => void;
+  targetShowSignal: number;
 }
 
 interface Shape {
@@ -48,10 +49,16 @@ const createOrbGraphic = (color: number, radius: number) => {
   return orb;
 };
 
-export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppeared, onTargetDisappeared }: ArenaCanvasProps) {
+export function ArenaCanvas({
+  isActive,
+  targetShape,
+  targetColor,
+  onTargetAppeared,
+  onTargetDisappeared,
+  targetShowSignal,
+}: ArenaCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shapesRef = useRef<Shape[]>([]);
-  const targetTimerRef = useRef<number | null>(null);
   const spawnIntervalRef = useRef<number | null>(null);
   const initialSpawnTimersRef = useRef<number[]>([]);
   const hasNotifiedTargetRef = useRef(false);
@@ -61,7 +68,7 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   const animationTimeRef = useRef(0);
   const [isAppReady, setIsAppReady] = useState(false);
   const isActiveRef = useRef(isActive);
-  const targetSpawnCountRef = useRef(0);
+  const targetShowSignalRef = useRef(0);
 
   const isAppUsable = (app?: PIXI.Application | null) => {
     const targetApp = app ?? globalPixiApp;
@@ -94,11 +101,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
   };
 
   const clearTimers = () => {
-    if (targetTimerRef.current !== null) {
-      window.clearTimeout(targetTimerRef.current);
-      targetTimerRef.current = null;
-    }
-
     if (spawnIntervalRef.current !== null) {
       window.clearInterval(spawnIntervalRef.current);
       spawnIntervalRef.current = null;
@@ -257,13 +259,13 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       clearTimers();
       cleanupShapes();
       hasNotifiedTargetRef.current = false;
+      targetShowSignalRef.current = 0;
       return;
     }
 
     const app = globalPixiApp;
     if (!app) return;
     hasNotifiedTargetRef.current = false;
-    targetSpawnCountRef.current = 0;
 
     // Clear existing shapes
     cleanupShapes();
@@ -276,14 +278,6 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       }, i * 100);
       initialSpawnTimersRef.current.push(timer);
     }
-
-    // Spawn target shape after ~2.2–4.6 seconds
-    const targetDelay = 2200 + Math.random() * 2400;
-    targetTimerRef.current = window.setTimeout(() => {
-      if (!isAppUsable(app)) return;
-      targetSpawnCountRef.current += 1;
-      spawnShape(app, true);
-    }, targetDelay);
 
     // Continue spawning random shapes
     const spawnInterval = window.setInterval(() => {
@@ -301,6 +295,17 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
       cleanupShapes();
     };
   }, [isActive, isAppReady, targetShape, targetColor]);
+
+  useEffect(() => {
+    if (!isActive || !isAppReady || !globalPixiApp) return;
+
+    const app = globalPixiApp;
+    if (!isAppUsable(app)) return;
+    if (targetShowSignal === targetShowSignalRef.current) return;
+
+    targetShowSignalRef.current = targetShowSignal;
+    spawnShape(app, true);
+  }, [isActive, isAppReady, targetShowSignal, targetShape, targetColor]);
 
   useEffect(() => {
     if (!isAppReady || !globalPixiApp) return;
@@ -629,24 +634,15 @@ export function ArenaCanvas({ isActive, targetShape, targetColor, onTargetAppear
             onTargetDisappeared();
             currentTargetRef.current = null;
           }
-
-          if (isActiveRef.current && targetSpawnCountRef.current < 2) {
-            targetSpawnCountRef.current += 1;
-
-            const retryDelay = 800 + Math.random() * 700;
-            targetTimerRef.current = window.setTimeout(() => {
-              if (!isAppUsable(app)) return;
-              spawnShape(app, true);
-            }, retryDelay);
-          }
         }
       };
     };
 
+    const fadeTimeoutDuration = shouldBeTarget ? 7000 : 3200 + Math.random() * 2600;
     shape.fadeTimeout = window.setTimeout(() => {
       if (!isAppUsable(app)) return;
       beginFadeOut();
-    }, 3200 + Math.random() * 2600);
+    }, fadeTimeoutDuration);
   };
 
   return (

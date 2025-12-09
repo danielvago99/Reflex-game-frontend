@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { HUD } from './HUD';
 import { ArenaCanvas } from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
@@ -14,6 +14,8 @@ import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
+import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
+import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget } from '../../types/api';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -44,14 +46,17 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [opponentReactionTime, setOpponentReactionTime] = useState<number | null>(null);
   const [roundResult, setRoundResult] = useState<'win' | 'lose' | null>(null);
   const [currentTarget, setCurrentTarget] = useState<Target | null>(null);
-  const [targetAppearTime, setTargetAppearTime] = useState<number | null>(null);
-  const [isTargetPresent, setIsTargetPresent] = useState(false);
   const [showFinalResults, setShowFinalResults] = useState(false);
   const [allPlayerTimes, setAllPlayerTimes] = useState<(number | null)[]>(Array(MAX_ROUNDS).fill(null));
   const [allOpponentTimes, setAllOpponentTimes] = useState<(number | null)[]>(Array(MAX_ROUNDS).fill(null));
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [roundResolved, setRoundResolved] = useState(false);
   const [lossReason, setLossReason] = useState<'early-click' | 'no-reaction' | 'slower' | null>(null);
+  const [targetShowSignal, setTargetShowSignal] = useState(0);
+  const [hasSentClick, setHasSentClick] = useState(false);
+  const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
+
+  const { isConnected, send } = useWebSocket({ autoConnect: true });
 
   const MAX_PAUSES = 3;
   const isMatchOver =
@@ -73,14 +78,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setOpponentReactionTime(null);
     setRoundResult(null);
     setCurrentTarget(null);
-    setTargetAppearTime(null);
-    setIsTargetPresent(false);
     setShowFinalResults(false);
     setAllPlayerTimes(Array(MAX_ROUNDS).fill(null));
     setAllOpponentTimes(Array(MAX_ROUNDS).fill(null));
     setRoundResolved(false);
     setLossReason(null);
-    startRound();
+    setShowHowToPlay(true);
+    prepareRound(1);
   };
 
   // Players (get from profile in real app)
@@ -94,123 +98,102 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=opponent1',
   };
 
-  // Target combinations
-  const targets: Target[] = [
-    { shape: 'circle', color: '#00FF00', colorName: 'Green' },
-    { shape: 'square', color: '#FF0000', colorName: 'Red' },
-    { shape: 'triangle', color: '#0000FF', colorName: 'Blue' },
-    { shape: 'circle', color: '#FFFF00', colorName: 'Yellow' },
-    { shape: 'square', color: '#9333EA', colorName: 'Purple' },
-    { shape: 'triangle', color: '#06B6D4', colorName: 'Cyan' },
-  ];
+  const prepareRound = useCallback(
+    (roundNumber: number) => {
+      setPlayerReactionTime(null);
+      setOpponentReactionTime(null);
+      setRoundResolved(false);
+      setLossReason(null);
+      setHasSentClick(false);
+      setCurrentTarget(null);
 
-  // Initialize first round target immediately
-  useEffect(() => {
-    if (!currentTarget) {
-      const target = targets[Math.floor(Math.random() * targets.length)];
-      setCurrentTarget(target);
-    }
-  }, []);
+      if (!isConnected) {
+        toast.error('WebSocket disconnected', {
+          description: 'Reconnecting to game server...'
+        });
+        return;
+      }
 
-  const startRound = () => {
-    // Pick random target
-    const target = targets[Math.floor(Math.random() * targets.length)];
-    setCurrentTarget(target);
-    setPlayerReactionTime(null);
-    setOpponentReactionTime(null);
-    setTargetAppearTime(null);
-    setIsTargetPresent(false);
-  };
+      send('round:ready', { round: roundNumber });
+    },
+    [isConnected, send]
+  );
 
-  const handleTargetAppeared = () => {
-    setTargetAppearTime(Date.now());
-    setIsTargetPresent(true);
+  const handleTargetAppeared = () => {};
 
-    // Simulate opponent reaction (AI opponent)
-    const opponentDelay = 200 + Math.random() * 300; // 200-500ms
-    setTimeout(() => {
-      setOpponentReactionTime(Math.floor(opponentDelay));
-    }, opponentDelay);
-  };
-
-  const handleTargetDisappeared = () => {
-    setIsTargetPresent(false);
-  };
+  const handleTargetDisappeared = () => {};
 
   const handleReact = () => {
-    if (gameState !== 'playing' || playerReactionTime !== null || roundResolved) return;
+    if (gameState !== 'playing' || roundResolved || hasSentClick) return;
 
-    // Early click = instant loss time
-    if (!isTargetPresent || !targetAppearTime) {
-      const loseTime = 999999;
-      setLossReason('early-click');
-      setPlayerReactionTime(loseTime);
+    setHasSentClick(true);
+
+    if (!isConnected) {
+      toast.error('Not connected to game server', {
+        description: 'Attempting to reconnect...'
+      });
+      setHasSentClick(false);
       return;
     }
 
-    const reactionTime = Date.now() - targetAppearTime;
-    setPlayerReactionTime(reactionTime);
+    send('player:click', {
+      clientTimestamp: Date.now(),
+      round: currentRound,
+    });
   };
+
+  const handleRoundResult = useCallback((result: WSRoundResult) => {
+    setRoundResolved(true);
+    setHasSentClick(false);
+
+    setPlayerReactionTime(result.playerTime);
+    setOpponentReactionTime(result.botTime);
+
+    setPlayerScore(result.scores.player);
+    setOpponentScore(result.scores.bot);
+
+    setAllPlayerTimes(prev => {
+      const updated = [...prev];
+      updated[result.round - 1] = result.playerTime;
+      return updated;
+    });
+
+    setAllOpponentTimes(prev => {
+      const updated = [...prev];
+      updated[result.round - 1] = result.botTime;
+      return updated;
+    });
+
+    const roundOutcome = result.winner === 'player' ? 'win' : 'lose';
+    setRoundResult(roundOutcome);
+    setLossReason(result.reason ?? (result.winner === 'player' ? null : 'slower'));
+    setGameState('result');
+  }, []);
+
+  useWebSocketEvent<WSRoundPrepare>('round:prepare', payload => {
+    setCurrentTarget(payload.target);
+    setLossReason(null);
+  }, []);
+
+  useWebSocketEvent<WSRoundShowTarget>('round:show_target', payload => {
+    setTargetShowSignal(signal => signal + 1);
+    setRoundResolved(false);
+    setHasSentClick(false);
+  }, []);
+
+  useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
 
   useEffect(() => {
-    if (roundResolved || gameState !== 'playing') return;
-
-    // 1) Both players reacted → resolve immediately
-    if (playerReactionTime !== null && opponentReactionTime !== null) {
-      handleRoundComplete(playerReactionTime);
+    if (!isConnected) {
+      setHasRequestedInitialRound(false);
       return;
     }
 
-    // 2) Only player reacted → wait max 1 second for opponent
-    if (playerReactionTime !== null && opponentReactionTime === null) {
-      const timer = setTimeout(() => {
-        if (!roundResolved) {
-          handleRoundComplete(playerReactionTime);
-        }
-      }, 1000); // wait 1 second
-
-      return () => clearTimeout(timer);
+    if (!hasRequestedInitialRound) {
+      prepareRound(currentRound);
+      setHasRequestedInitialRound(true);
     }
-
-    // 3) Only opponent reacted → wait max 1 second for player
-    if (playerReactionTime === null && opponentReactionTime !== null) {
-      const timer = setTimeout(() => {
-        if (!roundResolved) {
-          setLossReason('no-reaction');
-          handleRoundComplete(999999); // player did not react
-        }
-      }, 1000); // wait 1 second
-
-      return () => clearTimeout(timer);
-    }
-  }, [playerReactionTime, opponentReactionTime, roundResolved, gameState]);
-
-  const handleRoundComplete = (playerTime: number) => {
-    if (roundResolved) return;
-    setRoundResolved(true);
-
-    const opponentTime = opponentReactionTime || 999999;
-
- 
-    if (playerTime < opponentTime) {
-      setPlayerScore(prev => prev + 1);
-      setRoundResult('win');
-    } else {
-      setOpponentScore(prev => prev + 1);
-      setRoundResult('lose');
-      setLossReason(prev => prev ?? 'slower');
-    }
-
-    setGameState('result');
-
-    // Store times for final results
-    const newPlayerTimes = [...allPlayerTimes];
-    const newOpponentTimes = [...allOpponentTimes];
-    newPlayerTimes[currentRound - 1] = playerTime;
-    newOpponentTimes[currentRound - 1] = opponentTime;
-    setAllPlayerTimes(newPlayerTimes);
-    setAllOpponentTimes(newOpponentTimes);
-  };
+  }, [isConnected, hasRequestedInitialRound, prepareRound, currentRound]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
@@ -219,11 +202,14 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       return;
     }
 
-    setCurrentRound(prev => prev + 1);
+    setCurrentRound(prev => {
+      const nextRound = prev + 1;
+      prepareRound(nextRound);
+      return nextRound;
+    });
     setRoundResult(null);
     // Skip countdown for later rounds, go directly to playing
     setGameState('playing');
-    startRound();
     setRoundResolved(false);
     setLossReason(null); // reset reason for new round
   };
@@ -323,6 +309,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
               targetColor={currentTarget.color}
               onTargetAppeared={handleTargetAppeared}
               onTargetDisappeared={handleTargetDisappeared}
+              targetShowSignal={targetShowSignal}
             />
           )}
 
@@ -356,7 +343,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           <CountdownOverlay
             onComplete={() => {
               setGameState('playing');
-              startRound();
+              prepareRound(currentRound);
             }}
           />
         )}
