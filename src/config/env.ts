@@ -17,24 +17,31 @@
  * VITE_SOLANA_NETWORK=devnet
  */
 
+const isFlagEnabled = (value: string | undefined, defaultValue: boolean) => {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return defaultValue;
+};
+
 export const ENV = {
   // Backend API Configuration
   API_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api',
-  
+
   // WebSocket Configuration
   WS_URL: import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws',
-  
+
   // Solana Configuration
   SOLANA_RPC_URL: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
   SOLANA_NETWORK: import.meta.env.VITE_SOLANA_NETWORK || 'devnet',
-  
+
   // Platform Configuration
   PLATFORM_FEE_PERCENTAGE: 15, // 15% platform fee
-  
+
   // Feature Flags
-  USE_MOCK_DATA: import.meta.env.VITE_USE_MOCK_DATA !== 'true', // Default to mock data until backend is ready
-  ENABLE_WEBSOCKET: import.meta.env.VITE_ENABLE_WEBSOCKET === 'false',
-  ENABLE_BLOCKCHAIN: import.meta.env.VITE_ENABLE_BLOCKCHAIN === 'true',
+  // Default to real data + enabled websockets unless explicitly overridden
+  USE_MOCK_DATA: isFlagEnabled(import.meta.env.VITE_USE_MOCK_DATA, false),
+  ENABLE_WEBSOCKET: isFlagEnabled(import.meta.env.VITE_ENABLE_WEBSOCKET, true),
+  ENABLE_BLOCKCHAIN: isFlagEnabled(import.meta.env.VITE_ENABLE_BLOCKCHAIN, true),
 } as const;
 
 export const isDevelopment = import.meta.env.DEV;
