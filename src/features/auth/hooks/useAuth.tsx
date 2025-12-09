@@ -28,6 +28,18 @@ const AuthContext = createContext<UseAuthResult | undefined>(undefined);
 
 const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 
+const getStoredToken = () => (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null);
+
+const buildAuthHeaders = () => {
+  const token = getStoredToken();
+
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
+};
+
 async function fetchNonce(address: string) {
   const response = await fetch(
     `${API_BASE_URL}/api/auth/nonce?address=${encodeURIComponent(address)}`,
@@ -57,8 +69,8 @@ async function submitLogin(body: { address: string; signature: string; nonce: st
     throw new Error(errorText || 'Login failed');
   }
 
-  const data = (await response.json()) as { user: AuthUser };
-  return data.user;
+  const data = (await response.json()) as { user: AuthUser; token: string };
+  return data;
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
@@ -76,12 +88,16 @@ function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          ...buildAuthHeaders(),
+        },
       });
 
       if (response.status === 401) {
         if (refreshVersion === sessionVersionRef.current) {
           setUser(null);
         }
+        localStorage.removeItem('auth_token');
         return;
       }
 
@@ -119,14 +135,16 @@ function AuthProvider({ children }: { children: ReactNode }) {
         const nonceResponse = await fetchNonce(walletAddress);
         const signatureBytes = await signer(nonceResponse.message);
         const signature = toBase64(new Uint8Array(signatureBytes));
-        const loggedInUser = await submitLogin({
+        const loginResponse = await submitLogin({
           address: walletAddress,
           signature,
           nonce: nonceResponse.nonce,
         });
 
+        localStorage.setItem('auth_token', loginResponse.token);
+
         sessionVersionRef.current += 1;
-        setUser(loggedInUser);
+        setUser(loginResponse.user);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Login failed';
         setError(message);
@@ -168,8 +186,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          ...buildAuthHeaders(),
+        },
       });
     } finally {
+      localStorage.removeItem('auth_token');
       sessionVersionRef.current += 1;
       setUser(null);
     }
@@ -184,10 +206,18 @@ function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...buildAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify(updates),
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        sessionVersionRef.current += 1;
+        setUser(null);
+        setError('Session expired. Please log in again.');
+        return;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
