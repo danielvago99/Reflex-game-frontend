@@ -22,6 +22,7 @@ interface SessionState extends RoundTimers {
   round: number;
   scores: { player: number; bot: number };
   stakeAmount?: number;
+  matchType?: 'ranked' | 'friend' | 'bot';
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -135,7 +136,7 @@ const finalizeRound = async (
   if (isMatchOver) {
     logger.info({ scores: state.scores, history: state.history }, 'Match completed. Persist final result with Prisma.');
 
-    if (state.userId) {
+    if (state.userId && state.matchType === 'ranked') {
       try {
         const playerWon = state.scores.player > state.scores.bot;
         const pointsEarned = state.scores.player * 10;
@@ -225,6 +226,8 @@ const finalizeRound = async (
       } catch (error) {
         logger.error({ error }, 'Failed to persist match results');
       }
+    } else {
+      logger.info({ userId: state.userId, matchType: state.matchType }, 'Skipping stats sync; not a ranked match or unauthenticated');
     }
   }
 };
@@ -250,6 +253,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
 const handleRoundReady = (socket: WebSocket, state: SessionState, payload: any) => {
   state.round = typeof payload?.round === 'number' ? payload.round : state.round;
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'bot';
   state.roundResolved = false;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
@@ -332,6 +336,7 @@ export function createWsServer(server: Server) {
       round: 1,
       scores: { player: 0, bot: 0 },
       stakeAmount: 0,
+      matchType: 'bot',
       roundResolved: false,
       history: [],
       userId,

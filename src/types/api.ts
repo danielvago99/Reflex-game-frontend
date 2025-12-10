@@ -289,6 +289,12 @@ export interface WSRoundPrepare {
   instruction: string;
 }
 
+export interface WSRoundReadyPayload {
+  round: number;
+  stake?: number;
+  matchType?: 'ranked' | 'friend' | 'bot';
+}
+
 export interface WSRoundShowTarget {
   round: number;
   timestampStart: number;
