@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '../../features/auth/hooks/useAuth';
 
 interface GameResultModalProps {
   playerScore: number;
@@ -50,57 +51,89 @@ export function GameResultModal({
     if (hasRecordedRef.current) return;
     hasRecordedRef.current = true;
 
-    // Determine match result
-    const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
-    
-    // Calculate profit/loss
-    const profit = playerWon ? netProfit : -stakeAmount;
-    
-    // Add to match history
-    addMatchToHistory({
-      matchType,
-      result: matchResult,
-      stakeAmount,
-      profit,
-      playerScore,
-      opponentScore
-    });
-    
-    // Only record daily challenge progress for ranked and friend matches
-    if (matchType === 'ranked' || matchType === 'friend') {
-      const result = recordMatchCompletion();
-      setChallengeUpdate(result);
+    const syncMatchResult = async () => {
+      const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
+      const profit = playerWon ? netProfit : -stakeAmount;
 
-      // Show toast notifications for daily challenge progress
-      if (result.dailyCompleted) {
-        if (result.weeklyBonusEarned) {
-          toast.success(
-            `🎉 Daily Challenge Complete! +${result.rewardEarned} RP (including +${result.weeklyBonus} Weekly Bonus!)`,
+      if (matchType === 'ranked') {
+        const token =
+          typeof localStorage !== 'undefined'
+            ? localStorage.getItem('auth_token')
+            : null;
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/user/game/end`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              result: matchResult,
+              score: Math.max(playerScore, 0) * 10,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to sync ranked stats');
+          }
+        } catch (error) {
+          console.error('Failed to sync ranked stats', error);
+          toast.error('Could not update ranked stats', {
+            description: 'Please try again once your connection is stable.',
+          });
+        }
+      }
+
+      addMatchToHistory({
+        matchType,
+        result: matchResult,
+        stakeAmount,
+        profit,
+        playerScore,
+        opponentScore,
+      });
+
+      if (matchType === 'ranked' || matchType === 'friend') {
+        const result = recordMatchCompletion();
+        setChallengeUpdate(result);
+
+        if (result.dailyCompleted) {
+          if (result.weeklyBonusEarned) {
+            toast.success(
+              `🎉 Daily Challenge Complete! +${result.rewardEarned} RP (including +${result.weeklyBonus} Weekly Bonus!)`,
+              {
+                description: `You're on a ${result.newStreak}-day streak!`,
+                duration: 5000,
+              }
+            );
+          } else {
+            toast.success(
+              `✅ Daily Challenge Complete! +${result.rewardEarned} RP`,
+              {
+                description: result.streakIncreased
+                  ? `${result.newStreak}-day streak!`
+                  : 'Keep it up!',
+                duration: 4000,
+              }
+            );
+          }
+        } else if (result.newProgress > 0) {
+          const info = getDailyChallengeInfo();
+          toast.info(
+            `🎮 Match counted! ${info.matchesRemaining} more for daily challenge`,
             {
-              description: `You're on a ${result.newStreak}-day streak!`,
-              duration: 5000
-            }
-          );
-        } else {
-          toast.success(
-            `✅ Daily Challenge Complete! +${result.rewardEarned} RP`,
-            {
-              description: result.streakIncreased ? `${result.newStreak}-day streak!` : 'Keep it up!',
-              duration: 4000
+              description: `${info.matchesCompleted}/${info.matchesTarget} matches complete`,
+              duration: 3000,
             }
           );
         }
-      } else if (result.newProgress > 0) {
-        const info = getDailyChallengeInfo();
-        toast.info(
-          `🎮 Match counted! ${info.matchesRemaining} more for daily challenge`,
-          {
-            description: `${info.matchesCompleted}/${info.matchesTarget} matches complete`,
-            duration: 3000
-          }
-        );
       }
-    }
+    };
+
+    void syncMatchResult();
   }, [playerScore, opponentScore, stakeAmount, matchType, playerWon]);
 
   // Calculate average reaction time (exclude null values)
