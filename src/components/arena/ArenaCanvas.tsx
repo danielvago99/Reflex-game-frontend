@@ -151,7 +151,11 @@ export function ArenaCanvas({
 
   useEffect(() => {
     targetPropsRef.current = { shape: targetShape, colorNumber: hexToNumber(targetColor) };
-  }, [targetShape, targetColor]);
+
+    if (!isAppReady || !globalPixiApp || !isActive) return;
+
+    cleanupShapes();
+  }, [isActive, isAppReady, targetShape, targetColor]);
 
   useEffect(() => {
     const container = containerRef.current;
