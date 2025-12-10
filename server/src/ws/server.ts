@@ -41,6 +41,9 @@ const targets: Target[] = [
 
 const ROUNDS_TO_WIN = 3;
 const MAX_ROUNDS = 5;
+const BOT_GRACE_MS = 600;
+const BOT_REACTION_MIN = 400;
+const BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
 
 const createInstruction = (target: Target) => {
   const shapeName = target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
@@ -84,7 +87,8 @@ const finalizeRound = (
   state.roundResolved = true;
   clearTimers(state);
 
-  const botTime = state.botReactionTime ?? 999_999;
+  const rawBotTime = state.botReactionTime ?? 999_999;
+  const botTime = rawBotTime + BOT_GRACE_MS;
   const playerTime = options.playerTime ?? 999_999;
 
   let winner: 'player' | 'bot' | 'none' = 'none';
@@ -111,6 +115,7 @@ const finalizeRound = (
       winner,
       reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
       scores: state.scores,
+      rawBotTime,
     });
   }, 1000);
 
@@ -129,7 +134,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
 
   state.showTimeout = setTimeout(() => {
     state.targetShownAt = Date.now();
-    state.botReactionTime = 220 + Math.random() * 300;
+    state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
 
     sendMessage(socket, 'round:show_target', {
       round: state.round,
@@ -138,7 +143,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
 
     state.botTimeout = setTimeout(() => {
       finalizeRound(socket, state, { reason: 'no-reaction' });
-    }, state.botReactionTime);
+    }, state.botReactionTime + BOT_GRACE_MS);
   }, delay);
 };
 
@@ -174,7 +179,7 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
   const ping = Math.max(now - clientTimestamp, 0);
   const adjustedReaction = Math.max(now - state.targetShownAt - Math.floor(ping / 2), 0);
 
-  if (state.botTimeout && adjustedReaction < (state.botReactionTime ?? Infinity)) {
+  if (state.botTimeout && adjustedReaction < (state.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
     clearTimeout(state.botTimeout);
     state.botTimeout = undefined;
   }

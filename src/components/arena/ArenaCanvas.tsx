@@ -68,8 +68,7 @@ export function ArenaCanvas({
   const initialSpawnTimersRef = useRef<number[]>([]);
   const hasNotifiedTargetRef = useRef(false);
   const currentTargetRef = useRef<Shape | null>(null);
-  const targetShapeRef = useRef(targetShape);
-  const targetColorNumberRef = useRef(hexToNumber(targetColor));
+  const targetPropsRef = useRef({ shape: targetShape, colorNumber: hexToNumber(targetColor) });
   const shapesContainerRef = useRef<PIXI.Container | null>(null);
   const parallaxRef = useRef<{ grid: PIXI.Graphics; orbs: PIXI.Graphics[]; time: number; container: PIXI.Container } | null>(null);
   const animationTimeRef = useRef(0);
@@ -151,8 +150,7 @@ export function ArenaCanvas({
   }, [isActive]);
 
   useEffect(() => {
-    targetShapeRef.current = targetShape;
-    targetColorNumberRef.current = hexToNumber(targetColor);
+    targetPropsRef.current = { shape: targetShape, colorNumber: hexToNumber(targetColor) };
   }, [targetShape, targetColor]);
 
   useEffect(() => {
@@ -542,8 +540,7 @@ export function ArenaCanvas({
   const spawnShape = (app: PIXI.Application, shouldBeTarget: boolean = false) => {
     if (!isAppUsable(app)) return;
 
-    const currentTargetShape = targetShapeRef.current;
-    const targetColorNumber = targetColorNumberRef.current;
+    const { shape: currentTargetShape, colorNumber: targetColorNumber } = targetPropsRef.current;
 
     // Responsive random size – podobné na desktope, menšie na mobile
     const width = app.renderer.width;
@@ -613,7 +610,7 @@ export function ArenaCanvas({
       pulseOffset: Math.random() * Math.PI * 2,
       baseScale: 0.95 + Math.random() * 0.15,
       fadeMode: 'in',
-      fadeDuration: 300,
+      fadeDuration: shouldBeTarget ? 50 : 300,
       fadeElapsed: 0,
     };
 
