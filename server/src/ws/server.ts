@@ -173,6 +173,7 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
 
   const now = Date.now();
   const clientTimestamp = typeof payload?.clientTimestamp === 'number' ? payload.clientTimestamp : now;
+  const clientDuration = typeof payload?.clientDuration === 'number' ? payload.clientDuration : undefined;
 
   if (!state.targetShownAt) {
     finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
@@ -180,14 +181,21 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
   }
 
   const ping = Math.max(now - clientTimestamp, 0);
-  const adjustedReaction = Math.max(now - state.targetShownAt - Math.floor(ping / 2), 0);
 
-  if (state.botTimeout && adjustedReaction < (state.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
+  let playerTime: number;
+  if (typeof clientDuration === 'number' && Number.isFinite(clientDuration)) {
+    playerTime = Math.max(clientDuration, 100);
+  } else {
+    const adjustedReaction = Math.max(now - state.targetShownAt - Math.floor(ping / 2) - 100, 0);
+    playerTime = adjustedReaction;
+  }
+
+  if (state.botTimeout && playerTime < (state.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
     clearTimeout(state.botTimeout);
     state.botTimeout = undefined;
   }
 
-  finalizeRound(socket, state, { playerTime: adjustedReaction });
+  finalizeRound(socket, state, { playerTime });
 };
 
 export function createWsServer(server: Server) {
