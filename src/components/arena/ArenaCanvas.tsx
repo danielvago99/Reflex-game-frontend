@@ -582,14 +582,17 @@ export function ArenaCanvas({
       type = currentTargetShape;
       color = targetColorNumber;
     } else {
-      // Random shape and color, but not the target combination
+      // Distractors must not match the target combination
       const shapeTypes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
-      type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      color = colorArray[Math.floor(Math.random() * colorArray.length)];
+      const availableColors = colorArray.filter(c => c !== targetColorNumber);
 
-      // If we accidentally created the target, change it
-      if (type === currentTargetShape && color === targetColorNumber) {
-        color = colorArray.find(c => c !== targetColorNumber) || colors.red;
+      type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+      color = availableColors[Math.floor(Math.random() * availableColors.length)] ?? targetColorNumber;
+
+      // If colors overlap for any reason, ensure the shape differs from the target
+      if (color === targetColorNumber && type === currentTargetShape) {
+        const alternativeTypes = shapeTypes.filter(shape => shape !== currentTargetShape);
+        type = alternativeTypes[Math.floor(Math.random() * alternativeTypes.length)] ?? type;
       }
     }
 

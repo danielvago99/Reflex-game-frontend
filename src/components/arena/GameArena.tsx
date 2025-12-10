@@ -56,11 +56,29 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
 
-  const defaultTarget: Target = {
-    shape: 'circle',
-    color: '#06B6D4',
-    colorName: 'Cyan',
+  const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
+  const targetColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
+  const targetColorNames: Record<string, string> = {
+    '#FF0000': 'Red',
+    '#00FF00': 'Green',
+    '#0000FF': 'Blue',
+    '#FFFF00': 'Yellow',
+    '#9333EA': 'Purple',
+    '#06B6D4': 'Cyan',
+    '#FF6B00': 'Orange',
+    '#FF0099': 'Pink',
   };
+
+  const [defaultTarget] = useState<Target>(() => {
+    const shape = targetShapes[Math.floor(Math.random() * targetShapes.length)];
+    const color = targetColors[Math.floor(Math.random() * targetColors.length)];
+
+    return {
+      shape,
+      color,
+      colorName: targetColorNames[color] ?? 'Target',
+    };
+  });
 
   const { isConnected, send } = useWebSocket({ autoConnect: true });
 

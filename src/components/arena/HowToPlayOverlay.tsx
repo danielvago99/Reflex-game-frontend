@@ -39,6 +39,8 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
       '#FFFF00': 'Yellow',
       '#9333EA': 'Purple',
       '#06B6D4': 'Cyan',
+      '#FF6B00': 'Orange',
+      '#FF0099': 'Pink',
     };
     return colorMap[color] || 'Colored';
   };
