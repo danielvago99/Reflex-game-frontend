@@ -119,25 +119,6 @@ export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelec
               </p>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="bg-white/5 backdrop-blur-lg border-t border-white/10 p-6 flex justify-center">
-            <button
-              onClick={onClose}
-              className="relative max-w-xs w-full group"
-            >
-              {/* Button glow effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] rounded-xl opacity-75 group-hover:opacity-100 blur-sm group-hover:blur transition-all duration-300"></div>
-              
-              {/* Button content */}
-              <div className="relative flex items-center justify-center gap-2 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:from-[#00D989] hover:to-[#0595B8] text-[#0B0F1A] py-3.5 px-6 rounded-xl transition-all duration-300 transform group-hover:scale-[1.02] shadow-lg">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="font-bold text-lg tracking-wide uppercase" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  Done
-                </span>
-              </div>
-            </button>
-          </div>
         </div>
       </div>
     </div>
