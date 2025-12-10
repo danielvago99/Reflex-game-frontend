@@ -311,9 +311,12 @@ export function ArenaCanvas({
 
     const app = globalPixiApp;
     if (!isAppUsable(app)) return;
-    if (targetShowSignal === targetShowSignalRef.current) return;
 
+    const hasNewSignal = targetShowSignal > targetShowSignalRef.current;
     targetShowSignalRef.current = targetShowSignal;
+
+    if (!hasNewSignal) return;
+
     spawnShape(app, true);
   }, [isActive, isAppReady, targetShowSignal, targetShape, targetColor]);
 
