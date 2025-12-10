@@ -142,9 +142,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         return;
       }
 
-      send('round:ready', { round: roundNumber, stake: stakeAmount });
+      send('round:ready', {
+        round: roundNumber,
+        stake: stakeAmount,
+        matchType
+      });
     },
-    [isConnected, send]
+    [isConnected, matchType, send]
   );
 
   const handleTargetAppeared = () => {};
