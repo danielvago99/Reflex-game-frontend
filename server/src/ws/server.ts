@@ -88,8 +88,11 @@ const finalizeRound = (
   clearTimers(state);
 
   const rawBotTime = state.botReactionTime ?? 999_999;
-  const botTime = rawBotTime + BOT_GRACE_MS;
+  const botTime = rawBotTime;
   const playerTime = options.playerTime ?? 999_999;
+
+  const roundedBotTime = Math.round(botTime);
+  const roundedPlayerTime = Math.round(playerTime);
 
   let winner: 'player' | 'bot' | 'none' = 'none';
   if (playerTime < botTime) {
@@ -102,16 +105,16 @@ const finalizeRound = (
 
   state.history.push({
     round: state.round,
-    playerTime,
-    botTime,
+    playerTime: roundedPlayerTime,
+    botTime: roundedBotTime,
     winner,
   });
 
   setTimeout(() => {
     sendMessage(socket, 'round:result', {
       round: state.round,
-      playerTime,
-      botTime,
+      playerTime: roundedPlayerTime,
+      botTime: roundedBotTime,
       winner,
       reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
       scores: state.scores,
@@ -130,7 +133,7 @@ const finalizeRound = (
 };
 
 const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
-  const delay = 5000 + Math.random() * 5000;
+  const delay = 3000 + Math.random() * 5000;
 
   state.showTimeout = setTimeout(() => {
     state.targetShownAt = Date.now();
