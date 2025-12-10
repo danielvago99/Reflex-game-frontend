@@ -172,23 +172,24 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
   if (state.roundResolved) return;
 
   const now = Date.now();
-  const clientTimestamp = typeof payload?.clientTimestamp === 'number' ? payload.clientTimestamp : now;
-  const clientDuration = typeof payload?.clientDuration === 'number' ? payload.clientDuration : undefined;
+  const clientClaimedDuration =
+    typeof payload?.clientDuration === 'number' && Number.isFinite(payload.clientDuration)
+      ? payload.clientDuration
+      : undefined;
 
   if (!state.targetShownAt) {
     finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
     return;
   }
 
-  const ping = Math.max(now - clientTimestamp, 0);
+  const serverMeasuredTotal = now - state.targetShownAt;
+  const claimedDuration = clientClaimedDuration ?? serverMeasuredTotal;
 
-  let playerTime: number;
-  if (typeof clientDuration === 'number' && Number.isFinite(clientDuration)) {
-    playerTime = Math.max(clientDuration, 100);
-  } else {
-    const adjustedReaction = Math.max(now - state.targetShownAt - Math.floor(ping / 2) - 100, 0);
-    playerTime = adjustedReaction;
-  }
+  let validatedTime = Math.max(claimedDuration, 100);
+  validatedTime = Math.min(validatedTime, serverMeasuredTotal);
+  validatedTime = Math.max(validatedTime, serverMeasuredTotal - 1000);
+
+  const playerTime = validatedTime;
 
   if (state.botTimeout && playerTime < (state.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
     clearTimeout(state.botTimeout);

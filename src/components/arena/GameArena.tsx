@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { HUD } from './HUD';
 import { ArenaCanvas } from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
@@ -55,6 +55,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [targetShowSignal, setTargetShowSignal] = useState(0);
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
+
+  const targetShownTimestampRef = useRef<number | null>(null);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
   const targetColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
@@ -149,7 +151,9 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   const handleTargetDisappeared = () => {};
 
-  const handleReact = () => {
+  const handleReact = (e?: { isTrusted?: boolean }) => {
+    if (e && !e.isTrusted) return;
+
     if (gameState !== 'playing' || roundResolved || hasSentClick) return;
 
     setHasSentClick(true);
@@ -162,8 +166,11 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       return;
     }
 
+    const duration = Date.now() - (targetShownTimestampRef.current ?? Date.now());
+
     send('player:click', {
       clientTimestamp: Date.now(),
+      clientDuration: duration,
       round: currentRound,
     });
   };
@@ -204,6 +211,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   useWebSocketEvent<WSRoundShowTarget>('round:show_target', payload => {
     console.log('round:show_target payload received:', payload);
+    targetShownTimestampRef.current = Date.now();
     setTargetShowSignal(signal => signal + 1);
     setRoundResolved(false);
     setHasSentClick(false);
