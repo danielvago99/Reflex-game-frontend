@@ -1,6 +1,9 @@
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
+import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
+import prisma from '../db/prisma';
+import { env } from '../config/env';
 
 type Shape = 'circle' | 'square' | 'triangle';
 
@@ -28,6 +31,7 @@ interface SessionState extends RoundTimers {
     botTime: number;
     winner: 'player' | 'bot' | 'none';
   }>;
+  userId?: string;
 }
 
 const targets: Target[] = [
@@ -74,7 +78,7 @@ const clearTimers = (state: SessionState) => {
   }
 };
 
-const finalizeRound = (
+const finalizeRound = async (
   socket: WebSocket,
   state: SessionState,
   options: {
@@ -129,6 +133,42 @@ const finalizeRound = (
 
   if (isMatchOver) {
     logger.info({ scores: state.scores, history: state.history }, 'Match completed. Persist final result with Prisma.');
+
+    if (state.userId) {
+      try {
+        const playerWon = state.scores.player > state.scores.bot;
+        const pointsEarned = state.scores.player * 10;
+
+        await prisma.$transaction(async (tx) => {
+          const stats = await tx.playerStats.upsert({
+            where: { userId: state.userId! },
+            create: {
+              userId: state.userId!,
+              totalMatches: 1,
+              totalWins: playerWon ? 1 : 0,
+              totalLosses: playerWon ? 0 : 1,
+              totalReflexPoints: pointsEarned,
+              winRate: playerWon ? 1 : 0,
+            },
+            update: {
+              totalMatches: { increment: 1 },
+              totalWins: playerWon ? { increment: 1 } : undefined,
+              totalLosses: playerWon ? undefined : { increment: 1 },
+              totalReflexPoints: { increment: pointsEarned },
+            },
+          });
+
+          const updatedWinRate = stats.totalMatches > 0 ? stats.totalWins / stats.totalMatches : 0;
+
+          await tx.playerStats.update({
+            where: { userId: state.userId! },
+            data: { winRate: updatedWinRate },
+          });
+        });
+      } catch (error) {
+        logger.error({ error }, 'Failed to persist match results');
+      }
+    }
   }
 };
 
@@ -145,7 +185,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
     });
 
     state.botTimeout = setTimeout(() => {
-      finalizeRound(socket, state, { reason: 'no-reaction' });
+      void finalizeRound(socket, state, { reason: 'no-reaction' });
     }, state.botReactionTime + BOT_GRACE_MS);
   }, delay);
 };
@@ -178,7 +218,7 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
       : undefined;
 
   if (!state.targetShownAt) {
-    finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
+    void finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
     return;
   }
 
@@ -196,7 +236,7 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
     state.botTimeout = undefined;
   }
 
-  finalizeRound(socket, state, { playerTime });
+  void finalizeRound(socket, state, { playerTime });
 };
 
 export function createWsServer(server: Server) {
@@ -207,14 +247,35 @@ export function createWsServer(server: Server) {
 
   const sessions = new WeakMap<WebSocket, SessionState>();
 
-  wss.on('connection', (socket: WebSocket) => {
+  wss.on('connection', (socket: WebSocket, request) => {
     logger.info('WS client connected');
+
+    let userId: string | undefined;
+
+    try {
+      const url = new URL(request.url ?? '/ws', 'http://localhost');
+      const queryToken = url.searchParams.get('token') ?? undefined;
+      const authHeader = request.headers['authorization'];
+      const headerToken = typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')
+        ? authHeader.slice(7).trim()
+        : undefined;
+
+      const token = queryToken ?? headerToken;
+
+      if (token) {
+        const payload = jwt.verify(token, env.JWT_SECRET) as { sub?: string };
+        userId = payload.sub;
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Failed to verify WS JWT token');
+    }
 
     sessions.set(socket, {
       round: 1,
       scores: { player: 0, bot: 0 },
       roundResolved: false,
       history: [],
+      userId,
     });
 
     socket.on('message', (data) => {
