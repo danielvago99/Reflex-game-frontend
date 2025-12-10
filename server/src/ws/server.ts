@@ -21,6 +21,7 @@ interface RoundTimers {
 interface SessionState extends RoundTimers {
   round: number;
   scores: { player: number; bot: number };
+  stakeAmount?: number;
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -139,31 +140,87 @@ const finalizeRound = async (
         const playerWon = state.scores.player > state.scores.bot;
         const pointsEarned = state.scores.player * 10;
 
+        const validPlayerTimes = state.history
+          .map((round) => round.playerTime)
+          .filter((time) => Number.isFinite(time) && time < 999_000);
+
+        const matchBestReaction = validPlayerTimes.length ? Math.min(...validPlayerTimes) : undefined;
+        const matchAverageReaction = validPlayerTimes.length
+          ? validPlayerTimes.reduce((sum, time) => sum + time, 0) / validPlayerTimes.length
+          : undefined;
+
+        const stakeAmount = typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount)
+          ? state.stakeAmount
+          : 0;
+
         await prisma.$transaction(async (tx) => {
-          const stats = await tx.playerStats.upsert({
-            where: { userId: state.userId! },
-            create: {
-              userId: state.userId!,
-              totalMatches: 1,
-              totalWins: playerWon ? 1 : 0,
-              totalLosses: playerWon ? 0 : 1,
-              totalReflexPoints: pointsEarned,
-              winRate: playerWon ? 1 : 0,
-            },
-            update: {
-              totalMatches: { increment: 1 },
-              totalWins: playerWon ? { increment: 1 } : undefined,
-              totalLosses: playerWon ? undefined : { increment: 1 },
-              totalReflexPoints: { increment: pointsEarned },
-            },
-          });
+          const existingStats = await tx.playerStats.findUnique({ where: { userId: state.userId! } });
 
-          const updatedWinRate = stats.totalMatches > 0 ? stats.totalWins / stats.totalMatches : 0;
+          const previousMatches = existingStats?.totalMatches ?? 0;
+          const previousWins = existingStats?.totalWins ?? 0;
+          const previousLosses = existingStats?.totalLosses ?? 0;
+          const previousAverage = existingStats?.averageReactionMs ?? undefined;
+          const previousBest = existingStats?.bestReactionMs ?? undefined;
+          const previousStreak = existingStats?.currentStreak ?? 0;
+          const previousBestStreak = existingStats?.bestStreak ?? 0;
 
-          await tx.playerStats.update({
-            where: { userId: state.userId! },
-            data: { winRate: updatedWinRate },
-          });
+          const newTotalMatches = previousMatches + 1;
+          const newTotalWins = previousWins + (playerWon ? 1 : 0);
+          const newTotalLosses = previousLosses + (playerWon ? 0 : 1);
+          const newWinRate = newTotalMatches > 0 ? newTotalWins / newTotalMatches : 0;
+
+          const newBestReaction =
+            matchBestReaction !== undefined
+              ? previousBest !== undefined
+                ? Math.min(previousBest, matchBestReaction)
+                : matchBestReaction
+              : previousBest;
+
+          const newAverageReaction =
+            matchAverageReaction !== undefined
+              ? previousAverage !== undefined
+                ? (previousAverage * previousMatches + matchAverageReaction) / newTotalMatches
+                : matchAverageReaction
+              : previousAverage;
+
+          const newCurrentStreak = playerWon ? previousStreak + 1 : 0;
+          const newBestStreak = Math.max(previousBestStreak, newCurrentStreak);
+
+          if (!existingStats) {
+            await tx.playerStats.create({
+              data: {
+                userId: state.userId!,
+                totalMatches: newTotalMatches,
+                totalWins: newTotalWins,
+                totalLosses: newTotalLosses,
+                winRate: newWinRate,
+                bestReactionMs: newBestReaction,
+                averageReactionMs: newAverageReaction,
+                currentStreak: newCurrentStreak,
+                bestStreak: newBestStreak,
+                totalReflexPoints: pointsEarned,
+                totalSolWagered: stakeAmount,
+                totalSolWon: playerWon ? stakeAmount : 0,
+              },
+            });
+          } else {
+            await tx.playerStats.update({
+              where: { userId: state.userId! },
+              data: {
+                totalMatches: { increment: 1 },
+                totalWins: playerWon ? { increment: 1 } : undefined,
+                totalLosses: playerWon ? undefined : { increment: 1 },
+                totalReflexPoints: { increment: pointsEarned },
+                winRate: newWinRate,
+                bestReactionMs: newBestReaction,
+                averageReactionMs: newAverageReaction,
+                currentStreak: newCurrentStreak,
+                bestStreak: newBestStreak,
+                totalSolWagered: stakeAmount ? { increment: stakeAmount } : undefined,
+                totalSolWon: playerWon && stakeAmount ? { increment: stakeAmount } : undefined,
+              },
+            });
+          }
         });
       } catch (error) {
         logger.error({ error }, 'Failed to persist match results');
@@ -192,6 +249,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
 
 const handleRoundReady = (socket: WebSocket, state: SessionState, payload: any) => {
   state.round = typeof payload?.round === 'number' ? payload.round : state.round;
+  state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
   state.roundResolved = false;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
@@ -273,6 +331,7 @@ export function createWsServer(server: Server) {
     sessions.set(socket, {
       round: 1,
       scores: { player: 0, bot: 0 },
+      stakeAmount: 0,
       roundResolved: false,
       history: [],
       userId,

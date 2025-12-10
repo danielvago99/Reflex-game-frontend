@@ -142,7 +142,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         return;
       }
 
-      send('round:ready', { round: roundNumber });
+      send('round:ready', { round: roundNumber, stake: stakeAmount });
     },
     [isConnected, send]
   );
