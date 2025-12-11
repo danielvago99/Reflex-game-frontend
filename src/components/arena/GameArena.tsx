@@ -186,6 +186,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setPlayerReactionTime(result.playerTime);
     setOpponentReactionTime(result.botTime);
 
+    if (result.nextTarget) {
+      setCurrentTarget(result.nextTarget);
+    }
+
     setPlayerScore(result.scores.player);
     setOpponentScore(result.scores.bot);
 

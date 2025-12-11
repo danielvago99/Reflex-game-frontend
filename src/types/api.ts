@@ -310,4 +310,9 @@ export interface WSRoundResult {
     player: number;
     bot: number;
   };
+  nextTarget?: {
+    shape: 'circle' | 'square' | 'triangle';
+    color: string;
+    colorName: string;
+  };
 }

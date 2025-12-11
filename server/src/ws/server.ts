@@ -24,6 +24,7 @@ interface SessionState extends RoundTimers {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   target?: Target;
+  nextTarget?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
   roundResolved: boolean;
@@ -116,6 +117,13 @@ const finalizeRound = async (
     winner,
   });
 
+  const isMatchOver =
+    state.scores.player >= ROUNDS_TO_WIN ||
+    state.scores.bot >= ROUNDS_TO_WIN ||
+    state.round >= MAX_ROUNDS;
+
+  state.nextTarget = isMatchOver ? undefined : pickTarget();
+
   setTimeout(() => {
     sendMessage(socket, 'round:result', {
       round: state.round,
@@ -125,13 +133,9 @@ const finalizeRound = async (
       reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
       scores: state.scores,
       rawBotTime,
+      nextTarget: state.nextTarget,
     });
   }, 1000);
-
-  const isMatchOver =
-    state.scores.player >= ROUNDS_TO_WIN ||
-    state.scores.bot >= ROUNDS_TO_WIN ||
-    state.round >= MAX_ROUNDS;
 
   if (isMatchOver) {
     logger.info({ scores: state.scores, history: state.history }, 'Match completed. Persist final result with Prisma.');
@@ -259,7 +263,8 @@ const handleRoundReady = (socket: WebSocket, state: SessionState, payload: any) 
   state.botReactionTime = undefined;
   clearTimers(state);
 
-  state.target = pickTarget();
+  state.target = state.nextTarget ?? pickTarget();
+  state.nextTarget = undefined;
 
   sendMessage(socket, 'round:prepare', {
     round: state.round,
