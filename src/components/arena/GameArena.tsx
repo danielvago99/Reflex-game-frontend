@@ -102,6 +102,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setPlayerScore(0);
     setOpponentScore(0);
     setShowPauseMenu(false);
+    setShowForfeitDialog(false);
+    setPauseCount(0);
     setPlayerReactionTime(null);
     setOpponentReactionTime(null);
     setRoundResult(null);
@@ -111,8 +113,9 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setAllOpponentTimes(Array(MAX_ROUNDS).fill(null));
     setRoundResolved(false);
     setLossReason(null);
-    setShowHowToPlay(true);
+    setShowHowToPlay(false);
     setHasRequestedInitialRound(false);
+    setHasSentClick(false);
     setTargetShowSignal(0);
   };
 
