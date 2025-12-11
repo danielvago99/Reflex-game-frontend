@@ -45,6 +45,20 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
     return colorMap[color] || 'Colored';
   };
 
+  const getShapeName = (shape: string) => {
+    const normalizedShape = shape.toLowerCase();
+    const shapeMap: Record<string, string> = {
+      square: 'Box',
+      triangle: 'Pyramid',
+    };
+
+    if (shapeMap[normalizedShape]) {
+      return shapeMap[normalizedShape];
+    }
+
+    return normalizedShape.charAt(0).toUpperCase() + normalizedShape.slice(1);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -135,7 +149,7 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                         <div className="text-left">
                           <div className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Target</div>
                           <div className="text-sm sm:text-base text-white font-semibold leading-tight">
-                            {getColorName(targetColor)} {targetShape.charAt(0).toUpperCase() + targetShape.slice(1)}
+                            {getColorName(targetColor)} {getShapeName(targetShape)}
                           </div>
                         </div>
                       </div>
