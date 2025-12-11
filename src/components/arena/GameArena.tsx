@@ -56,6 +56,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
 
+  const isWaitingForTarget = currentTarget === null;
+
   const targetShownTimestampRef = useRef<number | null>(null);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
@@ -351,6 +353,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
             onTargetAppeared={handleTargetAppeared}
             onTargetDisappeared={handleTargetDisappeared}
             targetShowSignal={targetShowSignal}
+            isWaitingForTarget={isWaitingForTarget}
           />
 
           {/* Target Hint Panel */}

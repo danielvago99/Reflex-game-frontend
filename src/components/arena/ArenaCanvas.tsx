@@ -8,6 +8,7 @@ interface ArenaCanvasProps {
   onTargetAppeared: () => void;
   onTargetDisappeared?: () => void;
   targetShowSignal: number;
+  isWaitingForTarget?: boolean;
 }
 
 interface Shape {
@@ -61,6 +62,7 @@ export function ArenaCanvas({
   onTargetAppeared,
   onTargetDisappeared,
   targetShowSignal,
+  isWaitingForTarget = false,
 }: ArenaCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const shapesRef = useRef<Shape[]>([]);
@@ -269,7 +271,7 @@ export function ArenaCanvas({
 
   // Game logic - spawn shapes when active
   useEffect(() => {
-    if (!isActive || !isAppReady) {
+    if (!isActive || !isAppReady || isWaitingForTarget) {
       clearTimers();
       cleanupShapes();
       hasNotifiedTargetRef.current = false;
@@ -308,10 +310,10 @@ export function ArenaCanvas({
       clearTimers();
       cleanupShapes();
     };
-  }, [isActive, isAppReady]);
+  }, [isActive, isAppReady, isWaitingForTarget]);
 
   useEffect(() => {
-    if (!isActive || !isAppReady || !globalPixiApp) return;
+    if (!isActive || !isAppReady || !globalPixiApp || isWaitingForTarget) return;
 
     const app = globalPixiApp;
     if (!isAppUsable(app)) return;
@@ -322,7 +324,7 @@ export function ArenaCanvas({
     if (!hasNewSignal) return;
 
     spawnShape(app, true);
-  }, [isActive, isAppReady, targetShowSignal, targetShape, targetColor]);
+  }, [isActive, isAppReady, isWaitingForTarget, targetShowSignal, targetShape, targetColor]);
 
   useEffect(() => {
     if (!isAppReady || !globalPixiApp) return;
