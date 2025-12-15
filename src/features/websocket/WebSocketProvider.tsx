@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { wsService } from '../../utils/websocket';
 import type { WSMessageType } from '../../types/api';
 
+const getStoredAuthToken = () =>
+  (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null);
+
 export type WebSocketStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 interface WebSocketContextValue {
@@ -21,7 +24,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const connect = async (token?: string) => {
     setStatus('connecting');
     try {
-      await wsService.connect(token);
+      const authToken = token ?? getStoredAuthToken() ?? undefined;
+      await wsService.connect(authToken);
       setStatus('connected');
       setError(undefined);
     } catch (err) {

@@ -12,6 +12,9 @@ interface UseWebSocketOptions {
   token?: string;
 }
 
+const getStoredAuthToken = () =>
+  (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null);
+
 /**
  * Hook for WebSocket connection management
  */
@@ -26,7 +29,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       isConnecting.current = true;
       setError(null);
-      await wsService.connect(options.token);
+      const token = options.token ?? getStoredAuthToken() ?? undefined;
+      await wsService.connect(token);
       setIsConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed');
