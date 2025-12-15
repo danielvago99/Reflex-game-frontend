@@ -11,7 +11,9 @@ export default function ProfileRoute() {
   const navigate = useNavigate();
   const { playerName } = useGame();
   const { user, loading } = useUserDashboard();
-  const { matches, loading: matchesLoading } = useMatchHistory(10);
+  const { matches, loading: matchesLoading } = useMatchHistory(10, {
+    matchTypes: ['ranked', 'friend'],
+  });
 
   const handleNavigate = (screen: string) => {
     if (isScreen(screen)) {
