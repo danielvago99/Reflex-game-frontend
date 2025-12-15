@@ -13,7 +13,7 @@ export interface MatchRecord {
 
 const STORAGE_KEY = 'reflex_match_history';
 const MAX_STORED_MATCHES = 20; // Store up to 20 recent matches
-export const MATCH_HISTORY_UPDATED_EVENT = 'reflex:match-history-updated';
+export const MATCH_HISTORY_UPDATED_EVENT = 'match-history-updated';
 
 // Get match history from localStorage
 export function getMatchHistory(): MatchRecord[] {

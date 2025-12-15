@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ENV } from '../config/env';
+import { MATCH_HISTORY_UPDATED_EVENT } from '../utils/matchHistory';
 
-export const MATCH_HISTORY_UPDATED_EVENT = 'matchHistoryUpdated';
+export { MATCH_HISTORY_UPDATED_EVENT };
 
 export interface MatchHistoryEntry {
   id: string;
