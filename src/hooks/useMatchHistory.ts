@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ENV } from '../config/env';
+import {
+  getMatchHistory as getLocalMatchHistory,
+  MATCH_HISTORY_UPDATED_EVENT,
+} from '../utils/matchHistory';
 
 export type MatchType = 'ranked' | 'friend' | 'bot';
 
@@ -30,6 +34,28 @@ export function useMatchHistory(limit = 5, options?: UseMatchHistoryOptions) {
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const hydrateFromLocal = useCallback(() => {
+    if (typeof localStorage === 'undefined') return;
+
+    const localMatches = getLocalMatchHistory()
+      .map<MatchHistoryEntry>((match) => ({
+        id: match.id,
+        matchType: match.matchType,
+        result: match.result,
+        stakeAmount: match.stakeAmount,
+        profit: match.profit,
+        createdAt: new Date(match.timestamp).toISOString(),
+        playerScore: match.playerScore,
+        opponentScore: match.opponentScore,
+      }))
+      .sort((a, b) =>
+        (b.createdAt ? new Date(b.createdAt).getTime() : 0) -
+        (a.createdAt ? new Date(a.createdAt).getTime() : 0)
+      );
+
+    setMatches(localMatches.slice(0, limit));
+  }, [limit]);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -66,18 +92,36 @@ export function useMatchHistory(limit = 5, options?: UseMatchHistoryOptions) {
           )
         : historyArray;
 
-      setMatches(filteredMatches.slice(0, limit));
+      if (filteredMatches.length === 0) {
+        hydrateFromLocal();
+      } else {
+        setMatches(filteredMatches.slice(0, limit));
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to fetch history';
       setError(message);
+      hydrateFromLocal();
     } finally {
       setLoading(false);
     }
-  }, [limit, options?.matchTypes]);
+  }, [hydrateFromLocal, limit, options?.matchTypes]);
 
   useEffect(() => {
     void fetchHistory();
   }, [fetchHistory]);
+
+  useEffect(() => {
+    const handler = () => {
+      hydrateFromLocal();
+    };
+
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener(MATCH_HISTORY_UPDATED_EVENT, handler as EventListener);
+    return () => {
+      window.removeEventListener(MATCH_HISTORY_UPDATED_EVENT, handler as EventListener);
+    };
+  }, [hydrateFromLocal]);
 
   return {
     matches,
