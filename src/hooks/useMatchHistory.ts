@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ENV } from '../config/env';
 
+export type MatchType = 'ranked' | 'friend' | 'bot';
+
 export interface MatchHistoryEntry {
   id: string;
   opponent?: string;
@@ -11,6 +13,7 @@ export interface MatchHistoryEntry {
   playerScore?: number;
   opponentScore?: number;
   createdAt?: string;
+  matchType?: MatchType;
 }
 
 interface HistoryResponse {
@@ -19,7 +22,11 @@ interface HistoryResponse {
   data?: MatchHistoryEntry[];
 }
 
-export function useMatchHistory(limit = 5) {
+interface UseMatchHistoryOptions {
+  matchTypes?: MatchType[];
+}
+
+export function useMatchHistory(limit = 5, options?: UseMatchHistoryOptions) {
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,14 +60,20 @@ export function useMatchHistory(limit = 5) {
         ? data
         : data.history ?? data.matches ?? data.data ?? [];
 
-      setMatches(historyArray.slice(0, limit));
+      const filteredMatches = options?.matchTypes?.length
+        ? historyArray.filter((match) =>
+            match.matchType ? options.matchTypes?.includes(match.matchType) : true
+          )
+        : historyArray;
+
+      setMatches(filteredMatches.slice(0, limit));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to fetch history';
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, options?.matchTypes]);
 
   useEffect(() => {
     void fetchHistory();
