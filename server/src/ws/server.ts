@@ -32,6 +32,7 @@ interface SessionState extends RoundTimers {
     playerTime: number;
     botTime: number;
     winner: 'player' | 'bot' | 'none';
+    target: Target;
   }>;
   userId?: string;
 }
@@ -129,6 +130,7 @@ const finalizeRound = async (
     playerTime: roundedPlayerTime,
     botTime: roundedBotTime,
     winner,
+    target: state.target ?? targets[0],
   });
 
   setTimeout(() => {
@@ -234,6 +236,83 @@ const finalizeRound = async (
                 bestStreak: newBestStreak,
                 totalSolWagered: stakeAmount ? { increment: stakeAmount } : undefined,
                 totalSolWon: playerWon && stakeAmount ? { increment: stakeAmount } : undefined,
+              },
+            });
+          }
+
+          const lobby = await tx.gameLobby.create({
+            data: {
+              creatorId: state.userId!,
+              mode: 'bot',
+              status: 'completed',
+              bestOf: MAX_ROUNDS,
+            },
+          });
+
+          const sessionStartedAt = new Date();
+          const sessionEndedAt = new Date();
+
+          const session = await tx.gameSession.create({
+            data: {
+              lobbyId: lobby.id,
+              roundNumber: state.round,
+              status: 'completed',
+              startedAt: sessionStartedAt,
+              endedAt: sessionEndedAt,
+              winnerId: playerWon ? state.userId! : null,
+            },
+          });
+
+          for (const round of state.history) {
+            const match = await tx.gameMatch.create({
+              data: {
+                sessionId: session.id,
+                mode: 'bot',
+                targetShape: round.target.shape,
+                targetColor: round.target.color,
+                startedAt: sessionStartedAt,
+                targetShownAt: sessionStartedAt,
+                completedAt: sessionEndedAt,
+              },
+            });
+
+            const playerEntry = await tx.gamePlayer.create({
+              data: {
+                matchId: match.id,
+                userId: state.userId!,
+                isBot: false,
+                reactionMs: round.playerTime,
+                result: round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : undefined,
+              },
+            });
+
+            const botEntry = await tx.gamePlayer.create({
+              data: {
+                matchId: match.id,
+                isBot: true,
+                reactionMs: round.botTime,
+                result: round.winner === 'bot' ? 'win' : round.winner === 'player' ? 'lose' : undefined,
+              },
+            });
+
+            const winningPlayerId = round.winner === 'player' ? playerEntry.id : round.winner === 'bot' ? botEntry.id : null;
+
+            if (winningPlayerId) {
+              await tx.gameMatch.update({
+                where: { id: match.id },
+                data: { winningPlayerId },
+              });
+            }
+
+            await tx.gameResult.create({
+              data: {
+                matchId: match.id,
+                winnerId: round.winner === 'player' ? state.userId! : null,
+                loserId: round.winner === 'bot' ? state.userId! : null,
+                winnerReactionMs:
+                  round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : undefined,
+                loserReactionMs:
+                  round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : undefined,
               },
             });
           }

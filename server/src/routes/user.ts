@@ -132,4 +132,53 @@ router.post('/game/end', attachUser, requireAuth, async (req, res) => {
   return res.json({ stats: updatedStats });
 });
 
+router.get('/game/history', attachUser, requireAuth, async (req, res) => {
+  const authUser = req.user;
+
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const limitParam = typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined;
+  const take = Number.isFinite(limitParam) ? Math.max(1, Math.min(Number(limitParam), 20)) : 5;
+
+  const matches = await prisma.gameMatch.findMany({
+    where: {
+      players: {
+        some: { userId: authUser.id },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take,
+    include: {
+      result: true,
+      players: { include: { user: true } },
+      session: true,
+    },
+  });
+
+  const history = matches.map((match) => {
+    const userPlayer = match.players.find((player) => player.userId === authUser.id);
+    const opponent = match.players.find((player) => player.userId !== authUser.id);
+
+    const playerWon = match.result?.winnerId === authUser.id;
+
+    const opponentName = opponent?.isBot
+      ? 'CryptoNinja Bot'
+      : opponent?.user?.username ?? opponent?.user?.walletAddress ?? 'Unknown';
+
+    const scoreTime = playerWon ? match.result?.winnerReactionMs : match.result?.loserReactionMs;
+
+    return {
+      id: match.id,
+      result: playerWon ? 'win' : 'loss',
+      opponent: opponentName,
+      profit: playerWon ? 0 : 0,
+      score: `${scoreTime ?? userPlayer?.reactionMs ?? 0}ms`,
+    };
+  });
+
+  return res.json({ history });
+});
+
 export { router as userRouter };
