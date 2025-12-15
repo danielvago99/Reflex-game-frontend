@@ -3,7 +3,7 @@ import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
-import { addMatchToHistory } from '../../utils/matchHistory';
+import { addMatchToHistory, MATCH_HISTORY_UPDATED_EVENT } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '../../features/auth/hooks/useAuth';
 
@@ -131,6 +131,10 @@ export function GameResultModal({
           );
         }
       }
+
+      // Notify listeners to refresh match history immediately
+      const eventName = MATCH_HISTORY_UPDATED_EVENT ?? 'match-history-updated';
+      window.dispatchEvent(new Event(eventName));
     };
 
     void syncMatchResult();

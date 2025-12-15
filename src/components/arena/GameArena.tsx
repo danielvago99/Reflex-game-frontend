@@ -97,10 +97,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   // Reset all game state for restart
   const handleRestart = () => {
-    setGameState('countdown');
-    setCurrentRound(1);
     setPlayerScore(0);
     setOpponentScore(0);
+    setCurrentRound(1);
+    setGameState('countdown');
     setShowPauseMenu(false);
     setShowForfeitDialog(false);
     setPauseCount(0);
@@ -117,6 +117,9 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setHasRequestedInitialRound(false);
     setHasSentClick(false);
     setTargetShowSignal(0);
+
+    // Immediately notify the server about the fresh match
+    prepareRound(1);
   };
 
   // Players (get from profile in real app)
