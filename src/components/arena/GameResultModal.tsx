@@ -166,6 +166,15 @@ export function GameResultModal({
     }
   };
 
+  const handlePlayAgain = () => {
+    // Avoid instantly starting a new ranked/friend match; send players back to queue
+    if (matchType === 'bot') {
+      onPlayAgain();
+    } else {
+      onBackToMenu();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -309,7 +318,7 @@ export function GameResultModal({
             {/* Action Buttons */}
             <div className="space-y-2.5">
               <button
-                onClick={onPlayAgain}
+                onClick={handlePlayAgain}
                 className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5"
               >
                 <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
