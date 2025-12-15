@@ -6,6 +6,7 @@ import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyC
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '../../features/auth/hooks/useAuth';
+import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
 
 interface GameResultModalProps {
   playerScore: number;
@@ -95,6 +96,10 @@ export function GameResultModal({
         playerScore,
         opponentScore,
       });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(MATCH_HISTORY_UPDATED_EVENT));
+      }
 
       if (matchType === 'ranked' || matchType === 'friend') {
         const result = recordMatchCompletion();

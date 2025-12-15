@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ENV } from '../config/env';
 
+export const MATCH_HISTORY_UPDATED_EVENT = 'matchHistoryUpdated';
+
 export interface MatchHistoryEntry {
   id: string;
   opponent?: string;
@@ -64,6 +66,22 @@ export function useMatchHistory(limit = 5) {
 
   useEffect(() => {
     void fetchHistory();
+  }, [fetchHistory]);
+
+  useEffect(() => {
+    const handleHistoryUpdate = () => {
+      void fetchHistory();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(MATCH_HISTORY_UPDATED_EVENT, handleHistoryUpdate);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(MATCH_HISTORY_UPDATED_EVENT, handleHistoryUpdate);
+      }
+    };
   }, [fetchHistory]);
 
   return {
