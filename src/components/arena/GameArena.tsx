@@ -100,7 +100,6 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setPlayerScore(0);
     setOpponentScore(0);
     setCurrentRound(1);
-    setGameState('countdown');
     setShowPauseMenu(false);
     setShowForfeitDialog(false);
     setPauseCount(0);
@@ -117,6 +116,8 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setHasRequestedInitialRound(false);
     setHasSentClick(false);
     setTargetShowSignal(0);
+
+    setGameState('countdown');
 
     // Immediately notify the server about the fresh match
     prepareRound(1);

@@ -132,9 +132,11 @@ export function GameResultModal({
         }
       }
 
-      // Notify listeners to refresh match history immediately
+      // Notify listeners to refresh match history after persistence settles
       const eventName = MATCH_HISTORY_UPDATED_EVENT ?? 'match-history-updated';
-      window.dispatchEvent(new Event(eventName));
+      setTimeout(() => {
+        window.dispatchEvent(new Event(eventName));
+      }, 100);
     };
 
     void syncMatchResult();
