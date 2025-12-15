@@ -243,6 +243,7 @@ export type WSMessageType =
   | 'round:result'
   | 'round:ready'
   | 'player:click'
+  | 'match:reset'
   | 'error'
   | 'ping'
   | 'pong';
