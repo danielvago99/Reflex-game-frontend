@@ -80,6 +80,21 @@ const clearTimers = (state: SessionState) => {
   }
 };
 
+const handleMatchReset = (state: SessionState, payload: any) => {
+  clearTimers(state);
+
+  state.round = 1;
+  state.scores = { player: 0, bot: 0 };
+  state.history = [];
+  state.roundResolved = false;
+  state.target = undefined;
+  state.targetShownAt = undefined;
+  state.botReactionTime = undefined;
+
+  state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'bot';
+};
+
 const finalizeRound = async (
   socket: WebSocket,
   state: SessionState,
@@ -357,6 +372,9 @@ export function createWsServer(server: Server) {
             break;
           case 'player:click':
             handlePlayerClick(socket, state, message.payload);
+            break;
+          case 'match:reset':
+            handleMatchReset(state, message.payload);
             break;
           default:
             logger.warn({ type: message.type }, 'Unhandled WS message type');

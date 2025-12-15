@@ -97,6 +97,13 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   // Reset all game state for restart
   const handleRestart = () => {
+    if (isConnected) {
+      send('match:reset', {
+        stake: stakeAmount,
+        matchType,
+      });
+    }
+
     setGameState('countdown');
     setCurrentRound(1);
     setPlayerScore(0);
