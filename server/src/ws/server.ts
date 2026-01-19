@@ -326,6 +326,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       }
 
       await redisClient.del(getSessionKey(state.sessionId));
+      finalizedSessions.delete(state.sessionId);
     });
   } catch (error) {
     finalizedSessions.delete(state.sessionId);
