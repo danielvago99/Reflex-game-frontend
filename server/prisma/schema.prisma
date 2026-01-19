@@ -2,12 +2,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  // ak chceš, pridaj:
-  // output = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 /**
@@ -16,39 +15,22 @@ datasource db {
  * ============================
  */
 
-enum LobbyMode {
-  random
+enum MatchType {
   friend
-  bot
-}
-
-enum LobbyStatus {
-  waiting
-  starting
-  in_progress
-  completed
-  cancelled
+  ranked
 }
 
 enum SessionStatus {
-  waiting
-  active
-  completed
-  cancelled
-  expired
+  active      // Hra práve prebieha
+  completed   // Riadne dokončená
+  cancelled   // Zrušená (napr. timeout v lobby)
+  disputed    // Problém (napr. disconnect oboch)
 }
 
-enum PlayerMatchResult {
+enum RoundResult {
   win
   lose
-  disconnect
-  timeout
-}
-
-enum ReferralStatus {
-  pending
-  active
-  inactive
+  draw
 }
 
 enum AmbassadorTier {
@@ -57,288 +39,305 @@ enum AmbassadorTier {
   gold
 }
 
-enum RewardType {
-  reflex_points
-  sol_bonus
+enum ReferralStatus {
+  pending
+  active
+  inactive
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  game_stake     // Strhnutie stávky pred hrou
+  game_payout    // Výhra po hre
+  game_refund    // Vrátenie stávky (pri zrušení)
+  referral_bonus // Odmena pre ambasádora
+  challenge_reward // Odmena za daily challenge
+}
+
+enum TransactionStatus {
+  pending
+  confirmed
+  failed
 }
 
 /**
  * ============================
- * USER & CORE ENTITIES
+ * USER & CORE
  * ============================
  */
 
 model User {
-  id            String   @id @default(uuid())
-  walletAddress String   @unique
-  username      String?  @unique
+  id            String    @id @default(uuid())
+  userId        String?   @unique // Public ID pre frontend/zobrazenie
+  walletAddress String    @unique
+  username      String?   @unique
   avatar        String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  nonce         String?   // KRITICKÉ: Pre SIWS (Sign In With Solana) overenie
+  ipAddress     String?   // Security & Anti-cheat
+  
+  createdAt     DateTime  @default(now())
+  lastSessionAt DateTime? @updatedAt
 
-  // Lobbies & sessions
-  createdLobbies GameLobby[]   @relation("LobbyCreator")
-  lobbyPlayers   LobbyPlayer[]
-  sessionsWon    GameSession[] @relation("SessionWinner")
-  gamePlayers    GamePlayer[]
+  // --- Relácie ---
 
-  // Game results (for history / stats)
-  gameResultsWon  GameResult[] @relation("ResultWinner")
-  gameResultsLost GameResult[] @relation("ResultLoser")
+  // Financie
+  transactions      Transaction[]
 
-  // Stats / leaderboards
-  stats              PlayerStats?
-  leaderboardEntries LeaderboardEntry[]
+  // Hra
+  sessionsWon       GameSession[] @relation("SessionWinner")
+  sessionsLost      GameSession[] @relation("SessionLoser")
 
-  // Daily / weekly rewards
-  dailyChallenge DailyChallengeProgress?
-  weeklyStreak   WeeklyStreak?
+  // Štatistiky a Odmeny
+  stats             PlayerStats?
+  rewards           PlayerRewards?
+  
+  // Rebríčky
+  leaderboardEntry  LeaderboardPlayer?
 
-  // Referrals & ambassador
-  ambassadorProfile  AmbassadorProfile?
-  referralsMade      Referral[]         @relation("Referrer")
-  referralsReceived  Referral[]         @relation("Referred")
-  referralRewardsOut ReferralReward[]   @relation("ReferrerRewards")
-  referralRewardsIn  ReferralReward[]   @relation("ReferredRewards")
+  // Referral systém
+  ambassadorProfile AmbassadorProfile?
+  referrals         Referral[]               @relation("ReferredUser") // Kto ma odporučil (som referred)
+  
+  // Gamifikácia
+  dailyChallengeProgress DailyChallengeProgress[]
+  weeklyStreaks          WeeklyStreak[]
+
+  @@index([walletAddress])
+  @@index([username])
 }
 
 /**
  * ============================
- * GAME LOBBY / SESSION / MATCH
+ * FINANCE & TRANSACTIONS
  * ============================
  */
 
-model GameLobby {
-  id        String      @id @default(uuid())
-  code      String?     @unique
-  mode      LobbyMode
-  status    LobbyStatus @default(waiting)
-  bestOf    Int         @default(1)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+model Transaction {
+  id            String            @id @default(uuid())
+  userId        String
+  gameSessionId String?           // Link na hru, ak ide o stake/payout
+  
+  amount        Decimal           @db.Decimal(18, 9) // Presnosť na Lamports
+  type          TransactionType
+  status        TransactionStatus @default(pending)
+  signature     String?           @unique // Hash transakcie na Solane
+  
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  creatorId String
-  creator   User   @relation("LobbyCreator", fields: [creatorId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+  gameSession   GameSession? @relation(fields: [gameSessionId], references: [id])
 
-  players  LobbyPlayer[]
-  sessions GameSession[]
-}
-
-model LobbyPlayer {
-  id         String    @id @default(uuid())
-  lobbyId    String
-  userId     String
-  joinedAt   DateTime  @default(now())
-  leftAt     DateTime?
-  seatNumber Int?
-  isReady    Boolean   @default(false)
-  isCreator  Boolean   @default(false)
-
-  lobby GameLobby @relation(fields: [lobbyId], references: [id])
-  user  User      @relation(fields: [userId], references: [id])
-
-  @@unique([lobbyId, userId])
-}
-
-model GameSession {
-  id          String        @id @default(uuid())
-  lobbyId     String
-  roundNumber Int           @default(1)
-  status      SessionStatus @default(waiting)
-  startedAt   DateTime?
-  endedAt     DateTime?
-
-  winnerId String?
-  winner   User?   @relation("SessionWinner", fields: [winnerId], references: [id])
-
-  lobby   GameLobby   @relation(fields: [lobbyId], references: [id])
-  matches GameMatch[]
-}
-
-model GameMatch {
-  id            String    @id @default(uuid())
-  sessionId     String
-  mode          LobbyMode
-  targetShape   String?
-  targetColor   String?
-  createdAt     DateTime  @default(now())
-  startedAt     DateTime?
-  targetShownAt DateTime?
-  completedAt   DateTime?
-
-  winningPlayerId String?
-  winningPlayer   GamePlayer? @relation("MatchWinner", fields: [winningPlayerId], references: [id])
-
-  session GameSession  @relation(fields: [sessionId], references: [id])
-  players GamePlayer[]
-  result  GameResult?
-}
-
-model GamePlayer {
-  id         String             @id @default(uuid())
-  matchId    String
-  userId     String?
-  isBot      Boolean            @default(false)
-  reactionMs Int?
-  result     PlayerMatchResult?
-  createdAt  DateTime           @default(now())
-
-  match GameMatch @relation(fields: [matchId], references: [id])
-  user  User?     @relation(fields: [userId], references: [id])
-
-  winningMatches GameMatch[] @relation("MatchWinner")
-}
-
-model GameResult {
-  id               String   @id @default(uuid())
-  matchId          String   @unique
-  winnerId         String?
-  loserId          String?
-  winnerReactionMs Int?
-  loserReactionMs  Int?
-  createdAt        DateTime @default(now())
-
-  match  GameMatch @relation(fields: [matchId], references: [id])
-  winner User?     @relation("ResultWinner", fields: [winnerId], references: [id])
-  loser  User?     @relation("ResultLoser", fields: [loserId], references: [id])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
 }
 
 /**
  * ============================
- * STATS & LEADERBOARD
+ * GAMEPLAY
+ * ============================
+ */
+
+model GameSession {
+  id            String        @id @default(uuid())
+  status        SessionStatus @default(active)
+  matchType     MatchType
+  
+  winnerId      String?       // Nullable, lebo pri 'active' ešte nevieme víťaza
+  loserId       String?
+
+  // Stats
+  avgWinnerReaction Decimal?  @db.Decimal(10, 2)
+  avgLoserReaction  Decimal?  @db.Decimal(10, 2)
+  
+  // Economy
+  stakeWinner   Decimal       @default(0) @db.Decimal(18, 9)
+  stakeLoser    Decimal       @default(0) @db.Decimal(18, 9)
+  payout        Decimal       @default(0) @db.Decimal(18, 9)
+  
+  snapshotDate  DateTime      @default(now())
+  finishedAt    DateTime?
+
+  // Relations
+  winner        User?         @relation("SessionWinner", fields: [winnerId], references: [id])
+  loser         User?         @relation("SessionLoser", fields: [loserId], references: [id])
+  rounds        GameRound[]
+  transactions  Transaction[]
+
+  @@index([winnerId])
+  @@index([loserId])
+  @@index([snapshotDate]) // Pre filtrovanie histórie podľa dátumu
+}
+
+model GameRound {
+  id              String      @id @default(uuid())
+  gameSessionId   String
+  roundNumber     Int
+  
+  winnerId        String?     // ID hráča, ktorý vyhral kolo
+  winnerReaction  Int?        // ms
+  loserReaction   Int?        // ms
+  result          RoundResult
+  
+  createdAt       DateTime    @default(now())
+
+  session         GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * ============================
+ * PLAYER DATA & STATS
  * ============================
  */
 
 model PlayerStats {
-  id                String @id @default(uuid())
-  userId            String @unique
-  totalMatches      Int    @default(0)
-  totalWins         Int    @default(0)
-  totalLosses       Int    @default(0)
-  winRate           Float  @default(0)
-  bestReactionMs    Int?
-  averageReactionMs Float?
-  currentStreak     Int    @default(0)
-  bestStreak        Int    @default(0)
-
-  totalReflexPoints Int @default(0)
-
-  totalSolWagered Decimal @default(0) @db.Decimal(18, 6)
-  totalSolWon     Decimal @default(0) @db.Decimal(18, 6)
-
-  freeStakes005 Int @default(0)
-  freeStakes010 Int @default(0)
-  freeStakes020 Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  
+  totalMatches         Int      @default(0)
+  totalWins            Int      @default(0)
+  totalLosses          Int      @default(0)
+  winRate              Decimal  @default(0) @db.Decimal(5, 2) // %
+  
+  bestReaction         Decimal  @default(9999) @db.Decimal(10, 2) // ms (init s vysokou hodnotou)
+  avgReaction          Decimal  @default(0) @db.Decimal(10, 2) // ms
+  
+  totalVolumeSolPlayed Decimal  @default(0) @db.Decimal(18, 9)
+  totalSolWon          Decimal  @default(0) @db.Decimal(18, 9)
+  totalSolLost         Decimal  @default(0) @db.Decimal(18, 9)
+  
+  lastUpdated          DateTime @default(now()) @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
 
-model LeaderboardEntry {
-  id            String   @id @default(uuid())
-  userId        String
-  snapshotDate  DateTime @default(now())
-  rating        Int      @default(0)
-  rank          Int?
-  matchesPlayed Int      @default(0)
-  wins          Int      @default(0)
+model PlayerRewards {
+  id               String  @id @default(uuid())
+  userId           String  @unique
+  
+  reflexPoints     Int     @default(0)
+  totalFreeStakes  Int     @default(0)
+  
+  // Konkrétne typy free stakes
+  freeStakes05Sol  Int     @default(0)
+  freeStakes01Sol  Int     @default(0)
+  freeStakes02Sol  Int     @default(0)
+  
+  dailyStreak      Int     @default(0)
+  lastStreakUpdate DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
-
-  @@index([snapshotDate], name: "LeaderboardEntry_snapshotDate_idx")
 }
 
 /**
  * ============================
- * DAILY / WEEKLY REWARDS
+ * LEADERBOARDS (Snapshots)
+ * ============================
+ */
+
+model LeaderboardPlayer {
+  id                   String   @id @default(uuid())
+  userId               String   // Môže byť unique ak je to "aktuálny" leaderboard
+  position             Int
+  
+  avgReaction          Decimal  @db.Decimal(10, 2)
+  matchesPlayed        Int
+  wins                 Int
+  totalSolWon          Decimal  @db.Decimal(18, 9)
+  totalVolumeSolPlayed Decimal  @db.Decimal(18, 9)
+  
+  snapshotDate         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  
+  @@index([snapshotDate])
+  @@index([position])
+}
+
+model LeaderboardAmbassador {
+  id              String         @id @default(uuid())
+  userId          String
+  tier            AmbassadorTier
+  activeReferrals Int
+  snapshotDate    DateTime       @default(now())
+
+  @@index([snapshotDate])
+}
+
+/**
+ * ============================
+ * AMBASSADOR & REFERRALS
+ * ============================
+ */
+
+model AmbassadorProfile {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  code            String         @unique // Referral kód (napr. "REFLEX_KING")
+  tier            AmbassadorTier @default(bronze)
+  
+  totalInvited    Int            @default(0)
+  activeReferrals Int            @default(0) // Počet hráčov, ktorí odohrali aspoň X hier
+  
+  updatedAt       DateTime       @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  referrals Referral[]
+}
+
+model Referral {
+  id           String         @id @default(uuid())
+  ambassadorId String
+  referredId   String
+  
+  totalMatches Int            @default(0) // Sledujeme aktivitu pre vyplatenie odmeny
+  status       ReferralStatus @default(pending)
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  ambassador   AmbassadorProfile @relation(fields: [ambassadorId], references: [id])
+  referred     User              @relation("ReferredUser", fields: [referredId], references: [id])
+
+  @@index([ambassadorId])
+  @@index([referredId])
+}
+
+/**
+ * ============================
+ * CHALLENGES & STREAKS
  * ============================
  */
 
 model DailyChallengeProgress {
   id            String   @id @default(uuid())
-  userId        String   @unique
-  date          DateTime
+  userId        String
+  
+  date          DateTime @db.Date // Uloží len dátum (bez času) pre jednoduché query "dnes"
   matchesPlayed Int      @default(0)
   completed     Boolean  @default(false)
-  rewardClaimed Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([date], name: "DailyChallengeProgress_date_idx")
+  @@unique([userId, date]) // Jeden záznam na užívateľa na deň
 }
 
 model WeeklyStreak {
-  id                  String    @id @default(uuid())
-  userId              String    @unique
-  currentStreakDays   Int       @default(0)
-  lastActiveDate      DateTime?
-  weekStartDate       DateTime?
-  weekEndDate         DateTime?
-  weeklyRewardClaimed Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                 String   @id @default(uuid())
+  userId             String
+  
+  currentDailyStreak Int      @default(0)
+  weekStartDate      DateTime @db.Date
+  weekEndDate        DateTime @db.Date
+  completed          Boolean  @default(false)
+  
+  updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
-}
 
-/**
- * ============================
- * REFERRALS & AMBASSADORS
- * ============================
- */
-
-model Referral {
-  id            String         @id @default(uuid())
-  referrerId    String
-  referredId    String
-  status        ReferralStatus @default(pending)
-  createdAt     DateTime       @default(now())
-  activatedAt   DateTime?
-  deactivatedAt DateTime?
-
-  referrer User @relation("Referrer", fields: [referrerId], references: [id])
-  referred User @relation("Referred", fields: [referredId], references: [id])
-
-  rewards ReferralReward[]
-
-  @@unique([referrerId, referredId])
-}
-
-model AmbassadorProfile {
-  id                String         @id @default(uuid())
-  userId            String         @unique
-  code              String         @unique
-  tier              AmbassadorTier @default(bronze)
-  totalReferrals    Int            @default(0)
-  activeReferrals   Int            @default(0)
-  totalReflexEarned Int            @default(0)
-  totalSolBonus     Decimal        @default(0) @db.Decimal(18, 6)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  user    User             @relation(fields: [userId], references: [id])
-  rewards ReferralReward[]
-}
-
-model ReferralReward {
-  id        String     @id @default(uuid())
-  type      RewardType
-  amount    Decimal    @db.Decimal(18, 6)
-  createdAt DateTime   @default(now())
-
-  referrerId String
-  referrer   User   @relation("ReferrerRewards", fields: [referrerId], references: [id])
-
-  referredId String?
-  referred   User?   @relation("ReferredRewards", fields: [referredId], references: [id])
-
-  ambassadorId String?
-  ambassador   AmbassadorProfile? @relation(fields: [ambassadorId], references: [id])
-
-  referralId String?
-  referral   Referral? @relation(fields: [referralId], references: [id])
+  @@index([userId])
 }
