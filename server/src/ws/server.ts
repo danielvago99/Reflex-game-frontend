@@ -1,9 +1,11 @@
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
 import { env } from '../config/env';
+import { redisClient } from '../db/redis';
 
 type Shape = 'circle' | 'square' | 'triangle';
 
@@ -22,7 +24,27 @@ interface SessionState extends RoundTimers {
   round: number;
   scores: { player: number; bot: number };
   stakeAmount?: number;
-  matchType?: 'ranked' | 'friend' | 'bot';
+  matchType?: 'ranked' | 'friend';
+  target?: Target;
+  targetShownAt?: number;
+  botReactionTime?: number;
+  roundResolved: boolean;
+  history: Array<{
+    round: number;
+    playerTime: number;
+    botTime: number;
+    winner: 'player' | 'bot' | 'none';
+    target: Target;
+  }>;
+  userId?: string;
+  sessionId: string;
+}
+
+interface RedisSessionState {
+  round: number;
+  scores: { player: number; bot: number };
+  stakeAmount?: number;
+  matchType?: 'ranked' | 'friend';
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -51,6 +73,28 @@ const MAX_ROUNDS = 5;
 const BOT_GRACE_MS = 600;
 const BOT_REACTION_MIN = 400;
 const BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
+const GAME_STATE_TTL_SECONDS = 60 * 60;
+
+const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
+
+const serializeSessionState = (state: SessionState): RedisSessionState => ({
+  round: state.round,
+  scores: state.scores,
+  stakeAmount: state.stakeAmount,
+  matchType: state.matchType,
+  target: state.target,
+  targetShownAt: state.targetShownAt,
+  botReactionTime: state.botReactionTime,
+  roundResolved: state.roundResolved,
+  history: state.history,
+  userId: state.userId,
+});
+
+const persistSessionState = async (state: SessionState) => {
+  const key = getSessionKey(state.sessionId);
+  const payload = serializeSessionState(state);
+  await redisClient.set(key, JSON.stringify(payload), { ex: GAME_STATE_TTL_SECONDS });
+};
 
 const createInstruction = (target: Target) => {
   const shapeName = target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
@@ -81,7 +125,7 @@ const clearTimers = (state: SessionState) => {
   }
 };
 
-const handleMatchReset = (state: SessionState, payload: any) => {
+const handleMatchReset = async (state: SessionState, payload: any) => {
   clearTimers(state);
 
   state.round = 1;
@@ -93,7 +137,9 @@ const handleMatchReset = (state: SessionState, payload: any) => {
   state.botReactionTime = undefined;
 
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
-  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'bot';
+  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'friend';
+
+  await persistSessionState(state);
 };
 
 const finalizeRound = async (
@@ -153,11 +199,9 @@ const finalizeRound = async (
   if (isMatchOver) {
     logger.info({ scores: state.scores, history: state.history }, 'Match completed. Persist final result with Prisma.');
 
-    if (state.userId && state.matchType === 'ranked') {
+    if (state.userId) {
       try {
         const playerWon = state.scores.player > state.scores.bot;
-        const pointsEarned = state.scores.player * 10;
-
         const validPlayerTimes = state.history
           .map((round) => round.playerTime)
           .filter((time) => Number.isFinite(time) && time < 999_000);
@@ -177,10 +221,8 @@ const finalizeRound = async (
           const previousMatches = existingStats?.totalMatches ?? 0;
           const previousWins = existingStats?.totalWins ?? 0;
           const previousLosses = existingStats?.totalLosses ?? 0;
-          const previousAverage = existingStats?.averageReactionMs ?? undefined;
-          const previousBest = existingStats?.bestReactionMs ?? undefined;
-          const previousStreak = existingStats?.currentStreak ?? 0;
-          const previousBestStreak = existingStats?.bestStreak ?? 0;
+          const previousAverage = existingStats?.avgReaction ?? undefined;
+          const previousBest = existingStats?.bestReaction ?? undefined;
 
           const newTotalMatches = previousMatches + 1;
           const newTotalWins = previousWins + (playerWon ? 1 : 0);
@@ -190,19 +232,20 @@ const finalizeRound = async (
           const newBestReaction =
             matchBestReaction !== undefined
               ? previousBest !== undefined
-                ? Math.min(previousBest, matchBestReaction)
+                ? Math.min(Number(previousBest), matchBestReaction)
                 : matchBestReaction
-              : previousBest;
+              : previousBest !== undefined
+                ? Number(previousBest)
+                : undefined;
 
           const newAverageReaction =
             matchAverageReaction !== undefined
               ? previousAverage !== undefined
-                ? (previousAverage * previousMatches + matchAverageReaction) / newTotalMatches
+                ? (Number(previousAverage) * previousMatches + matchAverageReaction) / newTotalMatches
                 : matchAverageReaction
-              : previousAverage;
-
-          const newCurrentStreak = playerWon ? previousStreak + 1 : 0;
-          const newBestStreak = Math.max(previousBestStreak, newCurrentStreak);
+              : previousAverage !== undefined
+                ? Number(previousAverage)
+                : undefined;
 
           if (!existingStats) {
             await tx.playerStats.create({
@@ -212,13 +255,11 @@ const finalizeRound = async (
                 totalWins: newTotalWins,
                 totalLosses: newTotalLosses,
                 winRate: newWinRate,
-                bestReactionMs: newBestReaction,
-                averageReactionMs: newAverageReaction,
-                currentStreak: newCurrentStreak,
-                bestStreak: newBestStreak,
-                totalReflexPoints: pointsEarned,
-                totalSolWagered: stakeAmount,
+                bestReaction: newBestReaction ?? 9999,
+                avgReaction: newAverageReaction ?? 0,
+                totalVolumeSolPlayed: stakeAmount,
                 totalSolWon: playerWon ? stakeAmount : 0,
+                totalSolLost: playerWon ? 0 : stakeAmount,
               },
             });
           } else {
@@ -228,102 +269,109 @@ const finalizeRound = async (
                 totalMatches: { increment: 1 },
                 totalWins: playerWon ? { increment: 1 } : undefined,
                 totalLosses: playerWon ? undefined : { increment: 1 },
-                totalReflexPoints: { increment: pointsEarned },
                 winRate: newWinRate,
-                bestReactionMs: newBestReaction,
-                averageReactionMs: newAverageReaction,
-                currentStreak: newCurrentStreak,
-                bestStreak: newBestStreak,
-                totalSolWagered: stakeAmount ? { increment: stakeAmount } : undefined,
+                bestReaction: newBestReaction ?? undefined,
+                avgReaction: newAverageReaction ?? undefined,
+                totalVolumeSolPlayed: stakeAmount ? { increment: stakeAmount } : undefined,
                 totalSolWon: playerWon && stakeAmount ? { increment: stakeAmount } : undefined,
+                totalSolLost: !playerWon && stakeAmount ? { increment: stakeAmount } : undefined,
               },
             });
           }
 
-          const lobby = await tx.gameLobby.create({
-            data: {
-              creatorId: state.userId!,
-              mode: 'bot',
-              status: 'completed',
-              bestOf: MAX_ROUNDS,
-            },
-          });
+          const winnerId = playerWon ? state.userId! : null;
+          const loserId = playerWon ? null : state.userId!;
 
-          const sessionStartedAt = new Date();
-          const sessionEndedAt = new Date();
+          const winningTimes = state.history
+            .filter((round) => (playerWon ? round.winner === 'player' : round.winner === 'bot'))
+            .map((round) => (playerWon ? round.playerTime : round.botTime))
+            .filter((time) => Number.isFinite(time));
+
+          const losingTimes = state.history
+            .filter((round) => (playerWon ? round.winner === 'bot' : round.winner === 'player'))
+            .map((round) => (playerWon ? round.botTime : round.playerTime))
+            .filter((time) => Number.isFinite(time));
+
+          const avgWinnerReaction =
+            winningTimes.length > 0
+              ? winningTimes.reduce((sum, time) => sum + time, 0) / winningTimes.length
+              : undefined;
+
+          const avgLoserReaction =
+            losingTimes.length > 0 ? losingTimes.reduce((sum, time) => sum + time, 0) / losingTimes.length : undefined;
 
           const session = await tx.gameSession.create({
             data: {
-              lobbyId: lobby.id,
-              roundNumber: state.round,
               status: 'completed',
-              startedAt: sessionStartedAt,
-              endedAt: sessionEndedAt,
-              winnerId: playerWon ? state.userId! : null,
+              matchType: state.matchType ?? 'friend',
+              winnerId,
+              loserId,
+              avgWinnerReaction,
+              avgLoserReaction,
+              stakeWinner: playerWon ? stakeAmount : 0,
+              stakeLoser: playerWon ? 0 : stakeAmount,
+              payout: playerWon ? stakeAmount : 0,
+              finishedAt: new Date(),
             },
           });
 
           for (const round of state.history) {
-            const match = await tx.gameMatch.create({
+            const roundWinnerId = round.winner === 'player' ? state.userId! : null;
+            const roundResult = round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : 'draw';
+
+            await tx.gameRound.create({
               data: {
-                sessionId: session.id,
-                mode: 'bot',
-                targetShape: round.target.shape,
-                targetColor: round.target.color,
-                startedAt: sessionStartedAt,
-                targetShownAt: sessionStartedAt,
-                completedAt: sessionEndedAt,
+                gameSessionId: session.id,
+                roundNumber: round.round,
+                winnerId: roundWinnerId,
+                winnerReaction: round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : null,
+                loserReaction: round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : null,
+                result: roundResult,
               },
             });
+          }
 
-            const playerEntry = await tx.gamePlayer.create({
+          if (stakeAmount > 0) {
+            await tx.transaction.create({
               data: {
-                matchId: match.id,
                 userId: state.userId!,
-                isBot: false,
-                reactionMs: round.playerTime,
-                result: round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : undefined,
+                gameSessionId: session.id,
+                amount: stakeAmount,
+                type: 'game_stake',
+                status: 'confirmed',
               },
             });
 
-            const botEntry = await tx.gamePlayer.create({
-              data: {
-                matchId: match.id,
-                isBot: true,
-                reactionMs: round.botTime,
-                result: round.winner === 'bot' ? 'win' : round.winner === 'player' ? 'lose' : undefined,
-              },
-            });
-
-            const winningPlayerId = round.winner === 'player' ? playerEntry.id : round.winner === 'bot' ? botEntry.id : null;
-
-            if (winningPlayerId) {
-              await tx.gameMatch.update({
-                where: { id: match.id },
-                data: { winningPlayerId },
+            if (playerWon) {
+              await tx.transaction.create({
+                data: {
+                  userId: state.userId!,
+                  gameSessionId: session.id,
+                  amount: stakeAmount,
+                  type: 'game_payout',
+                  status: 'confirmed',
+                },
               });
             }
-
-            await tx.gameResult.create({
-              data: {
-                matchId: match.id,
-                winnerId: round.winner === 'player' ? state.userId! : null,
-                loserId: round.winner === 'bot' ? state.userId! : null,
-                winnerReactionMs:
-                  round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : undefined,
-                loserReactionMs:
-                  round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : undefined,
-              },
-            });
           }
         });
       } catch (error) {
         logger.error({ error }, 'Failed to persist match results');
       }
     } else {
-      logger.info({ userId: state.userId, matchType: state.matchType }, 'Skipping stats sync; not a ranked match or unauthenticated');
+      logger.info({ userId: state.userId, matchType: state.matchType }, 'Skipping match persistence because user is unauthenticated');
     }
+
+    try {
+      await redisClient.del(getSessionKey(state.sessionId));
+    } catch (error) {
+      logger.warn({ error, sessionId: state.sessionId }, 'Failed to cleanup Redis session state');
+    }
+
+    return;
   }
+
+  await persistSessionState(state);
 };
 
 const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
@@ -332,6 +380,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
   state.showTimeout = setTimeout(() => {
     state.targetShownAt = Date.now();
     state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
+    void persistSessionState(state);
 
     sendMessage(socket, 'round:show_target', {
       round: state.round,
@@ -344,10 +393,10 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
   }, delay);
 };
 
-const handleRoundReady = (socket: WebSocket, state: SessionState, payload: any) => {
+const handleRoundReady = async (socket: WebSocket, state: SessionState, payload: any) => {
   state.round = typeof payload?.round === 'number' ? payload.round : state.round;
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
-  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'bot';
+  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'friend';
   state.roundResolved = false;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
@@ -361,10 +410,11 @@ const handleRoundReady = (socket: WebSocket, state: SessionState, payload: any) 
     instruction: createInstruction(state.target),
   });
 
+  await persistSessionState(state);
   scheduleTargetShow(socket, state);
 };
 
-const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any) => {
+const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload: any) => {
   if (state.roundResolved) return;
 
   const now = Date.now();
@@ -392,7 +442,7 @@ const handlePlayerClick = (socket: WebSocket, state: SessionState, payload: any)
     state.botTimeout = undefined;
   }
 
-  void finalizeRound(socket, state, { playerTime });
+  await finalizeRound(socket, state, { playerTime });
 };
 
 export function createWsServer(server: Server) {
@@ -426,15 +476,21 @@ export function createWsServer(server: Server) {
       logger.warn({ error }, 'Failed to verify WS JWT token');
     }
 
-    sessions.set(socket, {
+    const sessionId = crypto.randomUUID();
+
+    const sessionState: SessionState = {
       round: 1,
       scores: { player: 0, bot: 0 },
       stakeAmount: 0,
-      matchType: 'bot',
+      matchType: 'friend',
       roundResolved: false,
       history: [],
       userId,
-    });
+      sessionId,
+    };
+
+    sessions.set(socket, sessionState);
+    void persistSessionState(sessionState);
 
     socket.on('message', (data) => {
       const raw = data.toString();
@@ -447,13 +503,13 @@ export function createWsServer(server: Server) {
 
         switch (message.type) {
           case 'round:ready':
-            handleRoundReady(socket, state, message.payload);
+            void handleRoundReady(socket, state, message.payload);
             break;
           case 'player:click':
-            handlePlayerClick(socket, state, message.payload);
+            void handlePlayerClick(socket, state, message.payload);
             break;
           case 'match:reset':
-            handleMatchReset(state, message.payload);
+            void handleMatchReset(state, message.payload);
             break;
           default:
             logger.warn({ type: message.type }, 'Unhandled WS message type');
@@ -468,6 +524,7 @@ export function createWsServer(server: Server) {
       if (state) {
         clearTimers(state);
         sessions.delete(socket);
+        void redisClient.del(getSessionKey(state.sessionId));
       }
       logger.info('WS client disconnected');
     });
