@@ -159,7 +159,7 @@ router.get('/game/history', attachUser, requireAuth, async (req, res) => {
       status: 'completed',
       OR: [{ winnerId: authUser.id }, { loserId: authUser.id }],
     },
-    orderBy: { finishedAt: 'desc' },
+    orderBy: { snapshotDate: 'desc' },
     take,
     include: {
       rounds: true,
@@ -175,7 +175,8 @@ router.get('/game/history', attachUser, requireAuth, async (req, res) => {
     const opponentName = opponentUser?.username ?? opponentUser?.walletAddress ?? 'CryptoNinja Bot';
 
     const rawScore = playerWon ? session.avgWinnerReaction : session.avgLoserReaction;
-    const scoreTime = rawScore !== null && rawScore !== undefined ? Math.round(Number(rawScore)) : undefined;
+    const scoreValue = rawScore !== null && rawScore !== undefined ? Number(rawScore) : undefined;
+    const scoreTime = scoreValue !== undefined ? Math.round(scoreValue) : undefined;
 
     const payout = session.payout !== null && session.payout !== undefined ? Number(session.payout) : 0;
     const stakeLoss = session.stakeLoser !== null && session.stakeLoser !== undefined ? Number(session.stakeLoser) : 0;
