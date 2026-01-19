@@ -275,6 +275,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
       const session = await tx.gameSession.create({
         data: {
+          id: state.sessionId,
           totalRounds: state.history.length,
           status: 'completed',
           matchType: state.matchType ?? 'friend',
