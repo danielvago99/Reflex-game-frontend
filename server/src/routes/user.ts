@@ -10,10 +10,6 @@ const profileUpdateSchema = z.object({
   avatar: z.string().url().optional(),
 });
 
-const gameEndSchema = z.object({
-  result: z.enum(['win', 'loss']),
-  score: z.number().int().nonnegative(),
-});
 
 router.get('/dashboard', attachUser, requireAuth, async (req, res) => {
   const authUser = req.user;
@@ -85,63 +81,6 @@ router.patch('/profile', attachUser, requireAuth, async (req, res) => {
   });
 
   return res.json({ user: updatedUser });
-});
-
-router.post('/game/end', attachUser, requireAuth, async (req, res) => {
-  const authUser = req.user;
-
-  if (!authUser) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const parsed = gameEndSchema.safeParse(req.body);
-
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid request body' });
-  }
-
-  const { result, score } = parsed.data;
-
-  const updatedStats = await prisma.$transaction(async (tx) => {
-    const stats = await tx.playerStats.upsert({
-      where: { userId: authUser.id },
-      create: {
-        userId: authUser.id,
-        totalMatches: 1,
-        totalWins: result === 'win' ? 1 : 0,
-        totalLosses: result === 'loss' ? 1 : 0,
-        winRate: result === 'win' ? 1 : 0,
-      },
-      update: {
-        totalMatches: { increment: 1 },
-        totalWins: { increment: result === 'win' ? 1 : 0 },
-        totalLosses: { increment: result === 'loss' ? 1 : 0 },
-      },
-    });
-
-    const winRate =
-      stats.totalMatches > 0 ? stats.totalWins / stats.totalMatches : 0;
-
-    const updatedStats = await tx.playerStats.update({
-      where: { id: stats.id },
-      data: { winRate },
-    });
-
-    const rewards = await tx.playerRewards.upsert({
-      where: { userId: authUser.id },
-      create: {
-        userId: authUser.id,
-        reflexPoints: score,
-      },
-      update: {
-        reflexPoints: { increment: score },
-      },
-    });
-
-    return { stats: updatedStats, rewards };
-  });
-
-  return res.json(updatedStats);
 });
 
 router.get('/game/history', attachUser, requireAuth, async (req, res) => {

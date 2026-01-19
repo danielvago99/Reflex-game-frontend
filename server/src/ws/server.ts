@@ -142,180 +142,193 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   await persistSessionState(state);
 };
 
-const finalizeGame = async (state: SessionState) => {
-  logger.info({ scores: state.scores, history: state.history }, 'Match completed. Persist final result with Prisma.');
+const finalizedSessions = new Set<string>();
+
+const finalizeGame = async (state: SessionState, forfeit: boolean) => {
+  if (finalizedSessions.has(state.sessionId)) {
+    return;
+  }
+
+  finalizedSessions.add(state.sessionId);
+  logger.info(
+    { scores: state.scores, history: state.history, forfeit },
+    'Match completed. Persist final result with Prisma.'
+  );
 
   if (!state.userId) {
     logger.info(
       { userId: state.userId, matchType: state.matchType },
       'Skipping match persistence because user is unauthenticated'
     );
-  } else {
     try {
-      const playerWon = state.scores.player > state.scores.bot;
-      const stakeAmount =
-        typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) ? state.stakeAmount : 0;
+      await redisClient.del(getSessionKey(state.sessionId));
+    } catch (error) {
+      logger.warn({ error, sessionId: state.sessionId }, 'Failed to cleanup Redis session state');
+    } finally {
+      finalizedSessions.delete(state.sessionId);
+    }
+    return;
+  }
 
-      const validPlayerTimes = state.history
-        .map((round) => round.playerTime)
-        .filter((time) => Number.isFinite(time) && time < 999_000);
+  try {
+    const playerWon = !forfeit && state.scores.player > state.scores.bot;
+    const stakeAmount =
+      typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) ? state.stakeAmount : 0;
 
-      const matchBestReaction = validPlayerTimes.length ? Math.min(...validPlayerTimes) : undefined;
-      const matchAverageReaction = validPlayerTimes.length
-        ? validPlayerTimes.reduce((sum, time) => sum + time, 0) / validPlayerTimes.length
+    const playerTimes = state.history
+      .map((round) => round.playerTime)
+      .filter((time) => Number.isFinite(time) && time < 999_000);
+
+    const botTimes = state.history
+      .map((round) => round.botTime)
+      .filter((time) => Number.isFinite(time) && time < 999_000);
+
+    const matchBestReaction = playerTimes.length ? Math.min(...playerTimes) : undefined;
+    const matchAverageReaction = playerTimes.length
+      ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
+      : undefined;
+
+    const winnerId = playerWon ? state.userId : null;
+    const loserId = playerWon ? null : state.userId;
+
+    const avgWinnerReaction = playerWon
+      ? playerTimes.length > 0
+        ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
+        : undefined
+      : botTimes.length > 0
+        ? botTimes.reduce((sum, time) => sum + time, 0) / botTimes.length
         : undefined;
 
-      const winnerId = playerWon ? state.userId : null;
-      const loserId = playerWon ? null : state.userId;
+    const avgLoserReaction = playerWon
+      ? botTimes.length > 0
+        ? botTimes.reduce((sum, time) => sum + time, 0) / botTimes.length
+        : undefined
+      : playerTimes.length > 0
+        ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
+        : undefined;
 
-      const winningTimes = state.history
-        .filter((round) => (playerWon ? round.winner === 'player' : round.winner === 'bot'))
-        .map((round) => (playerWon ? round.playerTime : round.botTime))
-        .filter((time) => Number.isFinite(time));
+    await prisma.$transaction(async (tx) => {
+      const updatePlayerStats = async (userId: string, outcome: 'win' | 'loss') => {
+        const existingStats = await tx.playerStats.findUnique({ where: { userId } });
 
-      const losingTimes = state.history
-        .filter((round) => (playerWon ? round.winner === 'bot' : round.winner === 'player'))
-        .map((round) => (playerWon ? round.botTime : round.playerTime))
-        .filter((time) => Number.isFinite(time));
+        const previousMatches = existingStats?.totalMatches ?? 0;
+        const previousWins = existingStats?.totalWins ?? 0;
+        const previousLosses = existingStats?.totalLosses ?? 0;
+        const previousAverage = existingStats?.avgReaction ?? undefined;
+        const previousBest = existingStats?.bestReaction ?? undefined;
 
-      const avgWinnerReaction =
-        winningTimes.length > 0 ? winningTimes.reduce((sum, time) => sum + time, 0) / winningTimes.length : undefined;
+        const newTotalMatches = previousMatches + 1;
+        const newTotalWins = previousWins + (outcome === 'win' ? 1 : 0);
+        const newTotalLosses = previousLosses + (outcome === 'loss' ? 1 : 0);
+        const newWinRate = newTotalMatches > 0 ? newTotalWins / newTotalMatches : 0;
 
-      const avgLoserReaction =
-        losingTimes.length > 0 ? losingTimes.reduce((sum, time) => sum + time, 0) / losingTimes.length : undefined;
-
-      await prisma.$transaction(async (tx) => {
-        const updatePlayerStats = async (userId: string, outcome: 'win' | 'loss', includeReactions: boolean) => {
-          const existingStats = await tx.playerStats.findUnique({ where: { userId } });
-
-          const previousMatches = existingStats?.totalMatches ?? 0;
-          const previousWins = existingStats?.totalWins ?? 0;
-          const previousLosses = existingStats?.totalLosses ?? 0;
-          const previousAverage = existingStats?.avgReaction ?? undefined;
-          const previousBest = existingStats?.bestReaction ?? undefined;
-
-          const newTotalMatches = previousMatches + 1;
-          const newTotalWins = previousWins + (outcome === 'win' ? 1 : 0);
-          const newTotalLosses = previousLosses + (outcome === 'loss' ? 1 : 0);
-          const newWinRate = newTotalMatches > 0 ? newTotalWins / newTotalMatches : 0;
-
-          const newBestReaction = includeReactions
-            ? matchBestReaction !== undefined
-              ? previousBest !== undefined
-                ? Math.min(Number(previousBest), matchBestReaction)
-                : matchBestReaction
-              : previousBest !== undefined
-                ? Number(previousBest)
-                : undefined
+        const newBestReaction =
+          matchBestReaction !== undefined
+            ? previousBest !== undefined
+              ? Math.min(Number(previousBest), matchBestReaction)
+              : matchBestReaction
             : previousBest !== undefined
               ? Number(previousBest)
               : undefined;
 
-          const newAverageReaction = includeReactions
-            ? matchAverageReaction !== undefined
-              ? previousAverage !== undefined
-                ? (Number(previousAverage) * previousMatches + matchAverageReaction) / newTotalMatches
-                : matchAverageReaction
-              : previousAverage !== undefined
-                ? Number(previousAverage)
-                : undefined
+        const newAverageReaction =
+          matchAverageReaction !== undefined
+            ? previousAverage !== undefined
+              ? (Number(previousAverage) * previousMatches + matchAverageReaction) / newTotalMatches
+              : matchAverageReaction
             : previousAverage !== undefined
               ? Number(previousAverage)
               : undefined;
 
-          if (!existingStats) {
-            await tx.playerStats.create({
-              data: {
-                userId,
-                totalMatches: newTotalMatches,
-                totalWins: newTotalWins,
-                totalLosses: newTotalLosses,
-                winRate: newWinRate,
-                bestReaction: newBestReaction ?? 9999,
-                avgReaction: newAverageReaction ?? 0,
-                totalVolumeSolPlayed: stakeAmount,
-                totalSolWon: outcome === 'win' ? stakeAmount : 0,
-                totalSolLost: outcome === 'loss' ? stakeAmount : 0,
-              },
-            });
-          } else {
-            await tx.playerStats.update({
-              where: { userId },
-              data: {
-                totalMatches: { increment: 1 },
-                totalWins: outcome === 'win' ? { increment: 1 } : undefined,
-                totalLosses: outcome === 'loss' ? { increment: 1 } : undefined,
-                winRate: newWinRate,
-                bestReaction: includeReactions ? newBestReaction ?? undefined : undefined,
-                avgReaction: includeReactions ? newAverageReaction ?? undefined : undefined,
-                totalVolumeSolPlayed: stakeAmount ? { increment: stakeAmount } : undefined,
-                totalSolWon: outcome === 'win' && stakeAmount ? { increment: stakeAmount } : undefined,
-                totalSolLost: outcome === 'loss' && stakeAmount ? { increment: stakeAmount } : undefined,
-              },
-            });
-          }
-        };
+        if (!existingStats) {
+          await tx.playerStats.create({
+            data: {
+              userId,
+              totalMatches: newTotalMatches,
+              totalWins: newTotalWins,
+              totalLosses: newTotalLosses,
+              winRate: newWinRate,
+              bestReaction: newBestReaction ?? 9999,
+              avgReaction: newAverageReaction ?? 0,
+              totalVolumeSolPlayed: stakeAmount,
+              totalSolWon: outcome === 'win' ? stakeAmount : 0,
+              totalSolLost: outcome === 'loss' ? stakeAmount : 0,
+            },
+          });
+        } else {
+          await tx.playerStats.update({
+            where: { userId },
+            data: {
+              totalMatches: { increment: 1 },
+              totalWins: outcome === 'win' ? { increment: 1 } : undefined,
+              totalLosses: outcome === 'loss' ? { increment: 1 } : undefined,
+              winRate: newWinRate,
+              bestReaction: newBestReaction ?? undefined,
+              avgReaction: newAverageReaction ?? undefined,
+              totalVolumeSolPlayed: stakeAmount ? { increment: stakeAmount } : undefined,
+              totalSolWon: outcome === 'win' && stakeAmount ? { increment: stakeAmount } : undefined,
+              totalSolLost: outcome === 'loss' && stakeAmount ? { increment: stakeAmount } : undefined,
+            },
+          });
+        }
+      };
 
-        const session = await tx.gameSession.create({
+      const session = await tx.gameSession.create({
+        data: {
+          status: 'completed',
+          matchType: state.matchType ?? 'friend',
+          winnerId,
+          loserId,
+          avgWinnerReaction,
+          avgLoserReaction,
+          stakeWinner: playerWon ? stakeAmount : 0,
+          stakeLoser: playerWon ? 0 : stakeAmount,
+          payout: playerWon ? stakeAmount : 0,
+          snapshotDate: new Date(),
+        },
+      });
+
+      for (const round of state.history) {
+        const roundWinnerId = round.winner === 'player' ? state.userId : null;
+        const roundResult = round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : 'draw';
+
+        await tx.gameRound.create({
           data: {
-            status: 'completed',
-            matchType: state.matchType ?? 'friend',
-            winnerId,
-            loserId,
-            avgWinnerReaction,
-            avgLoserReaction,
-            stakeWinner: playerWon ? stakeAmount : 0,
-            stakeLoser: playerWon ? 0 : stakeAmount,
-            payout: playerWon ? stakeAmount : 0,
-            snapshotDate: new Date(),
+            gameSessionId: session.id,
+            roundNumber: round.round,
+            winnerId: roundWinnerId,
+            winnerReaction: round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : null,
+            loserReaction: round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : null,
+            result: roundResult,
           },
         });
+      }
 
-        for (const round of state.history) {
-          const roundWinnerId = round.winner === 'player' ? state.userId! : null;
-          const roundResult = round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : 'draw';
+      if (winnerId) {
+        await updatePlayerStats(winnerId, 'win');
+      }
 
-          await tx.gameRound.create({
-            data: {
-              gameSessionId: session.id,
-              roundNumber: round.round,
-              winnerId: roundWinnerId,
-              winnerReaction: round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : null,
-              loserReaction: round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : null,
-              result: roundResult,
-            },
-          });
-        }
+      if (loserId) {
+        await updatePlayerStats(loserId, 'loss');
+      }
 
-        if (winnerId) {
-          await updatePlayerStats(winnerId, 'win', winnerId === state.userId);
-        }
+      if (winnerId && stakeAmount > 0) {
+        await tx.transaction.create({
+          data: {
+            userId: winnerId,
+            gameSessionId: session.id,
+            amount: stakeAmount,
+            type: 'game_payout',
+            status: 'confirmed',
+          },
+        });
+      }
 
-        if (loserId) {
-          await updatePlayerStats(loserId, 'loss', loserId === state.userId);
-        }
-
-        if (winnerId && loserId) {
-          await tx.transaction.create({
-            data: {
-              userId: winnerId,
-              gameSessionId: session.id,
-              amount: stakeAmount,
-              type: 'game_payout',
-              status: 'confirmed',
-            },
-          });
-        }
-      });
-    } catch (error) {
-      logger.error({ error }, 'Failed to persist match results');
-    }
-  }
-
-  try {
-    await redisClient.del(getSessionKey(state.sessionId));
+      await redisClient.del(getSessionKey(state.sessionId));
+    });
   } catch (error) {
-    logger.warn({ error, sessionId: state.sessionId }, 'Failed to cleanup Redis session state');
+    finalizedSessions.delete(state.sessionId);
+    logger.error({ error }, 'Failed to persist match results');
   }
 };
 
@@ -398,7 +411,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
       void (async () => {
         const matchOver = await finalizeRound(socket, state, { reason: 'no-reaction' });
         if (matchOver) {
-          await finalizeGame(state);
+          await finalizeGame(state, false);
         }
       })();
     }, state.botReactionTime + BOT_GRACE_MS);
@@ -438,7 +451,7 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
   if (!state.targetShownAt) {
     const matchOver = await finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
     if (matchOver) {
-      await finalizeGame(state);
+      await finalizeGame(state, false);
     }
     return;
   }
@@ -459,7 +472,7 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
 
   const matchOver = await finalizeRound(socket, state, { playerTime });
   if (matchOver) {
-    await finalizeGame(state);
+    await finalizeGame(state, false);
   }
 };
 
@@ -542,7 +555,13 @@ export function createWsServer(server: Server) {
       if (state) {
         clearTimers(state);
         sessions.delete(socket);
-        void redisClient.del(getSessionKey(state.sessionId));
+        const isPaidMatch =
+          typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) && state.stakeAmount > 0;
+        if (isPaidMatch) {
+          void finalizeGame(state, true);
+        } else {
+          void redisClient.del(getSessionKey(state.sessionId));
+        }
       }
       logger.info('WS client disconnected');
     });
