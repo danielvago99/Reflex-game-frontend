@@ -27,7 +27,7 @@ router.get('/dashboard', attachUser, requireAuth, async (req, res) => {
     include: {
       stats: true,
       ambassadorProfile: true,
-      dailyChallenge: true,
+      dailyChallengeProgress: true,
     },
   });
 
@@ -110,26 +110,38 @@ router.post('/game/end', attachUser, requireAuth, async (req, res) => {
         totalMatches: 1,
         totalWins: result === 'win' ? 1 : 0,
         totalLosses: result === 'loss' ? 1 : 0,
-        totalReflexPoints: score,
+        winRate: result === 'win' ? 1 : 0,
       },
       update: {
         totalMatches: { increment: 1 },
         totalWins: { increment: result === 'win' ? 1 : 0 },
         totalLosses: { increment: result === 'loss' ? 1 : 0 },
-        totalReflexPoints: { increment: score },
       },
     });
 
     const winRate =
       stats.totalMatches > 0 ? stats.totalWins / stats.totalMatches : 0;
 
-    return tx.playerStats.update({
+    const updatedStats = await tx.playerStats.update({
       where: { id: stats.id },
       data: { winRate },
     });
+
+    const rewards = await tx.playerRewards.upsert({
+      where: { userId: authUser.id },
+      create: {
+        userId: authUser.id,
+        reflexPoints: score,
+      },
+      update: {
+        reflexPoints: { increment: score },
+      },
+    });
+
+    return { stats: updatedStats, rewards };
   });
 
-  return res.json({ stats: updatedStats });
+  return res.json(updatedStats);
 });
 
 router.get('/game/history', attachUser, requireAuth, async (req, res) => {
@@ -142,39 +154,40 @@ router.get('/game/history', attachUser, requireAuth, async (req, res) => {
   const limitParam = typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined;
   const take = Number.isFinite(limitParam) ? Math.max(1, Math.min(Number(limitParam), 20)) : 5;
 
-  const matches = await prisma.gameMatch.findMany({
+  const sessions = await prisma.gameSession.findMany({
     where: {
-      players: {
-        some: { userId: authUser.id },
-      },
+      status: 'completed',
+      OR: [{ winnerId: authUser.id }, { loserId: authUser.id }],
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { finishedAt: 'desc' },
     take,
     include: {
-      result: true,
-      players: { include: { user: true } },
-      session: true,
+      rounds: true,
+      winner: true,
+      loser: true,
     },
   });
 
-  const history = matches.map((match) => {
-    const userPlayer = match.players.find((player) => player.userId === authUser.id);
-    const opponent = match.players.find((player) => player.userId !== authUser.id);
+  const history = sessions.map((session) => {
+    const playerWon = session.winnerId === authUser.id;
+    const opponentUser = playerWon ? session.loser : session.winner;
 
-    const playerWon = match.result?.winnerId === authUser.id;
+    const opponentName = opponentUser?.username ?? opponentUser?.walletAddress ?? 'CryptoNinja Bot';
 
-    const opponentName = opponent?.isBot
-      ? 'CryptoNinja Bot'
-      : opponent?.user?.username ?? opponent?.user?.walletAddress ?? 'Unknown';
+    const rawScore = playerWon ? session.avgWinnerReaction : session.avgLoserReaction;
+    const scoreTime = rawScore !== null && rawScore !== undefined ? Math.round(Number(rawScore)) : undefined;
 
-    const scoreTime = playerWon ? match.result?.winnerReactionMs : match.result?.loserReactionMs;
+    const payout = session.payout !== null && session.payout !== undefined ? Number(session.payout) : 0;
+    const stakeLoss = session.stakeLoser !== null && session.stakeLoser !== undefined ? Number(session.stakeLoser) : 0;
+
+    const profit = playerWon ? payout : -stakeLoss;
 
     return {
-      id: match.id,
+      id: session.id,
       result: playerWon ? 'win' : 'loss',
       opponent: opponentName,
-      profit: playerWon ? 0 : 0,
-      score: `${scoreTime ?? userPlayer?.reactionMs ?? 0}ms`,
+      profit,
+      score: `${scoreTime ?? 0}ms`,
     };
   });
 
