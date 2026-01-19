@@ -141,6 +141,7 @@ model Transaction {
 
 model GameSession {
   id            String        @id @default(uuid())
+  totalRounds   Int           @default(0)
   status        SessionStatus @default(active)
   matchType     MatchType
   
@@ -176,10 +177,10 @@ model GameRound {
   roundNumber     Int
   
   winnerId        String?     // ID hráča, ktorý vyhral kolo
+  loserId         String?     // ID porazeného v kole
   winnerReaction  Int?        // ms
   loserReaction   Int?        // ms
-  result          RoundResult
-  
+   
   createdAt       DateTime    @default(now())
 
   session         GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)

@@ -275,6 +275,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
       const session = await tx.gameSession.create({
         data: {
+          totalRounds: state.history.length,
           status: 'completed',
           matchType: state.matchType ?? 'friend',
           winnerId,
@@ -290,16 +291,16 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
       for (const round of state.history) {
         const roundWinnerId = round.winner === 'player' ? state.userId : null;
-        const roundResult = round.winner === 'player' ? 'win' : round.winner === 'bot' ? 'lose' : 'draw';
+        const roundLoserId = round.winner === 'player' ? null : (round.winner === 'bot' ? state.userId : null);  // null pre bota
 
         await tx.gameRound.create({
           data: {
             gameSessionId: session.id,
             roundNumber: round.round,
             winnerId: roundWinnerId,
+            loserId: roundLoserId,
             winnerReaction: round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : null,
             loserReaction: round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : null,
-            result: roundResult,
           },
         });
       }
