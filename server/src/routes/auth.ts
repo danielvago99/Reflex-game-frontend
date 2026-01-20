@@ -20,6 +20,7 @@ const loginSchema = z.object({
   address: z.string().min(1),
   signature: z.string().min(1),
   nonce: z.string().min(1),
+  referralCode: z.string().min(1).optional(),
 });
 
 const getNonceKey = (address: string) => `auth:nonce:${address}`;
@@ -98,7 +99,7 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Invalid request body' });
   }
 
-  const { address, signature, nonce } = parsed.data;
+  const { address, signature, nonce, referralCode } = parsed.data;
 
   try {
     // eslint-disable-next-line no-new
@@ -126,20 +127,54 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const username = `reflex_${crypto.randomBytes(4).toString('hex')}`;
   const ipAddress = getClientIp(req);
+  const normalizedReferralCode = referralCode?.trim();
 
-  const user = await prisma.user.upsert({
+  const existingUser = await prisma.user.findUnique({
     where: { walletAddress: address },
-    update: {
-      ipAddress,
-    },
-    create: {
-      walletAddress: address,
-      username,
-      ipAddress,
-    },
   });
+
+  const user = existingUser
+    ? await prisma.user.update({
+        where: { walletAddress: address },
+        data: { ipAddress },
+      })
+    : await prisma.$transaction(async (tx) => {
+        const username = `reflex_${crypto.randomBytes(4).toString('hex')}`;
+        const createdUser = await tx.user.create({
+          data: {
+            walletAddress: address,
+            username,
+            ipAddress,
+          },
+        });
+
+        if (normalizedReferralCode) {
+          const ambassador = await tx.ambassadorProfile.findUnique({
+            where: { code: normalizedReferralCode },
+          });
+
+          if (ambassador) {
+            await tx.referral.create({
+              data: {
+                ambassadorId: ambassador.id,
+                referredId: createdUser.id,
+                status: 'pending',
+                totalMatches: 0,
+              },
+            });
+
+            await tx.ambassadorProfile.update({
+              where: { id: ambassador.id },
+              data: {
+                totalInvited: { increment: 1 },
+              },
+            });
+          }
+        }
+
+        return createdUser;
+      });
 
   const token = jwt.sign(
     {
