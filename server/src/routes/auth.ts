@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import nacl from 'tweetnacl';
 import { PublicKey } from '@solana/web3.js';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { prisma } from '../db/prisma';
 import { redisClient } from '../db/redis';
 import { attachUser, requireAuth } from '../middleware/auth';
@@ -12,7 +13,9 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
-const generateReferralCode = async (tx: typeof prisma) => {
+type ReferralCodeClient = Prisma.TransactionClient | PrismaClient<any, any, any>;
+
+const generateReferralCode = async (tx: ReferralCodeClient) => {
   const prefix = 'REFLEX-';
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let isUnique = false;
