@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -23,6 +23,21 @@ const loginSchema = z.object({
 });
 
 const getNonceKey = (address: string) => `auth:nonce:${address}`;
+const getClientIp = (req: Request): string => {
+  const forwardedFor = req.headers['x-forwarded-for'];
+
+  if (Array.isArray(forwardedFor)) {
+    const firstForwarded = forwardedFor[0]?.split(',')[0]?.trim();
+    return firstForwarded || req.ip || '0.0.0.0';
+  }
+
+  if (typeof forwardedFor === 'string' && forwardedFor.length > 0) {
+    const firstForwarded = forwardedFor.split(',')[0]?.trim();
+    return firstForwarded || req.ip || '0.0.0.0';
+  }
+
+  return req.ip || '0.0.0.0';
+};
 
 const waitForRedisReady = async (
   attempts = 10,
@@ -112,13 +127,17 @@ router.post('/login', async (req, res) => {
   }
 
   const username = `reflex_${crypto.randomBytes(4).toString('hex')}`;
+  const ipAddress = getClientIp(req);
 
   const user = await prisma.user.upsert({
     where: { walletAddress: address },
-    update: {},
+    update: {
+      ipAddress,
+    },
     create: {
       walletAddress: address,
       username,
+      ipAddress,
     },
   });
 
