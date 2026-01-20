@@ -24,7 +24,7 @@ interface SessionState extends RoundTimers {
   round: number;
   scores: { player: number; bot: number };
   stakeAmount?: number;
-  matchType?: 'ranked' | 'friend';
+  matchType?: 'ranked' | 'friend' | 'bot';
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -46,7 +46,7 @@ interface RedisSessionState {
   round: number;
   scores: { player: number; bot: number };
   stakeAmount?: number;
-  matchType?: 'ranked' | 'friend';
+  matchType?: 'ranked' | 'friend' | 'bot';
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -104,6 +104,9 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
 });
 
 const persistSessionState = async (state: SessionState) => {
+  // OPTIMIZATION: Do not use Redis for practice/bot matches. RAM is sufficient.
+  if (state.matchType === 'bot') return;
+
   const key = getSessionKey(state.sessionId);
   const payload = serializeSessionState(state);
   await redisClient.set(key, JSON.stringify(payload), { ex: GAME_STATE_TTL_SECONDS });
@@ -159,7 +162,8 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.botReactionTime = undefined;
 
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
-  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'friend';
+  const validTypes = ['ranked', 'friend', 'bot'];
+  state.matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
 
   await persistSessionState(state);
 };
@@ -167,6 +171,13 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 const finalizedSessions = new Set<string>();
 
 const finalizeGame = async (state: SessionState, forfeit: boolean) => {
+  if (state.matchType === 'bot') {
+    logger.info({ sessionId: state.sessionId }, 'Bot match finished. No persistence needed.');
+    // No Redis cleanup needed because we didn't persist it.
+    finalizedSessions.delete(state.sessionId);
+    return;
+  }
+
   if (state.isFinished) {
     return;
   }
@@ -455,7 +466,8 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
 const handleRoundReady = async (socket: WebSocket, state: SessionState, payload: any) => {
   state.round = typeof payload?.round === 'number' ? payload.round : state.round;
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
-  state.matchType = payload?.matchType === 'ranked' || payload?.matchType === 'friend' ? payload.matchType : 'friend';
+  const validTypes = ['ranked', 'friend', 'bot'];
+  state.matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
   state.roundResolved = false;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
@@ -621,7 +633,9 @@ export function createWsServer(server: Server) {
         if (isPaidMatch) {
           void finalizeGame(state, true);
         } else {
-          void redisClient.del(getSessionKey(state.sessionId));
+          if (state.matchType !== 'bot') {
+            void redisClient.del(getSessionKey(state.sessionId));
+          }
         }
       }
       logger.info('WS client disconnected');
