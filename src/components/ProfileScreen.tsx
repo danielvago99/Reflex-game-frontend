@@ -34,12 +34,14 @@ export function ProfileScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const totalMatches = stats?.totalGames ?? 0;
-  const totalWins = stats?.wins ?? 0;
-  const winRate = Math.round((stats?.winRate ?? 0) * 100);
-  const averageReaction = stats?.averageReactionTime ?? null;
-  const bestReaction = stats?.bestReactionTime ?? null;
-  const totalVolumePlayed = stats?.totalVolumePlayed ?? 0;
+  const totalMatches = stats?.totalMatches ?? 0;
+  const totalWins = stats?.totalWins ?? 0;
+  const rawWinRate = stats?.winRate ?? 0;
+  const normalizedWinRate = rawWinRate <= 1 ? rawWinRate * 100 : rawWinRate;
+  const winRate = Math.round(normalizedWinRate);
+  const averageReaction = stats?.avgReaction ?? null;
+  const bestReaction = stats?.bestReaction ?? null;
+  const totalVolumePlayed = stats?.totalVolumeSolPlayed ?? 0;
 
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';

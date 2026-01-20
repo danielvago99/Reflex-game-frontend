@@ -4,15 +4,15 @@ import { API_BASE_URL, type AuthUser, useAuth } from './useAuth';
 
 export interface PlayerStats {
   userId?: string;
-  totalGames: number;
-  wins: number;
-  losses: number;
-  winRate: number;
-  averageReactionTime?: number | null;
-  bestReactionTime?: number | null;
-  totalWinnings: number;
+  totalMatches: number;
+  totalWins: number;
   totalLosses: number;
-  totalVolumePlayed?: number | string | null;
+  winRate: number;
+  avgReaction?: number | null;
+  bestReaction?: number | null;
+  totalSolWon: number;
+  totalSolLost: number;
+  totalVolumeSolPlayed: number;
   currentStreak: number;
   longestStreak: number;
 }
@@ -31,27 +31,37 @@ export function useUserDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const normalizeStats = useCallback((stats?: PlayerStats | null): PlayerStats | null => {
+  const normalizeStats = useCallback((stats?: Partial<PlayerStats> | null): PlayerStats | null => {
     if (!stats) return null;
 
     const toNumber = (value?: number | string | null, defaultValue = 0) => {
-      if (typeof value === 'string') return Number(value);
-      return value ?? defaultValue;
+      if (value == null) return defaultValue;
+      const parsed = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(parsed) ? parsed : defaultValue;
+    };
+
+    const toNullableNumber = (value?: number | string | null) => {
+      if (value == null) return null;
+      const parsed = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(parsed) ? parsed : null;
     };
 
     const winRate = typeof stats.winRate === 'number' ? stats.winRate : toNumber(stats.winRate, 0);
+    const bestReaction = toNullableNumber(stats.bestReaction);
+    const normalizedBestReaction =
+      bestReaction != null && bestReaction >= 9999 ? null : bestReaction;
 
     return {
-      ...stats,
-      totalGames: toNumber(stats.totalGames),
-      wins: toNumber(stats.wins),
-      losses: toNumber(stats.losses),
-      winRate,
-      averageReactionTime: stats.averageReactionTime ?? null,
-      bestReactionTime: stats.bestReactionTime ?? null,
-      totalWinnings: toNumber(stats.totalWinnings),
+      userId: stats.userId,
+      totalMatches: toNumber(stats.totalMatches),
+      totalWins: toNumber(stats.totalWins),
       totalLosses: toNumber(stats.totalLosses),
-      totalVolumePlayed: toNumber(stats.totalVolumePlayed),
+      winRate,
+      avgReaction: toNullableNumber(stats.avgReaction),
+      bestReaction: normalizedBestReaction,
+      totalSolWon: toNumber(stats.totalSolWon),
+      totalSolLost: toNumber(stats.totalSolLost),
+      totalVolumeSolPlayed: toNumber(stats.totalVolumeSolPlayed),
       currentStreak: toNumber(stats.currentStreak),
       longestStreak: toNumber(stats.longestStreak),
     };
