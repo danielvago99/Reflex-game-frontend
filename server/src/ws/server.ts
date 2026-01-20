@@ -357,6 +357,41 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         await updatePlayerStats(loserId, 'loss');
       }
 
+      if (state.userId) {
+        const referral = await tx.referral.findFirst({
+          where: { referredId: state.userId },
+          select: { id: true, status: true, ambassadorId: true },
+        });
+
+        if (referral) {
+          const updatedReferral = await tx.referral.update({
+            where: { id: referral.id },
+            data: { totalMatches: { increment: 1 } },
+            select: { totalMatches: true },
+          });
+
+          if (referral.status === 'pending' && updatedReferral.totalMatches >= 10) {
+            await tx.referral.update({
+              where: { id: referral.id },
+              data: { status: 'active' },
+            });
+
+            const updatedAmbassador = await tx.ambassadorProfile.update({
+              where: { id: referral.ambassadorId },
+              data: { activeReferrals: { increment: 1 } },
+              select: { activeReferrals: true },
+            });
+
+            const newTier = updatedAmbassador.activeReferrals >= 30 ? 'gold' : updatedAmbassador.activeReferrals >= 10 ? 'silver' : 'bronze';
+
+            await tx.ambassadorProfile.update({
+              where: { id: referral.ambassadorId },
+              data: { tier: newTier },
+            });
+          }
+        }
+      }
+
       if (winnerId && stakeAmount > 0) {
         await tx.transaction.create({
           data: {
