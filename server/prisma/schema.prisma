@@ -72,7 +72,6 @@ model User {
   walletAddress String    @unique
   username      String?   @unique
   avatar        String?
-  nonce         String?   // KRITICKÉ: Pre SIWS (Sign In With Solana) overenie
   ipAddress     String?   // Security & Anti-cheat
   
   createdAt     DateTime  @default(now())

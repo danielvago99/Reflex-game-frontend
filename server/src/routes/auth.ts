@@ -67,15 +67,6 @@ router.get('/nonce', async (req, res) => {
   await waitForRedisReady();
   await redisClient.set(nonceKey, nonce, { ex: 300}); // Expires in 5 minutes
 
-  await prisma.user.upsert({
-    where: { walletAddress: address },
-    update: { nonce },
-    create: {
-      walletAddress: address,
-      nonce,
-    },
-  });
-
   const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
 
   return res.json({
@@ -105,16 +96,7 @@ router.post('/login', async (req, res) => {
   await waitForRedisReady();
   const expectedNonce = await redisClient.get(nonceKey);
 
-  const existingUser = await prisma.user.findUnique({
-    where: { walletAddress: address },
-    select: { nonce: true },
-  });
-
   if (!expectedNonce || expectedNonce !== nonce) {
-    return res.status(401).json({ error: 'Invalid or expired nonce' });
-  }
-
-  if (existingUser?.nonce && existingUser.nonce !== nonce) {
     return res.status(401).json({ error: 'Invalid or expired nonce' });
   }
 
@@ -133,11 +115,10 @@ router.post('/login', async (req, res) => {
 
   const user = await prisma.user.upsert({
     where: { walletAddress: address },
-    update: { nonce: null },
+    update: {},
     create: {
       walletAddress: address,
       username,
-      nonce: null,
     },
   });
 
