@@ -56,14 +56,18 @@ export function useAmbassadorData() {
       const profile = (await profileRes.json()) as AmbassadorProfileResponse;
       const stats = (await statsRes.json()) as AmbassadorStatsResponse;
 
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : 'https://reflex.game';
+      const generatedLink = profile.referralCode
+        ? `${origin}/ref/${profile.referralCode}`
+        : undefined;
+
       setData({
         referralCode: profile.referralCode,
-        referralLink:
-          profile.referralLink ??
-          (profile.referralCode ? `https://reflex.game/ref/${profile.referralCode}` : undefined),
-        totalReferrals: stats.totalReferrals,
-        activeReferrals: stats.activeReferrals ?? stats.activePlayers,
-        totalRewards: stats.totalRewards ?? stats.rewardBalance,
+        referralLink: profile.referralLink ?? generatedLink,
+        totalReferrals: stats.totalReferrals ?? 0,
+        activeReferrals: stats.activeReferrals ?? stats.activePlayers ?? 0,
+        totalRewards: stats.totalRewards ?? stats.rewardBalance ?? 0,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to load ambassador data';
