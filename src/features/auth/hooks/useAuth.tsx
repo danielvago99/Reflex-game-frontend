@@ -73,6 +73,12 @@ async function submitLogin(body: { address: string; signature: string; nonce: st
   return data;
 }
 
+function buildSuggestedUsername(walletAddress: string) {
+  const prefix = walletAddress.slice(0, 4);
+  const suffix = walletAddress.slice(-4);
+  return `Player_${prefix}${suffix}`;
+}
+
 function AuthProvider({ children }: { children: ReactNode }) {
   const { address, signMessage } = useWallet();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -144,7 +150,27 @@ function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth_token', loginResponse.token);
 
         sessionVersionRef.current += 1;
-        setUser(loginResponse.user);
+        let nextUser = loginResponse.user;
+
+        if (!nextUser.username?.trim()) {
+          const suggestedUsername = buildSuggestedUsername(walletAddress);
+          const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...buildAuthHeaders() },
+            credentials: 'include',
+            body: JSON.stringify({ username: suggestedUsername }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to set username');
+          }
+
+          const data = (await response.json()) as { user: AuthUser };
+          nextUser = data.user;
+        }
+
+        setUser(nextUser);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Login failed';
         setError(message);
