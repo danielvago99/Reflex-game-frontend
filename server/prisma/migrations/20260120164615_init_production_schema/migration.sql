@@ -60,6 +60,8 @@ CREATE TABLE "GameSession" (
     "stakeWinner" DECIMAL(18,9) NOT NULL DEFAULT 0,
     "stakeLoser" DECIMAL(18,9) NOT NULL DEFAULT 0,
     "payout" DECIMAL(18,9) NOT NULL DEFAULT 0,
+    "winnerScore" INTEGER NOT NULL DEFAULT 0,
+    "loserScore" INTEGER NOT NULL DEFAULT 0,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "GameSession_pkey" PRIMARY KEY ("id")
