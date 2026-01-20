@@ -5,6 +5,7 @@ import { AppProviders } from './app/providers/AppProviders';
 import { RouteGuard } from './app/routes/RouteGuard';
 import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './app/ScrollToTop';
+import { ReferralHandler } from './screens/ReferralHandler';
 
 const WelcomeRoute = lazy(() => import('./features/auth/routes/WelcomeRoute'));
 const CreateWalletRoute = lazy(() => import('./features/wallet/routes/CreateWalletRoute'));
@@ -48,7 +49,8 @@ export default function App() {
             <Route path="/wallet/balance" element={<BalanceCheckRoute />} />
             <Route path="/wallet/import" element={<ImportWalletRoute />} />
             <Route path="/wallet/unlock" element={<UnlockWalletRoute />} />
-            <Route element={<RouteGuard />}> 
+            <Route path="/ref/:code" element={<ReferralHandler />} />
+            <Route element={<RouteGuard />}>
               <Route path="/dashboard" element={<DashboardRoute />} />
               <Route path="/lobby" element={<LobbyRoute />} />
               <Route path="/arena" element={<ArenaRoute />} />
