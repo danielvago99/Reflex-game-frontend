@@ -59,14 +59,23 @@ interface RedisSessionState {
   userId?: string;
 }
 
-const targets: Target[] = [
-  { shape: 'circle', color: '#00FF00', colorName: 'Green' },
-  { shape: 'square', color: '#FF0000', colorName: 'Red' },
-  { shape: 'triangle', color: '#0000FF', colorName: 'Blue' },
-  { shape: 'circle', color: '#FFFF00', colorName: 'Yellow' },
-  { shape: 'square', color: '#9333EA', colorName: 'Purple' },
-  { shape: 'triangle', color: '#06B6D4', colorName: 'Cyan' },
+const SHAPES: Shape[] = ['circle', 'square', 'triangle'];
+const COLORS = [
+  { name: 'Green', value: '#00FF00' },
+  { name: 'Red', value: '#FF0000' },
+  { name: 'Blue', value: '#0000FF' },
+  { name: 'Yellow', value: '#FFFF00' },
+  { name: 'Purple', value: '#9333EA' },
+  { name: 'Cyan', value: '#06B6D4' },
+  { name: 'Orange', value: '#FF6B00' },
+  { name: 'Pink', value: '#FF0099' },
 ];
+
+const DEFAULT_TARGET: Target = {
+  shape: SHAPES[0],
+  color: COLORS[0].value,
+  colorName: COLORS[0].name,
+};
 
 const ROUNDS_TO_WIN = 3;
 const MAX_ROUNDS = 5;
@@ -101,7 +110,16 @@ const createInstruction = (target: Target) => {
   return `Hľadaj ${target.colorName} ${shapeName}`;
 };
 
-const pickTarget = (): Target => targets[Math.floor(Math.random() * targets.length)];
+const pickTarget = (): Target => {
+  const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)] ?? DEFAULT_TARGET.shape;
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)] ?? DEFAULT_TARGET;
+
+  return {
+    shape,
+    color: color.value,
+    colorName: color.name,
+  };
+};
 
 const sendMessage = (socket: WebSocket, type: string, payload: unknown) => {
   socket.send(
@@ -369,7 +387,7 @@ const finalizeRound = async (
     playerTime: roundedPlayerTime,
     botTime: roundedBotTime,
     winner,
-    target: state.target ?? targets[0],
+    target: state.target ?? DEFAULT_TARGET,
   });
 
   setTimeout(() => {
@@ -430,12 +448,13 @@ const handleRoundReady = async (socket: WebSocket, state: SessionState, payload:
   state.botReactionTime = undefined;
   clearTimers(state);
 
-  state.target = pickTarget();
+  const nextTarget = pickTarget() ?? DEFAULT_TARGET;
+  state.target = nextTarget;
 
   sendMessage(socket, 'round:prepare', {
     round: state.round,
-    target: state.target,
-    instruction: createInstruction(state.target),
+    target: nextTarget,
+    instruction: createInstruction(nextTarget),
   });
 
   await persistSessionState(state);
