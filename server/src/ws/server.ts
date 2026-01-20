@@ -38,6 +38,7 @@ interface SessionState extends RoundTimers {
     target: Target;
   }>;
   userId?: string;
+  username?: string;
   sessionId: string;
 }
 
@@ -58,6 +59,7 @@ interface RedisSessionState {
     target: Target;
   }>;
   userId?: string;
+  username?: string;
 }
 
 const SHAPES: Shape[] = ['circle', 'square', 'triangle'];
@@ -98,6 +100,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   roundResolved: state.roundResolved,
   history: state.history,
   userId: state.userId,
+  username: state.username,
 });
 
 const persistSessionState = async (state: SessionState) => {
@@ -465,6 +468,7 @@ const handleRoundReady = async (socket: WebSocket, state: SessionState, payload:
     round: state.round,
     target: nextTarget,
     instruction: createInstruction(nextTarget),
+    username: state.username,
   });
 
   await persistSessionState(state);
@@ -516,10 +520,11 @@ export function createWsServer(server: Server) {
 
   const sessions = new WeakMap<WebSocket, SessionState>();
 
-  wss.on('connection', (socket: WebSocket, request) => {
+  wss.on('connection', async (socket: WebSocket, request) => {
     logger.info('WS client connected');
 
     let userId: string | undefined;
+    let username: string | undefined;
 
     try {
       const url = new URL(request.url ?? '/ws', 'http://localhost');
@@ -539,6 +544,18 @@ export function createWsServer(server: Server) {
       logger.warn({ error }, 'Failed to verify WS JWT token');
     }
 
+    if (userId) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { username: true },
+        });
+        username = user?.username ?? undefined;
+      } catch (error) {
+        logger.warn({ error, userId }, 'Failed to load user username');
+      }
+    }
+
     const sessionId = crypto.randomUUID();
 
     const sessionState: SessionState = {
@@ -549,6 +566,7 @@ export function createWsServer(server: Server) {
       roundResolved: false,
       history: [],
       userId,
+      username,
       sessionId,
     };
 

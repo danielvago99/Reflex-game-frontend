@@ -23,6 +23,8 @@ const loginSchema = z.object({
 });
 
 const getNonceKey = (address: string) => `auth:nonce:${address}`;
+const createDefaultUsername = () =>
+  `Player_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
 const waitForRedisReady = async (
   attempts = 10,
@@ -67,14 +69,22 @@ router.get('/nonce', async (req, res) => {
   await waitForRedisReady();
   await redisClient.set(nonceKey, nonce, { ex: 300}); // Expires in 5 minutes
 
-  await prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { walletAddress: address },
     update: { nonce },
     create: {
       walletAddress: address,
+      username: createDefaultUsername(),
       nonce,
     },
   });
+
+  if (!user.username) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { username: createDefaultUsername() },
+    });
+  }
 
   const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
 
@@ -129,17 +139,22 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const username = `reflex_${crypto.randomBytes(4).toString('hex')}`;
-
   const user = await prisma.user.upsert({
     where: { walletAddress: address },
     update: { nonce: null },
     create: {
       walletAddress: address,
-      username,
+      username: createDefaultUsername(),
       nonce: null,
     },
   });
+
+  if (!user.username) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { username: createDefaultUsername() },
+    });
+  }
 
   const token = jwt.sign(
     {
