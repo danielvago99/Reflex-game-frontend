@@ -93,7 +93,7 @@ export function ProfileScreen({
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h1 className="text-2xl text-white">Player Stats</h1>
+          <h1 className="text-2xl text-white">Player Ranked Stats</h1>
         </div>
 
         {/* Profile Card */}
@@ -192,7 +192,7 @@ export function ProfileScreen({
                   <Coins className="w-5 h-5 text-[#0B0F1A]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Total Earnings</p>
+                  <p className="text-sm text-gray-400">Total Volume Played</p>
                   <p className="text-xl bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
                     {isLoading ? '—' : `${Number(totalEarnings || 0)} SOL`}
                   </p>
