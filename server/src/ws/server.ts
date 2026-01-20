@@ -213,6 +213,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const stakeAmount =
       typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) ? state.stakeAmount : 0;
     const persistedMatchType: 'friend' | 'ranked' = state.matchType === 'ranked' ? 'ranked' : 'friend';
+    const winnerScore = playerWon ? state.scores.player : state.scores.bot;
+    const loserScore = playerWon ? state.scores.bot : state.scores.player;
 
     const playerTimes = state.history
       .map((round) => round.playerTime)
@@ -325,6 +327,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           stakeWinner: playerWon ? stakeAmount : 0,
           stakeLoser: playerWon ? 0 : stakeAmount,
           payout: playerWon ? stakeAmount : 0,
+          winnerScore,
+          loserScore,
           snapshotDate: new Date(),
         },
       });

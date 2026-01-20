@@ -154,6 +154,10 @@ model GameSession {
   stakeWinner   Decimal       @default(0) @db.Decimal(18, 9)
   stakeLoser    Decimal       @default(0) @db.Decimal(18, 9)
   payout        Decimal       @default(0) @db.Decimal(18, 9)
+
+  // Scores
+  winnerScore   Int           @default(0)
+  loserScore    Int           @default(0)
   
   snapshotDate  DateTime      @default(now())
  
