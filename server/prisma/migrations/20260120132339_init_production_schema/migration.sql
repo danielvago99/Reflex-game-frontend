@@ -22,11 +22,9 @@ CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'confirmed', 'failed');
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "userId" TEXT,
     "walletAddress" TEXT NOT NULL,
     "username" TEXT,
     "avatar" TEXT,
-    "nonce" TEXT,
     "ipAddress" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastSessionAt" TIMESTAMP(3),
@@ -63,14 +61,12 @@ CREATE TABLE "GameSession" (
     "stakeLoser" DECIMAL(18,9) NOT NULL DEFAULT 0,
     "payout" DECIMAL(18,9) NOT NULL DEFAULT 0,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "finishedAt" TIMESTAMP(3),
 
     CONSTRAINT "GameSession_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "GameRound" (
-    "id" TEXT NOT NULL,
     "gameSessionId" TEXT NOT NULL,
     "roundNumber" INTEGER NOT NULL,
     "winnerId" TEXT,
@@ -79,12 +75,11 @@ CREATE TABLE "GameRound" (
     "loserReaction" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "GameRound_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "GameRound_pkey" PRIMARY KEY ("gameSessionId","roundNumber")
 );
 
 -- CreateTable
 CREATE TABLE "PlayerStats" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "totalMatches" INTEGER NOT NULL DEFAULT 0,
     "totalWins" INTEGER NOT NULL DEFAULT 0,
@@ -97,7 +92,7 @@ CREATE TABLE "PlayerStats" (
     "totalSolLost" DECIMAL(18,9) NOT NULL DEFAULT 0,
     "lastUpdated" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "PlayerStats_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "PlayerStats_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateTable
@@ -193,9 +188,6 @@ CREATE TABLE "WeeklyStreak" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_userId_key" ON "User"("userId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_walletAddress_key" ON "User"("walletAddress");
 
 -- CreateIndex
@@ -227,9 +219,6 @@ CREATE INDEX "GameSession_loserId_idx" ON "GameSession"("loserId");
 
 -- CreateIndex
 CREATE INDEX "GameSession_snapshotDate_idx" ON "GameSession"("snapshotDate");
-
--- CreateIndex
-CREATE UNIQUE INDEX "PlayerStats_userId_key" ON "PlayerStats"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PlayerRewards_userId_key" ON "PlayerRewards"("userId");
