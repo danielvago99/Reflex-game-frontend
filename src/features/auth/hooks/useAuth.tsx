@@ -56,7 +56,12 @@ async function fetchNonce(address: string) {
   return (await response.json()) as { address: string; nonce: string; message: string };
 }
 
-async function submitLogin(body: { address: string; signature: string; nonce: string }) {
+async function submitLogin(body: {
+  address: string;
+  signature: string;
+  nonce: string;
+  referralCode?: string;
+}) {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -141,11 +146,17 @@ function AuthProvider({ children }: { children: ReactNode }) {
         const nonceResponse = await fetchNonce(walletAddress);
         const signatureBytes = await signer(nonceResponse.message);
         const signature = toBase64(new Uint8Array(signatureBytes));
+        const storedReferralCode = localStorage.getItem('referralCode');
         const loginResponse = await submitLogin({
           address: walletAddress,
           signature,
           nonce: nonceResponse.nonce,
+          referralCode: storedReferralCode || undefined,
         });
+
+        if (storedReferralCode) {
+          localStorage.removeItem('referralCode');
+        }
 
         localStorage.setItem('auth_token', loginResponse.token);
 
