@@ -12,6 +12,27 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
+const generateReferralCode = async (tx: typeof prisma) => {
+  const prefix = 'REFLEX-';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let isUnique = false;
+  let code = '';
+
+  while (!isUnique) {
+    let randomPart = '';
+    for (let i = 0; i < 6; i += 1) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    code = prefix + randomPart;
+
+    const existing = await tx.ambassadorProfile.findUnique({ where: { code } });
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+  return code;
+};
+
 const addressQuerySchema = z.object({
   address: z.string().min(1),
 });
@@ -149,6 +170,15 @@ router.post('/login', async (req, res) => {
           },
         });
 
+        const newCode = await generateReferralCode(tx);
+        await tx.ambassadorProfile.create({
+          data: {
+            userId: createdUser.id,
+            code: newCode,
+            tier: 'bronze',
+          },
+        });
+
         if (normalizedReferralCode) {
           const ambassador = await tx.ambassadorProfile.findUnique({
             where: { code: normalizedReferralCode },
@@ -175,6 +205,22 @@ router.post('/login', async (req, res) => {
 
         return createdUser;
       });
+
+  const existingProfile = await prisma.ambassadorProfile.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!existingProfile) {
+    const newCode = await generateReferralCode(prisma);
+    await prisma.ambassadorProfile.create({
+      data: {
+        userId: user.id,
+        code: newCode,
+        tier: 'bronze',
+      },
+    });
+    logger.info({ userId: user.id }, 'Created missing ambassador profile on login');
+  }
 
   const token = jwt.sign(
     {
