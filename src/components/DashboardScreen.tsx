@@ -298,7 +298,7 @@ export function DashboardScreen({
             
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs text-gray-400 uppercase tracking-widest">Recent Matches</h3>
+                <h3 className="text-xs text-gray-400 uppercase tracking-widest">Recent Ranked Matches</h3>
                 <div className="flex gap-1">
                   <div className="w-1 h-1 bg-[#00FFA3] rounded-full animate-pulse"></div>
                   <div className="w-1 h-1 bg-[#06B6D4] rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
