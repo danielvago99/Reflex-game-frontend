@@ -3,22 +3,18 @@ import { MATCH_HISTORY_UPDATED_EVENT } from '../../../utils/matchHistory';
 import { API_BASE_URL, type AuthUser, useAuth } from './useAuth';
 
 export interface PlayerStats {
-  id?: string;
   userId?: string;
-  totalMatches: number;
-  totalWins: number;
-  totalLosses: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
   winRate: number;
-  bestReactionMs?: number | null;
-  averageReactionMs?: number | null;
-  currentStreak?: number | null;
-  bestStreak?: number | null;
-  totalReflexPoints: number;
-  totalSolWagered?: number | string | null;
-  totalSolWon?: number | string | null;
-  freeStakes005?: number;
-  freeStakes010?: number;
-  freeStakes020?: number;
+  averageReactionTime?: number | null;
+  bestReactionTime?: number | null;
+  totalWinnings: number;
+  totalLosses: number;
+  totalVolumePlayed?: number | string | null;
+  currentStreak: number;
+  longestStreak: number;
 }
 
 export interface DashboardUser extends AuthUser {
@@ -47,20 +43,17 @@ export function useUserDashboard() {
 
     return {
       ...stats,
-      totalMatches: toNumber(stats.totalMatches),
-      totalWins: toNumber(stats.totalWins),
-      totalLosses: toNumber(stats.totalLosses),
+      totalGames: toNumber(stats.totalGames),
+      wins: toNumber(stats.wins),
+      losses: toNumber(stats.losses),
       winRate,
-      bestReactionMs: stats.bestReactionMs ?? null,
-      averageReactionMs: stats.averageReactionMs ?? null,
-      currentStreak: stats.currentStreak ?? 0,
-      bestStreak: stats.bestStreak ?? 0,
-      totalReflexPoints: toNumber(stats.totalReflexPoints),
-      totalSolWagered: toNumber(stats.totalSolWagered),
-      totalSolWon: toNumber(stats.totalSolWon),
-      freeStakes005: stats.freeStakes005 ?? 0,
-      freeStakes010: stats.freeStakes010 ?? 0,
-      freeStakes020: stats.freeStakes020 ?? 0,
+      averageReactionTime: stats.averageReactionTime ?? null,
+      bestReactionTime: stats.bestReactionTime ?? null,
+      totalWinnings: toNumber(stats.totalWinnings),
+      totalLosses: toNumber(stats.totalLosses),
+      totalVolumePlayed: toNumber(stats.totalVolumePlayed),
+      currentStreak: toNumber(stats.currentStreak),
+      longestStreak: toNumber(stats.longestStreak),
     };
   }, []);
 

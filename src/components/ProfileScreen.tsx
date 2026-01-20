@@ -34,12 +34,12 @@ export function ProfileScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const totalMatches = stats?.totalMatches ?? 0;
-  const totalWins = stats?.totalWins ?? 0;
+  const totalMatches = stats?.totalGames ?? 0;
+  const totalWins = stats?.wins ?? 0;
   const winRate = Math.round((stats?.winRate ?? 0) * 100);
-  const averageReaction = stats?.averageReactionMs ?? null;
-  const bestReaction = stats?.bestReactionMs ?? null;
-  const totalEarnings = stats?.totalSolWon ?? 0;
+  const averageReaction = stats?.averageReactionTime ?? null;
+  const bestReaction = stats?.bestReactionTime ?? null;
+  const totalVolumePlayed = stats?.totalVolumePlayed ?? 0;
 
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';
@@ -194,7 +194,7 @@ export function ProfileScreen({
                 <div>
                   <p className="text-sm text-gray-400">Total Volume Played</p>
                   <p className="text-xl bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
-                    {isLoading ? '—' : `${Number(totalEarnings || 0)} SOL`}
+                    {isLoading ? '—' : `${Number(totalVolumePlayed || 0)} SOL`}
                   </p>
                 </div>
               </div>
