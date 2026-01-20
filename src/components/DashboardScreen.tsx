@@ -43,12 +43,9 @@ export function DashboardScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const reflexPoints = stats?.totalReflexPoints ?? 0;
-  const walletBalance = useMemo(() => {
-    if (typeof stats?.totalSolWon === 'number') return stats.totalSolWon;
-    return balance;
-  }, [balance, stats?.totalSolWon]);
-  const displayedReflexPoints = isLoading && !stats ? '—' : reflexPoints;
+  const wins = stats?.wins ?? 0;
+  const walletBalance = useMemo(() => balance, [balance]);
+  const displayedWins = isLoading && !stats ? '—' : wins;
 
   const formattedMatches = useMemo(() => {
     const now = Date.now();
@@ -169,7 +166,7 @@ export function DashboardScreen({
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full"></div>
-                        <span className="text-xs text-gray-400">{displayedReflexPoints} RP</span>
+                        <span className="text-xs text-gray-400">{displayedWins} Wins</span>
                       </div>
                     </div>
 
