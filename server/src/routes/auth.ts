@@ -187,22 +187,33 @@ router.post('/login', async (req, res) => {
             where: { code: normalizedReferralCode },
           });
 
-          if (ambassador) {
-            await tx.referral.create({
-              data: {
-                ambassadorId: ambassador.id,
-                referredId: createdUser.id,
-                status: 'pending',
-                totalMatches: 0,
-              },
+          if (ambassador && ambassador.userId !== createdUser.id) {
+            const existingReferral = await tx.referral.findFirst({
+              where: { referredId: createdUser.id },
             });
 
-            await tx.ambassadorProfile.update({
-              where: { id: ambassador.id },
-              data: {
-                totalInvited: { increment: 1 },
-              },
-            });
+            if (!existingReferral) {
+              await tx.referral.create({
+                data: {
+                  ambassadorId: ambassador.id,
+                  referredId: createdUser.id,
+                  status: 'pending',
+                  totalMatches: 0,
+                },
+              });
+
+              await tx.ambassadorProfile.update({
+                where: { id: ambassador.id },
+                data: {
+                  totalInvited: { increment: 1 },
+                },
+              });
+
+              logger.info(
+                { userId: createdUser.id, ambassadorCode: normalizedReferralCode },
+                'Referral recorded successfully',
+              );
+            }
           }
         }
 
