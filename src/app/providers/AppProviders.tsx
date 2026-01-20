@@ -6,12 +6,12 @@ import { AuthProvider } from '../../features/auth/hooks/useAuth';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <WebSocketProvider>
-      <WalletProvider>
-        <AuthProvider>
+    <WalletProvider>
+      <AuthProvider>
+        <WebSocketProvider>
           <GameProvider>{children}</GameProvider>
-        </AuthProvider>
-      </WalletProvider>
-    </WebSocketProvider>
+        </WebSocketProvider>
+      </AuthProvider>
+    </WalletProvider>
   );
 }

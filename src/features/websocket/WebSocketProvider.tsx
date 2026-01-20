@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useAuth } from '../auth/hooks/useAuth';
 import { wsService } from '../../utils/websocket';
 import type { WSMessageType } from '../../types/api';
 
@@ -20,6 +21,7 @@ const WebSocketContext = createContext<WebSocketContextValue | null>(null);
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
   const [error, setError] = useState<string | undefined>(undefined);
+  const { user } = useAuth();
 
   const connect = async (token?: string) => {
     setStatus('connecting');
@@ -49,8 +51,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     const unsubClose = wsService.onClose(() => setStatus('disconnected'));
     const unsubError = wsService.onError(() => setStatus('error'));
 
-    connect().catch(() => setStatus('error'));
-
     return () => {
       unsubOpen();
       unsubClose();
@@ -58,6 +58,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.username) {
+      if (status !== 'disconnected') {
+        disconnect();
+      }
+      return;
+    }
+
+    if (wsService.isConnected() || status === 'connecting') {
+      return;
+    }
+
+    connect().catch(() => setStatus('error'));
+  }, [user?.username, status, connect, disconnect]);
 
   const value = useMemo<WebSocketContextValue>(
     () => ({ status, error, connect, disconnect, send }),
