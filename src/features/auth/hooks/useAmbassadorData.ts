@@ -32,16 +32,32 @@ export function useAmbassadorData() {
     setError(null);
 
     try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
       const [profileRes, statsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/ambassador/profile`, {
           method: 'GET',
+          headers,
           credentials: 'include',
         }),
         fetch(`${API_BASE_URL}/api/ambassador/stats`, {
           method: 'GET',
+          headers,
           credentials: 'include',
         }),
       ]);
+
+      if (profileRes.status === 401 || statsRes.status === 401) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('auth_token');
+        }
+        setData(null);
+        setError('Please log in to view ambassador data.');
+        return;
+      }
 
       if (!profileRes.ok) {
         const message = await profileRes.text();
