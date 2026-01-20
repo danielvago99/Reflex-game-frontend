@@ -68,7 +68,6 @@ enum TransactionStatus {
 
 model User {
   id            String    @id @default(uuid())
-  userId        String?   @unique // Public ID pre frontend/zobrazenie
   walletAddress String    @unique
   username      String?   @unique
   avatar        String?
@@ -157,8 +156,7 @@ model GameSession {
   payout        Decimal       @default(0) @db.Decimal(18, 9)
   
   snapshotDate  DateTime      @default(now())
-  finishedAt    DateTime?
-
+ 
   // Relations
   winner        User?         @relation("SessionWinner", fields: [winnerId], references: [id])
   loser         User?         @relation("SessionLoser", fields: [loserId], references: [id])
@@ -171,7 +169,6 @@ model GameSession {
 }
 
 model GameRound {
-  id              String      @id @default(uuid())
   gameSessionId   String
   roundNumber     Int
   
@@ -183,6 +180,7 @@ model GameRound {
   createdAt       DateTime    @default(now())
 
   session         GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  @@id([gameSessionId, roundNumber])
 }
 
 /**
@@ -192,8 +190,7 @@ model GameRound {
  */
 
 model PlayerStats {
-  id                   String   @id @default(uuid())
-  userId               String   @unique
+  userId               String   @id
   
   totalMatches         Int      @default(0)
   totalWins            Int      @default(0)
