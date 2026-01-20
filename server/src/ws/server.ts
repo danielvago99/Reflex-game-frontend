@@ -29,6 +29,7 @@ interface SessionState extends RoundTimers {
   targetShownAt?: number;
   botReactionTime?: number;
   roundResolved: boolean;
+  isFinished?: boolean;
   history: Array<{
     round: number;
     playerTime: number;
@@ -163,6 +164,11 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 const finalizedSessions = new Set<string>();
 
 const finalizeGame = async (state: SessionState, forfeit: boolean) => {
+  if (state.isFinished) {
+    return;
+  }
+
+  state.isFinished = true;
   if (finalizedSessions.has(state.sessionId)) {
     return;
   }
@@ -349,6 +355,10 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     });
   } catch (error) {
     finalizedSessions.delete(state.sessionId);
+    if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'P2002') {
+      logger.warn({ error }, 'Game already saved');
+      return;
+    }
     logger.error({ error }, 'Failed to persist match results');
   }
 };
@@ -575,6 +585,9 @@ export function createWsServer(server: Server) {
     socket.on('close', () => {
       const state = sessions.get(socket);
       if (state) {
+        if (state.isFinished) {
+          return;
+        }
         clearTimers(state);
         sessions.delete(socket);
         const isPaidMatch =
