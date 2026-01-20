@@ -43,7 +43,7 @@ export function DashboardScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const wins = stats?.wins ?? 0;
+  const wins = stats?.totalWins ?? 0;
   const walletBalance = useMemo(() => balance, [balance]);
   const displayedWins = isLoading && !stats ? '—' : wins;
 

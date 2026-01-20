@@ -35,10 +35,10 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
 
   useEffect(() => {
     if (stats) {
-      setReflexPoints(Math.round(stats.totalWinnings ?? 0));
-      setDailyProgress(stats.totalGames ?? 0);
+      setReflexPoints(Math.round(stats.totalSolWon ?? 0));
+      setDailyProgress(stats.totalMatches ?? 0);
       setStreak(stats.currentStreak ?? 0);
-      setDailyRewardsEarned(Number(stats.totalWinnings ?? 0));
+      setDailyRewardsEarned(Number(stats.totalSolWon ?? 0));
       setFreeStakes005(0);
       setFreeStakes010(0);
       setFreeStakes020(0);
