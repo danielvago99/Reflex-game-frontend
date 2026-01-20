@@ -61,7 +61,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const targetShownTimestampRef = useRef<number | null>(null);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
-  const targetColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
+  const targetColors = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
   const targetColorNames: Record<string, string> = {
     '#FF0000': 'Red',
     '#00FF00': 'Green',

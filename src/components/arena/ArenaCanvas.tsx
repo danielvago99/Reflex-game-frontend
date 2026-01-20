@@ -387,18 +387,7 @@ export function ArenaCanvas({
   }, [isAppReady, onTargetAppeared]);
 
   // Available colors for shapes
-  const colors = {
-    red: 0xFF0000,
-    green: 0x00FF00,
-    blue: 0x0000FF,
-    yellow: 0xFFFF00,
-    purple: 0x9333EA,
-    cyan: 0x06B6D4,
-    orange: 0xFF6B00,
-    pink: 0xFF0099,
-  };
-
-  const colorArray = Object.values(colors);
+  const ALL_COLORS = [0x00FF00, 0xFF0000, 0x0000FF, 0xFFFF00, 0x9333EA, 0x06B6D4, 0xFF6B00, 0xFF0099];
 
   const drawGlowingSphere = (graphics: PIXI.Graphics, color: number, size: number) => {
     const outerGlow = lighten(color, 0.3);
@@ -591,18 +580,12 @@ export function ArenaCanvas({
       type = currentTargetShape;
       color = targetColorNumber;
     } else {
-      // Distractors must not match the target combination
       const shapeTypes: ('circle' | 'square' | 'triangle')[] = ['circle', 'square', 'triangle'];
-      const availableColors = colorArray.filter(c => c !== targetColorNumber);
 
-      type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
-      color = availableColors[Math.floor(Math.random() * availableColors.length)] ?? targetColorNumber;
-
-      // If colors overlap for any reason, ensure the shape differs from the target
-      if (color === targetColorNumber && type === currentTargetShape) {
-        const alternativeTypes = shapeTypes.filter(shape => shape !== currentTargetShape);
-        type = alternativeTypes[Math.floor(Math.random() * alternativeTypes.length)] ?? type;
-      }
+      do {
+        type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+        color = ALL_COLORS[Math.floor(Math.random() * ALL_COLORS.length)];
+      } while (type === currentTargetShape && color === targetColorNumber);
     }
 
     const graphics = createShape(type, color, x, y, size);
