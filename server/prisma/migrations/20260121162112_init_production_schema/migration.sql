@@ -128,6 +128,7 @@ CREATE TABLE "LeaderboardPlayer" (
 -- CreateTable
 CREATE TABLE "LeaderboardAmbassador" (
     "userId" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
     "tier" "AmbassadorTier" NOT NULL,
     "activeReferrals" INTEGER NOT NULL,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
