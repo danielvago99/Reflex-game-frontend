@@ -376,17 +376,131 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               data: { status: 'active' },
             });
 
-            const updatedAmbassador = await tx.ambassadorProfile.update({
+            const ambassador = await tx.ambassadorProfile.update({
               where: { userId: referral.ambassadorId },
               data: { activeReferrals: { increment: 1 } },
-              select: { activeReferrals: true },
+              select: { activeReferrals: true, tier: true },
             });
 
-            const newTier = updatedAmbassador.activeReferrals >= 30 ? 'gold' : updatedAmbassador.activeReferrals >= 10 ? 'silver' : 'bronze';
+            let rewardPoints = 90;
+            if (ambassador.tier === 'silver') rewardPoints = 100;
+            if (ambassador.tier === 'gold') rewardPoints = 110;
 
-            await tx.ambassadorProfile.update({
+            await tx.playerRewards.update({
               where: { userId: referral.ambassadorId },
-              data: { tier: newTier },
+              data: { reflexPoints: { increment: rewardPoints } },
+            });
+
+            const newTier =
+              ambassador.activeReferrals >= 30 ? 'gold' : ambassador.activeReferrals >= 10 ? 'silver' : 'bronze';
+
+            if (newTier !== ambassador.tier) {
+              await tx.ambassadorProfile.update({
+                where: { userId: referral.ambassadorId },
+                data: { tier: newTier },
+              });
+            }
+          }
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const daily = await tx.dailyChallengeProgress.upsert({
+          where: { userId_date: { userId: state.userId, date: today } },
+          update: { matchesPlayed: { increment: 1 } },
+          create: { userId: state.userId, date: today, matchesPlayed: 1 },
+        });
+
+        if (!daily.completed && daily.matchesPlayed === 5) {
+          await tx.dailyChallengeProgress.update({
+            where: { id: daily.id },
+            data: { completed: true },
+          });
+
+          await tx.playerRewards.update({
+            where: { userId: state.userId },
+            data: { reflexPoints: { increment: 10 } },
+          });
+
+          const streakRecord = await tx.weeklyStreak.findFirst({
+            where: { userId: state.userId },
+          });
+
+          const normalizeDate = (value: Date) => {
+            const normalized = new Date(value);
+            normalized.setHours(0, 0, 0, 0);
+            return normalized;
+          };
+
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+
+          let nextStreak = 1;
+          let weekStartDate = today;
+          let weekEndDate = new Date(today);
+          weekEndDate.setDate(weekEndDate.getDate() + 7);
+
+          if (streakRecord) {
+            const lastUpdate = normalizeDate(streakRecord.updatedAt);
+            const weekEnded = today > normalizeDate(streakRecord.weekEndDate);
+
+            if (!weekEnded && lastUpdate.getTime() === yesterday.getTime()) {
+              nextStreak = streakRecord.currentDailyStreak + 1;
+              weekStartDate = streakRecord.weekStartDate;
+              weekEndDate = streakRecord.weekEndDate;
+            }
+          }
+
+          if (nextStreak >= 7) {
+            const resetWeekStart = new Date(today);
+            const resetWeekEnd = new Date(today);
+            resetWeekEnd.setDate(resetWeekEnd.getDate() + 7);
+
+            await tx.playerRewards.update({
+              where: { userId: state.userId },
+              data: { reflexPoints: { increment: 50 } },
+            });
+
+            if (streakRecord) {
+              await tx.weeklyStreak.update({
+                where: { id: streakRecord.id },
+                data: {
+                  currentDailyStreak: 0,
+                  completed: true,
+                  weekStartDate: resetWeekStart,
+                  weekEndDate: resetWeekEnd,
+                },
+              });
+            } else {
+              await tx.weeklyStreak.create({
+                data: {
+                  userId: state.userId,
+                  currentDailyStreak: 0,
+                  completed: true,
+                  weekStartDate: resetWeekStart,
+                  weekEndDate: resetWeekEnd,
+                },
+              });
+            }
+          } else if (streakRecord) {
+            await tx.weeklyStreak.update({
+              where: { id: streakRecord.id },
+              data: {
+                currentDailyStreak: nextStreak,
+                completed: false,
+                weekStartDate,
+                weekEndDate,
+              },
+            });
+          } else {
+            await tx.weeklyStreak.create({
+              data: {
+                userId: state.userId,
+                currentDailyStreak: nextStreak,
+                weekStartDate,
+                weekEndDate,
+              },
             });
           }
         }
