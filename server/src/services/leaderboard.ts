@@ -37,6 +37,8 @@ export const updateLeaderboards = async () => {
     }));
 
     await prisma.$transaction([
+      prisma.leaderboardPlayer.deleteMany({}),
+      prisma.leaderboardAmbassador.deleteMany({}),
       prisma.leaderboardPlayer.createMany({ data: playerEntries }),
       prisma.leaderboardAmbassador.createMany({ data: ambassadorEntries }),
     ]);
@@ -46,7 +48,7 @@ export const updateLeaderboards = async () => {
         playersUpdated: playerEntries.length,
         ambassadorsUpdated: ambassadorEntries.length,
       },
-      'Leaderboards updated successfully',
+      'Leaderboards refreshed successfully',
     );
   } catch (error) {
     logger.error({ error }, 'Failed to update leaderboards');

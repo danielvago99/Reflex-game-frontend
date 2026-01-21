@@ -237,7 +237,7 @@ model PlayerRewards {
  */
 
 model LeaderboardPlayer {
-  userId               String   // Môže byť unique ak je to "aktuálny" leaderboard
+  userId               String   @id // Môže byť unique ak je to "aktuálny" leaderboard
   position             Int
   
   avgReaction          Decimal  @db.Decimal(10, 2)
@@ -250,20 +250,19 @@ model LeaderboardPlayer {
 
   user User @relation(fields: [userId], references: [id])
   
-  @@id([userId, snapshotDate])
-  @@index([snapshotDate])
   @@index([position])
 }
 
 model LeaderboardAmbassador {
-  userId          String
+  userId          String   @id
   position        Int
   tier            AmbassadorTier
   activeReferrals Int
   snapshotDate    DateTime       @default(now())
 
-  @@id([userId, snapshotDate])
-  @@index([snapshotDate])
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([position])
 }
 
 /**
