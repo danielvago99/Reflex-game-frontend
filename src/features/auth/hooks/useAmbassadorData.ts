@@ -7,6 +7,7 @@ export interface AmbassadorData {
   totalReferrals?: number;
   activeReferrals?: number;
   totalRewards?: number;
+  referralsList?: ReferralPlayer[];
 }
 
 interface AmbassadorProfileResponse {
@@ -20,6 +21,18 @@ interface AmbassadorStatsResponse {
   activePlayers?: number;
   totalRewards?: number;
   rewardBalance?: number;
+}
+
+export interface ReferralPlayer {
+  id: string;
+  name: string;
+  matches: number;
+  status: 'pending' | 'active' | 'inactive';
+  createdAt: string;
+}
+
+interface AmbassadorReferralsResponse {
+  referrals?: ReferralPlayer[];
 }
 
 export function useAmbassadorData() {
@@ -37,7 +50,7 @@ export function useAmbassadorData() {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
-      const [profileRes, statsRes] = await Promise.all([
+      const [profileRes, statsRes, referralsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/ambassador/profile`, {
           method: 'GET',
           headers,
@@ -48,9 +61,14 @@ export function useAmbassadorData() {
           headers,
           credentials: 'include',
         }),
+        fetch(`${API_BASE_URL}/api/ambassador/referrals`, {
+          method: 'GET',
+          headers,
+          credentials: 'include',
+        }),
       ]);
 
-      if (profileRes.status === 401 || statsRes.status === 401) {
+      if (profileRes.status === 401 || statsRes.status === 401 || referralsRes.status === 401) {
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem('auth_token');
         }
@@ -69,8 +87,14 @@ export function useAmbassadorData() {
         throw new Error(message || 'Failed to load ambassador stats');
       }
 
+      if (!referralsRes.ok) {
+        const message = await referralsRes.text();
+        throw new Error(message || 'Failed to load referrals list');
+      }
+
       const profile = (await profileRes.json()) as AmbassadorProfileResponse;
       const stats = (await statsRes.json()) as AmbassadorStatsResponse;
+      const referrals = (await referralsRes.json()) as AmbassadorReferralsResponse;
 
       const origin =
         typeof window !== 'undefined' ? window.location.origin : 'https://reflex.game';
@@ -84,6 +108,7 @@ export function useAmbassadorData() {
         totalReferrals: stats.totalReferrals ?? 0,
         activeReferrals: stats.activeReferrals ?? stats.activePlayers ?? 0,
         totalRewards: stats.totalRewards ?? stats.rewardBalance ?? 0,
+        referralsList: referrals.referrals ?? [],
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to load ambassador data';
