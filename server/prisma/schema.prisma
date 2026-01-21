@@ -257,6 +257,7 @@ model LeaderboardPlayer {
 
 model LeaderboardAmbassador {
   userId          String
+  position        Int
   tier            AmbassadorTier
   activeReferrals Int
   snapshotDate    DateTime       @default(now())
