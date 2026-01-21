@@ -1,23 +1,58 @@
 -- CreateEnum
-CREATE TYPE "MatchType" AS ENUM ('friend', 'ranked');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'MatchType') THEN
+        CREATE TYPE "MatchType" AS ENUM ('friend', 'ranked');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "SessionStatus" AS ENUM ('active', 'completed', 'cancelled', 'disputed');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SessionStatus') THEN
+        CREATE TYPE "SessionStatus" AS ENUM ('active', 'completed', 'cancelled', 'disputed');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "RoundResult" AS ENUM ('win', 'lose', 'draw');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RoundResult') THEN
+        CREATE TYPE "RoundResult" AS ENUM ('win', 'lose', 'draw');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "AmbassadorTier" AS ENUM ('bronze', 'silver', 'gold');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AmbassadorTier') THEN
+        CREATE TYPE "AmbassadorTier" AS ENUM ('bronze', 'silver', 'gold');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ReferralStatus" AS ENUM ('pending', 'active', 'inactive');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ReferralStatus') THEN
+        CREATE TYPE "ReferralStatus" AS ENUM ('pending', 'active', 'inactive');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal', 'game_stake', 'game_payout', 'game_refund', 'referral_bonus', 'challenge_reward');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TransactionType') THEN
+        CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal', 'game_stake', 'game_payout', 'game_refund', 'referral_bonus', 'challenge_reward');
+    END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'confirmed', 'failed');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TransactionStatus') THEN
+        CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'confirmed', 'failed');
+    END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "User" (
