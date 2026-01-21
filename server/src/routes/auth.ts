@@ -182,6 +182,23 @@ router.post('/login', async (req, res) => {
           },
         });
 
+        await tx.playerRewards.create({
+          data: { userId: createdUser.id, reflexPoints: 0 },
+        });
+
+        const weekStartDate = new Date();
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekEndDate.getDate() + 7);
+
+        await tx.weeklyStreak.create({
+          data: {
+            userId: createdUser.id,
+            currentDailyStreak: 0,
+            weekStartDate,
+            weekEndDate,
+          },
+        });
+
         if (normalizedReferralCode) {
           const ambassador = await tx.ambassadorProfile.findUnique({
             where: { code: normalizedReferralCode },
