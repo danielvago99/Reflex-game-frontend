@@ -182,10 +182,6 @@ router.post('/login', async (req, res) => {
           },
         });
 
-        await tx.playerRewards.create({
-          data: { userId: createdUser.id, reflexPoints: 0 },
-        });
-
         const weekStartDate = new Date();
         const weekEndDate = new Date(weekStartDate);
         weekEndDate.setDate(weekEndDate.getDate() + 7);
@@ -198,6 +194,8 @@ router.post('/login', async (req, res) => {
             weekEndDate,
           },
         });
+
+        let hasReferrer = false;
 
         if (normalizedReferralCode) {
           const ambassador = await tx.ambassadorProfile.findUnique({
@@ -218,6 +216,7 @@ router.post('/login', async (req, res) => {
                   totalMatches: 0,
                 },
               });
+              hasReferrer = true;
 
               await tx.ambassadorProfile.update({
                 where: { userId: ambassador.userId },
@@ -233,6 +232,15 @@ router.post('/login', async (req, res) => {
             }
           }
         }
+
+        await tx.playerRewards.create({
+          data: {
+            userId: createdUser.id,
+            reflexPoints: hasReferrer ? 30 : 0,
+            totalFreeStakes: 0,
+            dailyStreak: 0,
+          },
+        });
 
         return createdUser;
       });

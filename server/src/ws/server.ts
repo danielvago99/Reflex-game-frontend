@@ -384,7 +384,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
             let rewardPoints = 90;
             if (ambassador.tier === 'silver') rewardPoints = 100;
-            if (ambassador.tier === 'gold') rewardPoints = 110;
+            if (ambassador.tier === 'gold') rewardPoints = 130;
 
             await tx.playerRewards.update({
               where: { userId: referral.ambassadorId },
