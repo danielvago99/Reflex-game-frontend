@@ -122,7 +122,7 @@ CREATE TABLE "LeaderboardPlayer" (
     "totalVolumeSolPlayed" DECIMAL(18,9) NOT NULL,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "LeaderboardPlayer_pkey" PRIMARY KEY ("userId","snapshotDate")
+    CONSTRAINT "LeaderboardPlayer_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateTable
@@ -133,7 +133,7 @@ CREATE TABLE "LeaderboardAmbassador" (
     "activeReferrals" INTEGER NOT NULL,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "LeaderboardAmbassador_pkey" PRIMARY KEY ("userId","snapshotDate")
+    CONSTRAINT "LeaderboardAmbassador_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateTable
@@ -217,13 +217,10 @@ CREATE INDEX "GameSession_loserId_idx" ON "GameSession"("loserId");
 CREATE INDEX "GameSession_snapshotDate_idx" ON "GameSession"("snapshotDate");
 
 -- CreateIndex
-CREATE INDEX "LeaderboardPlayer_snapshotDate_idx" ON "LeaderboardPlayer"("snapshotDate");
-
--- CreateIndex
 CREATE INDEX "LeaderboardPlayer_position_idx" ON "LeaderboardPlayer"("position");
 
 -- CreateIndex
-CREATE INDEX "LeaderboardAmbassador_snapshotDate_idx" ON "LeaderboardAmbassador"("snapshotDate");
+CREATE INDEX "LeaderboardAmbassador_position_idx" ON "LeaderboardAmbassador"("position");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AmbassadorProfile_code_key" ON "AmbassadorProfile"("code");
@@ -260,6 +257,9 @@ ALTER TABLE "PlayerRewards" ADD CONSTRAINT "PlayerRewards_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "LeaderboardPlayer" ADD CONSTRAINT "LeaderboardPlayer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LeaderboardAmbassador" ADD CONSTRAINT "LeaderboardAmbassador_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AmbassadorProfile" ADD CONSTRAINT "AmbassadorProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
