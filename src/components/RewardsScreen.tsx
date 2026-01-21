@@ -1,101 +1,24 @@
-import { ArrowLeft, Zap, Gift, Target, Trophy, Clock, Flame, Star, TrendingUp, Coins, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, Zap, Target, Trophy, Flame, Coins, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
-import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
-import type { AmbassadorData } from '../features/auth/hooks/useAmbassadorData';
+import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 
 interface RewardsScreenProps {
   onNavigate: (screen: string) => void;
-  stats?: PlayerStats;
-  ambassadorStats?: AmbassadorData | null;
-  isLoading?: boolean;
 }
 
-export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }: RewardsScreenProps) {
-  const [reflexPoints, setReflexPoints] = useState(0);
-  const [dailyProgress, setDailyProgress] = useState(0); // Matches played today
-  const [canClaimDaily, setCanClaimDaily] = useState(false);
-  const [lastDailyClaim, setLastDailyClaim] = useState<Date | null>(null);
-  const [streak, setStreak] = useState(3);
-  const [ambassadorRewards, setAmbassadorRewards] = useState(0);
-  const [dailyRewardsEarned, setDailyRewardsEarned] = useState(0);
-  const [activePlayers, setActivePlayers] = useState(0); // Changed from ambassadorPointsTotal
-  const [freeStakesAvailable, setFreeStakesAvailable] = useState(0);
-  const [freeStakes005, setFreeStakes005] = useState(0);
-  const [freeStakes010, setFreeStakes010] = useState(0);
-  const [freeStakes020, setFreeStakes020] = useState(0);
+export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
+  const { data, loading, redeemStake } = useRewardsData();
+  const reflexPoints = data?.reflexPoints ?? 0;
+  const streak = data?.streak ?? 0;
+  const freeStakes005 = data?.freeStakes005 ?? 0;
+  const freeStakes010 = data?.freeStakes010 ?? 0;
+  const freeStakes020 = data?.freeStakes020 ?? 0;
+  const freeStakesAvailable = freeStakes005 + freeStakes010 + freeStakes020;
+  const activePlayers = 0;
 
-  useEffect(() => {
-    const totalFreeStakes = freeStakes005 + freeStakes010 + freeStakes020;
-    setFreeStakesAvailable(totalFreeStakes);
-    setCanClaimDaily(dailyProgress >= 5);
-  }, [dailyProgress, freeStakes005, freeStakes010, freeStakes020]);
-
-  useEffect(() => {
-    if (stats) {
-      setReflexPoints(Math.round(stats.totalSolWon ?? 0));
-      setDailyProgress(stats.totalMatches ?? 0);
-      setStreak(stats.currentStreak ?? 0);
-      setDailyRewardsEarned(Number(stats.totalSolWon ?? 0));
-      setFreeStakes005(0);
-      setFreeStakes010(0);
-      setFreeStakes020(0);
-    }
-  }, [stats]);
-
-  useEffect(() => {
-    if (ambassadorStats) {
-      setActivePlayers(ambassadorStats.activeReferrals ?? 0);
-      setAmbassadorRewards(ambassadorStats.totalRewards ?? 0);
-    }
-  }, [ambassadorStats]);
-
-  const claimDailyReward = () => {
-    if (!canClaimDaily) return;
-
-    const baseReward = 10;
-    const totalReward = baseReward;
-
-    const newPoints = reflexPoints + totalReward;
-    setReflexPoints(newPoints);
-
-    const newDailyTotal = dailyRewardsEarned + totalReward;
-    setDailyRewardsEarned(newDailyTotal);
-
-    const newStreak = streak + 1;
-    setStreak(newStreak);
-
-    setDailyProgress(0);
-
-    setLastDailyClaim(new Date());
-    setCanClaimDaily(false);
-
-    toast.success('Daily Reward Claimed!', {
-      description: `+${totalReward} Reflex Points`,
-      duration: 4000,
-    });
-  };
-
-  const claimAmbassadorRewards = () => {
-    if (ambassadorRewards === 0) return;
-
-    const newPoints = reflexPoints + ambassadorRewards;
-    setReflexPoints(newPoints);
-
-    const newAmbassadorTotal = activePlayers + ambassadorRewards;
-    setActivePlayers(newAmbassadorTotal);
-
-    setAmbassadorRewards(0);
-
-    toast.success('Ambassador Rewards Claimed!', {
-      description: `+${ambassadorRewards} Reflex Points added to your account`,
-      duration: 4000,
-    });
-  };
-
-  const redeemForStake = (amount: number, cost: number) => {
+  const handleRedeem = async (amount: number, cost: number) => {
     if (reflexPoints < cost) {
       toast.error('Insufficient Reflex Points', {
         description: `You need ${cost} points to redeem ${amount} SOL stake`,
@@ -103,20 +26,17 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
       return;
     }
 
-    const newPoints = reflexPoints - cost;
-    setReflexPoints(newPoints);
-
-    if (amount === 0.05) setFreeStakes005((prev) => prev + 1);
-    else if (amount === 0.1 || amount === 0.10) setFreeStakes010((prev) => prev + 1);
-    else if (amount === 0.2 || amount === 0.20) setFreeStakes020((prev) => prev + 1);
-
-    toast.success('Stake Redeemed!', {
-      description: `You received ${amount} SOL free stake. -${cost} Reflex Points`,
-      duration: 4000,
-    });
+    try {
+      await redeemStake(amount, cost);
+      toast.success('Stake Redeemed!', {
+        description: `You received ${amount} SOL free stake. -${cost} Reflex Points`,
+        duration: 4000,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to redeem stake.';
+      toast.error('Redemption failed', { description: message });
+    }
   };
-
-  const progressPercentage = Math.min((dailyProgress / 5) * 100, 100);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
@@ -205,7 +125,7 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
 
               <div className="p-3 text-center flex flex-col items-center justify-center">
                 <Target className="w-4 h-4 text-[#00FFA3] mb-2" />
-                <div className="text-2xl text-white mb-1">{dailyRewardsEarned}</div>
+                <div className="text-2xl text-white mb-1">{streak}</div>
                 <p className="text-xs text-gray-400 leading-tight">Daily<br/>Streak</p>
               </div>
             </div>
@@ -280,15 +200,17 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
                       </div>
                     </div>
                     <button
-                      onClick={() => redeemForStake(0.05, 90)}
-                      disabled={reflexPoints < 90}
+                      onClick={() => handleRedeem(0.05, 90)}
+                      disabled={loading || reflexPoints < 90}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
-                        reflexPoints >= 90
+                        !loading && reflexPoints >= 90
                           ? 'bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A]'
                           : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      <span className="text-sm">{reflexPoints >= 90 ? 'Redeem 0.05 SOL' : 'Not enough points'}</span>
+                      <span className="text-sm">
+                        {loading ? 'Loading...' : reflexPoints >= 90 ? 'Redeem 0.05 SOL' : 'Not enough points'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -313,15 +235,17 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
                       </div>
                     </div>
                     <button
-                      onClick={() => redeemForStake(0.10, 150)}
-                      disabled={reflexPoints < 150}
+                      onClick={() => handleRedeem(0.10, 150)}
+                      disabled={loading || reflexPoints < 150}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
-                        reflexPoints >= 150
+                        !loading && reflexPoints >= 150
                           ? 'bg-gradient-to-r from-[#7C3AED] to-[#00FFA3] hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] text-white'
                           : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      <span className="text-sm">{reflexPoints >= 150 ? 'Redeem 0.1 SOL' : 'Not enough points'}</span>
+                      <span className="text-sm">
+                        {loading ? 'Loading...' : reflexPoints >= 150 ? 'Redeem 0.1 SOL' : 'Not enough points'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -346,15 +270,17 @@ export function RewardsScreen({ onNavigate, stats, ambassadorStats, isLoading }:
                       </div>
                     </div>
                     <button
-                      onClick={() => redeemForStake(0.20, 250)}
-                      disabled={reflexPoints < 250}
+                      onClick={() => handleRedeem(0.20, 250)}
+                      disabled={loading || reflexPoints < 250}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
-                        reflexPoints >= 250
+                        !loading && reflexPoints >= 250
                           ? 'bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white'
                           : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      <span className="text-sm">{reflexPoints >= 250 ? 'Redeem 0.2 SOL' : 'Not enough points'}</span>
+                      <span className="text-sm">
+                        {loading ? 'Loading...' : reflexPoints >= 250 ? 'Redeem 0.2 SOL' : 'Not enough points'}
+                      </span>
                     </button>
                   </div>
                 </div>
