@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'sonner';
 
 export function ReferralHandler() {
   const { code } = useParams<{ code: string }>();
@@ -9,11 +8,7 @@ export function ReferralHandler() {
   useEffect(() => {
     if (code) {
       localStorage.setItem('referralCode', code);
-
-      toast.success('Referral code applied!', {
-        description: 'Log in and earn SOL.',
-        duration: 2000,
-      });
+      console.log('Referral code captured:', code);
     }
 
     navigate('/', { replace: true });
