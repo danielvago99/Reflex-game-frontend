@@ -91,6 +91,7 @@ model User {
   
   // Rebríčky
   leaderboardEntries LeaderboardPlayer[]
+  leaderboardAmbassador LeaderboardAmbassador?
 
   // Referral systém
   ambassadorProfile AmbassadorProfile?
