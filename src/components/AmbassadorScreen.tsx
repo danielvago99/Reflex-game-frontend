@@ -1,6 +1,7 @@
 import { ArrowLeft, Copy, Share2, Gift, Users, Trophy, Check, Zap, Target } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { useAmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 import { copyToClipboard } from '../utils/clipboard';
 import { FuturisticBackground } from './FuturisticBackground';
 
@@ -21,14 +22,18 @@ export function AmbassadorScreen({
   playerName,
   isLoading,
 }: AmbassadorScreenProps) {
+  const { data } = useAmbassadorData();
   const [copied, setCopied] = useState(false);
-  const [activePlayers, setActivePlayers] = useState(initialActivePlayers);
+  const resolvedReferralLink = data?.referralLink ?? referralLink;
+  const resolvedActivePlayers = data?.activeReferrals ?? initialActivePlayers;
+  const resolvedTotalInvited = data?.totalReferrals ?? initialTotalInvited;
+  const [activePlayers, setActivePlayers] = useState(resolvedActivePlayers);
 
   useEffect(() => {
-    setActivePlayers(initialActivePlayers);
-  }, [initialActivePlayers]);
+    setActivePlayers(resolvedActivePlayers);
+  }, [resolvedActivePlayers]);
 
-  const totalInvited = initialTotalInvited ?? activePlayers;
+  const totalInvited = resolvedTotalInvited ?? activePlayers;
   
   // Calculate current tier based on active players
   const getCurrentTier = (players: number): string => {
@@ -53,9 +58,9 @@ export function AmbassadorScreen({
   const tierProgress = calculateTierProgress(activePlayers, currentTier);
 
   const handleCopyLink = () => {
-    if (!referralLink) return;
+    if (!resolvedReferralLink) return;
 
-    copyToClipboard(referralLink);
+    copyToClipboard(resolvedReferralLink);
     setCopied(true);
     toast.success('Referral link copied!', {
       description: 'Share it with your friends to earn Reflex Points',
@@ -64,9 +69,15 @@ export function AmbassadorScreen({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const referredPlayers = [
-    // Empty by default - will show empty state when totalInvited is 0
-  ];
+  const fetchedReferrals = data?.referralsList ?? [];
+  const referredPlayers = fetchedReferrals.map((player) => ({
+    id: player.id,
+    name: player.name,
+    status: player.status,
+    matches: player.matches ?? 0,
+    progress: Math.min(((player.matches ?? 0) / 10) * 100, 100),
+    points: player.status === 'active' ? 100 : 0,
+  }));
 
   const getTierInfo = (tier: string) => {
     switch(tier) {

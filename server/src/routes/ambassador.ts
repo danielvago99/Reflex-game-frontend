@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../db/prisma';
 import { attachUser, requireAuth } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -85,6 +86,44 @@ router.get('/stats', attachUser, requireAuth, async (req, res) => {
   const totalRewards = rewardAggregate._sum.amount ? Number(rewardAggregate._sum.amount) : 0;
 
   return res.json({ totalReferrals, activeReferrals, totalRewards });
+});
+
+router.get('/referrals', attachUser, requireAuth, async (req, res) => {
+  const authUser = req.user;
+
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const referrals = await prisma.referral.findMany({
+      where: { ambassadorId: authUser.id },
+      include: {
+        referred: {
+          select: {
+            username: true,
+            walletAddress: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formattedReferrals = referrals.map((ref) => ({
+      id: ref.referredId,
+      name:
+        ref.referred.username ||
+        `${ref.referred.walletAddress.slice(0, 4)}...${ref.referred.walletAddress.slice(-4)}`,
+      matches: ref.totalMatches,
+      status: ref.status,
+      createdAt: ref.createdAt,
+    }));
+
+    return res.json({ referrals: formattedReferrals });
+  } catch (error) {
+    logger.error({ error }, 'Failed to fetch referrals');
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 export { router as ambassadorRouter };
