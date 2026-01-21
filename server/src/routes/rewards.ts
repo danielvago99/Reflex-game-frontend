@@ -63,53 +63,70 @@ router.post('/redeem', attachUser, requireAuth, async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { amount, cost } = req.body as { amount?: number; cost?: number };
+  const { amount } = req.body as { amount?: number };
 
-  if (typeof amount !== 'number' || typeof cost !== 'number') {
+  if (typeof amount !== 'number') {
     return res.status(400).json({ error: 'Invalid redeem request.' });
   }
 
-  const stakeField =
-    amount === 0.05
-      ? 'freeStakes05Sol'
-      : amount === 0.1
-        ? 'freeStakes01Sol'
-        : amount === 0.2
-          ? 'freeStakes02Sol'
-          : null;
+  let cost = 0;
+  let stakeField: 'freeStakes05Sol' | 'freeStakes01Sol' | 'freeStakes02Sol' | null = null;
+
+  if (amount === 0.05) {
+    cost = 90;
+    stakeField = 'freeStakes05Sol';
+  } else if (amount === 0.1) {
+    cost = 170;
+    stakeField = 'freeStakes01Sol';
+  } else if (amount === 0.2) {
+    cost = 320;
+    stakeField = 'freeStakes02Sol';
+  }
 
   if (!stakeField) {
-    return res.status(400).json({ error: 'Unsupported stake amount.' });
+    return res.status(400).json({ error: 'Invalid stake amount.' });
   }
 
-  const rewards = await prisma.playerRewards.findUnique({
-    where: { userId: authUser.id },
-    select: {
-      reflexPoints: true,
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const rewards = await tx.playerRewards.findUnique({
+        where: { userId: authUser.id },
+        select: { reflexPoints: true },
+      });
 
-  if (!rewards) {
-    return res.status(404).json({ error: 'Rewards record not found.' });
-  }
+      if (!rewards) {
+        throw new Error('Rewards record not found');
+      }
 
-  if (rewards.reflexPoints < cost) {
-    return res.status(400).json({ error: 'Insufficient Reflex Points.' });
-  }
+      if (rewards.reflexPoints < cost) {
+        throw new Error('Insufficient points');
+      }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.playerRewards.update({
-      where: { userId: authUser.id },
-      data: {
-        reflexPoints: { decrement: cost },
-        totalFreeStakes: { increment: 1 },
-        [stakeField]: { increment: 1 },
-      },
+      await tx.playerRewards.update({
+        where: { userId: authUser.id },
+        data: {
+          reflexPoints: { decrement: cost },
+          totalFreeStakes: { increment: 1 },
+          [stakeField]: { increment: 1 },
+        },
+      });
     });
-  });
 
-  const payload = await getRewardsPayload(authUser.id);
-  return res.json(payload);
+    const payload = await getRewardsPayload(authUser.id);
+    return res.json(payload);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Insufficient points') {
+        return res.status(400).json({ error: 'Insufficient Reflex Points.' });
+      }
+
+      if (error.message === 'Rewards record not found') {
+        return res.status(404).json({ error: 'Rewards record not found.' });
+      }
+    }
+
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
 });
 
 export { router as rewardsRouter };
