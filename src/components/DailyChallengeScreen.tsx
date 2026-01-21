@@ -1,12 +1,19 @@
 import { ArrowLeft } from 'lucide-react';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 
 interface DailyChallengeScreenProps {
   onBack: () => void;
 }
 
 export function DailyChallengeScreen({ onBack }: DailyChallengeScreenProps) {
+  const { data } = useRewardsData();
+  const matchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
+  const matchesTarget = data?.dailyTarget ?? 5;
+  const streak = data?.dailyStreak ?? data?.streak ?? 0;
+  const isCompleted = matchesPlayed >= matchesTarget;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
       {/* Background effects */}
@@ -28,7 +35,13 @@ export function DailyChallengeScreen({ onBack }: DailyChallengeScreenProps) {
         </div>
 
         {/* Daily Challenge Full Card */}
-        <DailyChallengeCard variant="full" />
+        <DailyChallengeCard
+          variant="full"
+          matchesPlayed={matchesPlayed}
+          matchesTarget={matchesTarget}
+          currentStreak={streak}
+          isCompleted={isCompleted}
+        />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { TransactionModal } from './TransactionModal';
 import { getFreeStakes, useFreeStake, FreeStake } from '../utils/reflexPoints';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 
 interface LobbyScreenProps {
   onNavigate: (screen: string) => void;
@@ -15,6 +16,7 @@ interface LobbyScreenProps {
 }
 
 export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
+  const { data } = useRewardsData();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(null);
   const [selectedStake, setSelectedStake] = useState('0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -24,6 +26,10 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [selectedFreeStake, setSelectedFreeStake] = useState<string | null>(null);
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
+  const dailyMatchesTarget = data?.dailyTarget ?? 5;
+  const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
+  const dailyChallengeCompleted = dailyMatchesPlayed >= dailyMatchesTarget;
 
   useEffect(() => {
     setFreeStakes(getFreeStakes());
@@ -175,7 +181,14 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
         {/* Daily Challenge Compact Widget */}
         <div className="mb-4 xs:mb-6">
-          <DailyChallengeCard variant="compact" onClick={() => onNavigate('daily-challenge')} />
+          <DailyChallengeCard
+            variant="compact"
+            onClick={() => onNavigate('daily-challenge')}
+            matchesPlayed={dailyMatchesPlayed}
+            matchesTarget={dailyMatchesTarget}
+            currentStreak={dailyStreak}
+            isCompleted={dailyChallengeCompleted}
+          />
         </div>
 
         {/* Tabs for Quick Play vs Friends */}
