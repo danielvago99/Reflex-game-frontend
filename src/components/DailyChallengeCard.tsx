@@ -1,32 +1,51 @@
-import { useState, useEffect } from 'react';
 import { Trophy, Flame, Zap, Target, TrendingUp, Clock, Gift, ChevronRight } from 'lucide-react';
-import { getDailyChallengeInfo, getTimeUntilReset } from '../utils/dailyChallenge';
 import { Progress } from './ui/progress';
 
 interface DailyChallengeCardProps {
   variant?: 'full' | 'compact' | 'banner';
   onClick?: () => void;
+  matchesPlayed: number;
+  matchesTarget?: number;
+  currentStreak: number;
+  isCompleted: boolean;
+  timeLeft?: string;
 }
 
-export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallengeCardProps) {
-  const [info, setInfo] = useState(getDailyChallengeInfo());
-  const [timeLeft, setTimeLeft] = useState(getTimeUntilReset());
+const DAILY_REWARD = 10;
+const WEEKLY_BONUS = 50;
+const WEEKLY_STREAK_TARGET = 7;
 
-  useEffect(() => {
-    const refresh = () => {
-      setInfo(getDailyChallengeInfo());
-      setTimeLeft(getTimeUntilReset());
-    };
+const getTimeUntilReset = (): string => {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setHours(24, 0, 0, 0);
 
-    refresh();
-    const interval = setInterval(refresh, 30000); // Update every 30 seconds
+  const diff = tomorrow.getTime() - now.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    return () => clearInterval(interval);
-  }, []);
+  return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+};
+
+export function DailyChallengeCard({
+  variant = 'banner',
+  onClick,
+  matchesPlayed,
+  matchesTarget = 5,
+  currentStreak,
+  isCompleted,
+  timeLeft,
+}: DailyChallengeCardProps) {
+  const progressPercent = matchesTarget > 0 ? Math.round((matchesPlayed / matchesTarget) * 100) : 0;
+  const cappedProgress = Math.min(progressPercent, 100);
+  const matchesRemaining = Math.max(0, matchesTarget - matchesPlayed);
+  const daysUntilWeeklyBonus = Math.max(0, WEEKLY_STREAK_TARGET - currentStreak);
+  const timeLeftLabel = timeLeft ?? getTimeUntilReset();
+  const totalDaysCompleted = 0;
 
   // Compact variant for lobby
   if (variant === 'compact') {
-    if (info.isCompleted) return null; // Hide when complete
+    if (isCompleted) return null; // Hide when complete
 
     return (
       <button
@@ -45,17 +64,17 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-white text-sm font-medium">Daily Challenge</span>
                 <div className="px-2 py-0.5 bg-[#00FFA3]/20 rounded-full">
-                  <span className="text-[10px] text-[#00FFA3] font-medium">{info.matchesCompleted}/{info.matchesTarget}</span>
+                  <span className="text-[10px] text-[#00FFA3] font-medium">{matchesPlayed}/{matchesTarget}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] rounded-full transition-all duration-500"
-                    style={{ width: `${info.progressPercent}%` }}
+                    style={{ width: `${cappedProgress}%` }}
                   ></div>
                 </div>
-                <span className="text-xs text-gray-400">{info.matchesRemaining} left</span>
+                <span className="text-xs text-gray-400">{matchesRemaining} left</span>
               </div>
             </div>
 
@@ -104,18 +123,18 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-white font-bold text-lg">Daily Challenge</h3>
-                    {info.currentStreak > 0 && (
+                    {currentStreak > 0 && (
                       <div className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-[#FF6B6B]/30 to-[#FFD93D]/30 rounded-full border border-[#FF6B6B]/50">
                         <Flame className="w-3.5 h-3.5 text-[#FF6B6B]" />
-                        <span className="text-xs text-white font-medium">{info.currentStreak} day streak!</span>
+                        <span className="text-xs text-white font-medium">{currentStreak} day streak!</span>
                       </div>
                     )}
                   </div>
                   
                   <p className="text-gray-300 text-sm mb-2">
-                    {info.isCompleted 
-                      ? `✅ Challenge Complete! +${info.dailyReward} Points Earned`
-                      : `Complete ${info.matchesRemaining} more ${info.matchesRemaining === 1 ? 'match' : 'matches'} to earn ${info.dailyReward} Reflex Points!`
+                    {isCompleted 
+                      ? `✅ Challenge Complete! +${DAILY_REWARD} Points Earned`
+                      : `Complete ${matchesRemaining} more ${matchesRemaining === 1 ? 'match' : 'matches'} to earn ${DAILY_REWARD} Reflex Points!`
                     }
                   </p>
 
@@ -124,14 +143,14 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
                     <div className="flex-1 h-2.5 bg-white/10 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] transition-all duration-500 rounded-full relative overflow-hidden"
-                        style={{ width: `${info.progressPercent}%` }}
+                        style={{ width: `${cappedProgress}%` }}
                       >
                         {/* Shimmer effect */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
                       </div>
                     </div>
                     <span className="text-sm text-[#00FFA3] font-bold whitespace-nowrap">
-                      {info.matchesCompleted}/{info.matchesTarget}
+                      {matchesPlayed}/{matchesTarget}
                     </span>
                   </div>
                 </div>
@@ -140,22 +159,22 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
               {/* Right side - Rewards */}
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Streak progress to weekly bonus */}
-                {info.currentStreak > 0 && info.currentStreak < 7 && (
+                {currentStreak > 0 && currentStreak < 7 && (
                   <div className="hidden sm:flex flex-col items-center gap-1 px-3 py-2 bg-gradient-to-br from-[#7C3AED]/30 to-[#FF6B6B]/30 rounded-xl border border-[#7C3AED]/50">
                     <div className="flex items-center gap-1">
                       <Flame className="w-4 h-4 text-[#FF6B6B]" />
-                      <span className="text-white text-xs font-medium">{info.daysUntilWeeklyBonus} more</span>
+                      <span className="text-white text-xs font-medium">{daysUntilWeeklyBonus} more</span>
                     </div>
-                    <div className="text-[10px] text-gray-300">for +{info.weeklyBonus} bonus</div>
+                    <div className="text-[10px] text-gray-300">for +{WEEKLY_BONUS} bonus</div>
                   </div>
                 )}
 
                 {/* Weekly bonus achieved */}
-                {info.currentStreak >= 7 && (
+                {currentStreak >= 7 && (
                   <div className="hidden sm:flex flex-col items-center gap-1 px-3 py-2 bg-gradient-to-br from-[#FFD93D] to-[#FF6B6B] rounded-xl border border-[#FFD93D] animate-pulse">
                     <div className="flex items-center gap-1">
                       <Gift className="w-4 h-4 text-[#0B0F1A]" />
-                      <span className="text-[#0B0F1A] text-xs font-bold">+{info.weeklyBonus} Bonus!</span>
+                      <span className="text-[#0B0F1A] text-xs font-bold">+{WEEKLY_BONUS} Bonus!</span>
                     </div>
                     <div className="text-[10px] text-[#0B0F1A] font-medium">7-Day Streak</div>
                   </div>
@@ -173,10 +192,10 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
             <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-xs text-gray-400">Resets in {timeLeft}</span>
+                <span className="text-xs text-gray-400">Resets in {timeLeftLabel}</span>
               </div>
-              {info.totalDaysCompleted > 0 && (
-                <span className="text-xs text-gray-400">{info.totalDaysCompleted} total days completed</span>
+              {totalDaysCompleted > 0 && (
+                <span className="text-xs text-gray-400">{totalDaysCompleted} total days completed</span>
               )}
             </div>
           </div>
@@ -222,12 +241,12 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
               <div className="text-right">
                 <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 mb-1.5">
                   <Clock className="w-3.5 h-3.5 text-[#00FFA3]" />
-                  <span className="text-xs text-white">{timeLeft}</span>
+                  <span className="text-xs text-white">{timeLeftLabel}</span>
                 </div>
-                {info.currentStreak > 0 && (
+                {currentStreak > 0 && (
                   <div className="flex items-center gap-2 px-2.5 py-1.5 bg-gradient-to-r from-[#FF6B6B]/30 to-[#FFD93D]/30 rounded-lg border border-[#FF6B6B]/50">
                     <Flame className="w-3.5 h-3.5 text-[#FF6B6B]" />
-                    <span className="text-xs text-white font-medium">{info.currentStreak} day streak</span>
+                    <span className="text-xs text-white font-medium">{currentStreak} day streak</span>
                   </div>
                 )}
               </div>
@@ -239,15 +258,15 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
                 <div>
                   <h3 className="text-white text-sm font-semibold mb-0.5">Today's Progress</h3>
                   <p className="text-gray-400 text-xs">
-                    {info.isCompleted 
+                    {isCompleted 
                       ? "Amazing! Challenge complete!"
-                      : `${info.matchesRemaining} ${info.matchesRemaining === 1 ? 'match' : 'matches'} remaining`
+                      : `${matchesRemaining} ${matchesRemaining === 1 ? 'match' : 'matches'} remaining`
                     }
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="text-xl text-[#00FFA3] font-bold drop-shadow-[0_0_10px_rgba(0,255,163,0.5)]">
-                    {info.matchesCompleted}/{info.matchesTarget}
+                    {matchesPlayed}/{matchesTarget}
                   </div>
                   <div className="text-xs text-gray-400">Matches</div>
                 </div>
@@ -255,11 +274,11 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
 
               {/* Large Progress Bar */}
               <div className="space-y-1">
-                <Progress value={info.progressPercent} className="h-2.5" />
+                <Progress value={cappedProgress} className="h-2.5" />
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{info.progressPercent}% Complete</span>
-                  {!info.isCompleted && (
-                    <span className="text-[#00FFA3]">+{info.dailyReward} RP</span>
+                  <span className="text-gray-400">{cappedProgress}% Complete</span>
+                  {!isCompleted && (
+                    <span className="text-[#00FFA3]">+{DAILY_REWARD} RP</span>
                   )}
                 </div>
               </div>
@@ -278,7 +297,7 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
                     <h4 className="text-white text-xs">Daily Reward</h4>
                   </div>
                   <div className="text-xl text-[#00FFA3] font-bold mb-0.5 drop-shadow-[0_0_10px_rgba(0,255,163,0.5)]">
-                    +{info.dailyReward}
+                    +{DAILY_REWARD}
                   </div>
                   <p className="text-xs text-gray-400">Reflex Points</p>
                 </div>
@@ -295,12 +314,12 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
                     <h4 className="text-white text-xs">7-Day Bonus</h4>
                   </div>
                   <div className="text-xl text-[#FFD93D] font-bold mb-0.5 drop-shadow-[0_0_10px_rgba(255,217,61,0.5)]">
-                    +{info.weeklyBonus}
+                    +{WEEKLY_BONUS}
                   </div>
                   <p className="text-xs text-gray-400">
-                    {info.currentStreak >= 7 
+                    {currentStreak >= 7 
                       ? "Keep the streak alive!"
-                      : `${info.daysUntilWeeklyBonus} more ${info.daysUntilWeeklyBonus === 1 ? 'day' : 'days'}`
+                      : `${daysUntilWeeklyBonus} more ${daysUntilWeeklyBonus === 1 ? 'day' : 'days'}`
                     }
                   </p>
                 </div>
@@ -308,21 +327,23 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
             </div>
 
             {/* Stats */}
-            {info.totalDaysCompleted > 0 && (
+            {totalDaysCompleted > 0 && (
               <div className="mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-center gap-6">
                   <div className="text-center">
-                    <div className="text-lg text-white font-bold mb-0.5">{info.totalDaysCompleted}</div>
+                    <div className="text-lg text-white font-bold mb-0.5">{totalDaysCompleted}</div>
                     <div className="text-xs text-gray-400 uppercase">Total Days</div>
                   </div>
                   <div className="w-px h-10 bg-white/10"></div>
                   <div className="text-center">
-                    <div className="text-lg text-white font-bold mb-0.5">{info.currentStreak}</div>
+                    <div className="text-lg text-white font-bold mb-0.5">{currentStreak}</div>
                     <div className="text-xs text-gray-400 uppercase">Current Streak</div>
                   </div>
                   <div className="w-px h-10 bg-white/10"></div>
                   <div className="text-center">
-                    <div className="text-lg text-[#00FFA3] font-bold mb-0.5">{info.totalDaysCompleted * info.dailyReward + Math.floor(info.currentStreak / 7) * info.weeklyBonus}</div>
+                    <div className="text-lg text-[#00FFA3] font-bold mb-0.5">
+                      {totalDaysCompleted * DAILY_REWARD + Math.floor(currentStreak / 7) * WEEKLY_BONUS}
+                    </div>
                     <div className="text-xs text-gray-400 uppercase">Total RP</div>
                   </div>
                 </div>
@@ -342,7 +363,7 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
             </div>
             <div>
               <p className="text-white text-xs font-medium mb-0.5">Daily Goal</p>
-              <p className="text-gray-400 text-xs">Complete 5 matches each day to earn {info.dailyReward} Reflex Points</p>
+              <p className="text-gray-400 text-xs">Complete 5 matches each day to earn {DAILY_REWARD} Reflex Points</p>
             </div>
           </div>
           <div className="flex items-start gap-2.5">
@@ -360,7 +381,7 @@ export function DailyChallengeCard({ variant = 'banner', onClick }: DailyChallen
             </div>
             <div>
               <p className="text-white text-xs font-medium mb-0.5">Weekly Bonus</p>
-              <p className="text-gray-400 text-xs">Maintain a 7-day streak to earn a massive {info.weeklyBonus} point bonus!</p>
+              <p className="text-gray-400 text-xs">Maintain a 7-day streak to earn a massive {WEEKLY_BONUS} point bonus!</p>
             </div>
           </div>
         </div>

@@ -9,6 +9,8 @@ export interface RewardsData {
   freeStakes005: number;
   freeStakes010: number;
   freeStakes020: number;
+  dailyMatchesPlayed?: number;
+  dailyStreak?: number;
 }
 
 interface RedeemResponse extends RewardsData {}

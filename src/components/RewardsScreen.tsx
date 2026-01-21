@@ -11,7 +11,10 @@ interface RewardsScreenProps {
 export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
   const { data, loading, redeemStake } = useRewardsData();
   const reflexPoints = data?.reflexPoints ?? 0;
-  const streak = data?.streak ?? 0;
+  const streak = data?.dailyStreak ?? data?.streak ?? 0;
+  const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
+  const dailyMatchesTarget = data?.dailyTarget ?? 5;
+  const dailyChallengeCompleted = dailyMatchesPlayed >= dailyMatchesTarget;
   const freeStakes005 = data?.freeStakes005 ?? 0;
   const freeStakes010 = data?.freeStakes010 ?? 0;
   const freeStakes020 = data?.freeStakes020 ?? 0;
@@ -151,7 +154,14 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
 
         {/* Daily Challenge Card - New Component */}
         <div className="mb-6">
-          <DailyChallengeCard variant="banner" onClick={() => onNavigate('daily-challenge')} />
+          <DailyChallengeCard
+            variant="banner"
+            onClick={() => onNavigate('daily-challenge')}
+            matchesPlayed={dailyMatchesPlayed}
+            matchesTarget={dailyMatchesTarget}
+            currentStreak={streak}
+            isCompleted={dailyChallengeCompleted}
+          />
         </div>
 
         {/* Redeem for Stakes Section */}
