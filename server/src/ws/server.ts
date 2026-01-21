@@ -414,7 +414,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
         if (!daily.completed && daily.matchesPlayed === 5) {
           await tx.dailyChallengeProgress.update({
-            where: { id: daily.id },
+            where: { userId_date: { userId: state.userId, date: today } },
             data: { completed: true },
           });
 
@@ -423,7 +423,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             data: { reflexPoints: { increment: 10 } },
           });
 
-          const streakRecord = await tx.weeklyStreak.findFirst({
+          const streakRecord = await tx.weeklyStreak.findUnique({
             where: { userId: state.userId },
           });
 
@@ -464,7 +464,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
             if (streakRecord) {
               await tx.weeklyStreak.update({
-                where: { id: streakRecord.id },
+                where: { userId: streakRecord.userId },
                 data: {
                   currentDailyStreak: 0,
                   completed: true,
@@ -485,7 +485,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             }
           } else if (streakRecord) {
             await tx.weeklyStreak.update({
-              where: { id: streakRecord.id },
+              where: { userId: streakRecord.userId },
               data: {
                 currentDailyStreak: nextStreak,
                 completed: false,
