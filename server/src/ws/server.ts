@@ -360,24 +360,24 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       if (state.userId) {
         const referral = await tx.referral.findFirst({
           where: { referredId: state.userId },
-          select: { id: true, status: true, ambassadorId: true },
+          select: { status: true, ambassadorId: true },
         });
 
         if (referral) {
           const updatedReferral = await tx.referral.update({
-            where: { id: referral.id },
+            where: { referredId: state.userId },
             data: { totalMatches: { increment: 1 } },
             select: { totalMatches: true },
           });
 
           if (referral.status === 'pending' && updatedReferral.totalMatches >= 10) {
             await tx.referral.update({
-              where: { id: referral.id },
+              where: { referredId: state.userId },
               data: { status: 'active' },
             });
 
             const updatedAmbassador = await tx.ambassadorProfile.update({
-              where: { id: referral.ambassadorId },
+              where: { userId: referral.ambassadorId },
               data: { activeReferrals: { increment: 1 } },
               select: { activeReferrals: true },
             });
@@ -385,7 +385,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             const newTier = updatedAmbassador.activeReferrals >= 30 ? 'gold' : updatedAmbassador.activeReferrals >= 10 ? 'silver' : 'bronze';
 
             await tx.ambassadorProfile.update({
-              where: { id: referral.ambassadorId },
+              where: { userId: referral.ambassadorId },
               data: { tier: newTier },
             });
           }

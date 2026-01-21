@@ -195,7 +195,7 @@ router.post('/login', async (req, res) => {
             if (!existingReferral) {
               await tx.referral.create({
                 data: {
-                  ambassadorId: ambassador.id,
+                  ambassadorId: ambassador.userId,
                   referredId: createdUser.id,
                   status: 'pending',
                   totalMatches: 0,
@@ -203,7 +203,7 @@ router.post('/login', async (req, res) => {
               });
 
               await tx.ambassadorProfile.update({
-                where: { id: ambassador.id },
+                where: { userId: ambassador.userId },
                 data: {
                   totalInvited: { increment: 1 },
                 },
