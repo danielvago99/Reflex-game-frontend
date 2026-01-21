@@ -273,8 +273,7 @@ model LeaderboardAmbassador {
  */
 
 model AmbassadorProfile {
-  id              String         @id @default(uuid())
-  userId          String         @unique
+  userId          String         @id
   code            String         @unique // Referral kód (napr. "REFLEX_KING")
   tier            AmbassadorTier @default(bronze)
   
@@ -288,9 +287,8 @@ model AmbassadorProfile {
 }
 
 model Referral {
-  id           String         @id @default(uuid())
   ambassadorId String
-  referredId   String
+  referredId   String         @id
   
   totalMatches Int            @default(0) // Sledujeme aktivitu pre vyplatenie odmeny
   status       ReferralStatus @default(pending)
@@ -298,7 +296,7 @@ model Referral {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  ambassador   AmbassadorProfile @relation(fields: [ambassadorId], references: [id])
+  ambassador   AmbassadorProfile @relation(fields: [ambassadorId], references: [userId])
   referred     User              @relation("ReferredUser", fields: [referredId], references: [id])
 
   @@index([ambassadorId])

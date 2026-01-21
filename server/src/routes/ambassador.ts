@@ -60,7 +60,7 @@ router.get('/stats', attachUser, requireAuth, async (req, res) => {
 
   const ambassadorProfile = await prisma.ambassadorProfile.findUnique({
     where: { userId: authUser.id },
-    select: { id: true },
+    select: { userId: true },
   });
 
   if (!ambassadorProfile) {
@@ -72,9 +72,9 @@ router.get('/stats', attachUser, requireAuth, async (req, res) => {
   }
 
   const [totalReferrals, activeReferrals, rewardAggregate] = await Promise.all([
-    prisma.referral.count({ where: { ambassadorId: ambassadorProfile.id } }),
+    prisma.referral.count({ where: { ambassadorId: ambassadorProfile.userId } }),
     prisma.referral.count({
-      where: { ambassadorId: ambassadorProfile.id, totalMatches: { gte: 10 } },
+      where: { ambassadorId: ambassadorProfile.userId, totalMatches: { gte: 10 } },
     }),
     prisma.transaction.aggregate({
       where: { userId: authUser.id, type: 'referral_bonus' },
