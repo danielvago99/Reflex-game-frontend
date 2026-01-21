@@ -314,14 +314,14 @@ export function AmbassadorScreen({
               <div className="relative mb-4">
                 <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}></div>
               <div className="relative bg-[#0B0F1A]/50 backdrop-blur-sm p-3 text-sm text-gray-300 break-all border border-white/10" style={{ clipPath: 'polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px)' }}>
-                {referralLink ?? 'No referral link available yet.'}
+                {resolvedReferralLink ?? 'No referral link available yet.'}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={handleCopyLink}
-                disabled={!referralLink || isLoading}
+                disabled={!resolvedReferralLink || isLoading}
                 className="relative bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {copied ? (
