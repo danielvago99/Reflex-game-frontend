@@ -1,58 +1,23 @@
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'MatchType') THEN
-        CREATE TYPE "MatchType" AS ENUM ('friend', 'ranked');
-    END IF;
-END $$;
+CREATE TYPE "MatchType" AS ENUM ('friend', 'ranked');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SessionStatus') THEN
-        CREATE TYPE "SessionStatus" AS ENUM ('active', 'completed', 'cancelled', 'disputed');
-    END IF;
-END $$;
+CREATE TYPE "SessionStatus" AS ENUM ('active', 'completed', 'cancelled', 'disputed');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RoundResult') THEN
-        CREATE TYPE "RoundResult" AS ENUM ('win', 'lose', 'draw');
-    END IF;
-END $$;
+CREATE TYPE "RoundResult" AS ENUM ('win', 'lose', 'draw');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AmbassadorTier') THEN
-        CREATE TYPE "AmbassadorTier" AS ENUM ('bronze', 'silver', 'gold');
-    END IF;
-END $$;
+CREATE TYPE "AmbassadorTier" AS ENUM ('bronze', 'silver', 'gold');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ReferralStatus') THEN
-        CREATE TYPE "ReferralStatus" AS ENUM ('pending', 'active', 'inactive');
-    END IF;
-END $$;
+CREATE TYPE "ReferralStatus" AS ENUM ('pending', 'active', 'inactive');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TransactionType') THEN
-        CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal', 'game_stake', 'game_payout', 'game_refund', 'referral_bonus', 'challenge_reward');
-    END IF;
-END $$;
+CREATE TYPE "TransactionType" AS ENUM ('deposit', 'withdrawal', 'game_stake', 'game_payout', 'game_refund', 'referral_bonus', 'challenge_reward');
 
 -- CreateEnum
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'TransactionStatus') THEN
-        CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'confirmed', 'failed');
-    END IF;
-END $$;
+CREATE TYPE "TransactionStatus" AS ENUM ('pending', 'confirmed', 'failed');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -134,7 +99,6 @@ CREATE TABLE "PlayerStats" (
 
 -- CreateTable
 CREATE TABLE "PlayerRewards" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "reflexPoints" INTEGER NOT NULL DEFAULT 0,
     "totalFreeStakes" INTEGER NOT NULL DEFAULT 0,
@@ -144,12 +108,11 @@ CREATE TABLE "PlayerRewards" (
     "dailyStreak" INTEGER NOT NULL DEFAULT 0,
     "lastStreakUpdate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "PlayerRewards_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "PlayerRewards_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateTable
 CREATE TABLE "LeaderboardPlayer" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "position" INTEGER NOT NULL,
     "avgReaction" DECIMAL(10,2) NOT NULL,
@@ -159,18 +122,17 @@ CREATE TABLE "LeaderboardPlayer" (
     "totalVolumeSolPlayed" DECIMAL(18,9) NOT NULL,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "LeaderboardPlayer_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "LeaderboardPlayer_pkey" PRIMARY KEY ("userId","snapshotDate")
 );
 
 -- CreateTable
 CREATE TABLE "LeaderboardAmbassador" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "tier" "AmbassadorTier" NOT NULL,
     "activeReferrals" INTEGER NOT NULL,
     "snapshotDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "LeaderboardAmbassador_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "LeaderboardAmbassador_pkey" PRIMARY KEY ("userId","snapshotDate")
 );
 
 -- CreateTable
@@ -199,19 +161,17 @@ CREATE TABLE "Referral" (
 
 -- CreateTable
 CREATE TABLE "DailyChallengeProgress" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" DATE NOT NULL,
     "matchesPlayed" INTEGER NOT NULL DEFAULT 0,
     "completed" BOOLEAN NOT NULL DEFAULT false,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "DailyChallengeProgress_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "DailyChallengeProgress_pkey" PRIMARY KEY ("userId","date")
 );
 
 -- CreateTable
 CREATE TABLE "WeeklyStreak" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "currentDailyStreak" INTEGER NOT NULL DEFAULT 0,
     "weekStartDate" DATE NOT NULL,
@@ -219,7 +179,7 @@ CREATE TABLE "WeeklyStreak" (
     "completed" BOOLEAN NOT NULL DEFAULT false,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "WeeklyStreak_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "WeeklyStreak_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateIndex
@@ -256,9 +216,6 @@ CREATE INDEX "GameSession_loserId_idx" ON "GameSession"("loserId");
 CREATE INDEX "GameSession_snapshotDate_idx" ON "GameSession"("snapshotDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PlayerRewards_userId_key" ON "PlayerRewards"("userId");
-
--- CreateIndex
 CREATE INDEX "LeaderboardPlayer_snapshotDate_idx" ON "LeaderboardPlayer"("snapshotDate");
 
 -- CreateIndex
@@ -275,9 +232,6 @@ CREATE INDEX "Referral_ambassadorId_idx" ON "Referral"("ambassadorId");
 
 -- CreateIndex
 CREATE INDEX "Referral_referredId_idx" ON "Referral"("referredId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "DailyChallengeProgress_userId_date_key" ON "DailyChallengeProgress"("userId", "date");
 
 -- CreateIndex
 CREATE INDEX "WeeklyStreak_userId_idx" ON "WeeklyStreak"("userId");
