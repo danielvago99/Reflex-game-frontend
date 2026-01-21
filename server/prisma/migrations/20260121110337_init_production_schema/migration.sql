@@ -140,7 +140,6 @@ CREATE TABLE "LeaderboardAmbassador" (
 
 -- CreateTable
 CREATE TABLE "AmbassadorProfile" (
-    "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "tier" "AmbassadorTier" NOT NULL DEFAULT 'bronze',
@@ -148,12 +147,11 @@ CREATE TABLE "AmbassadorProfile" (
     "activeReferrals" INTEGER NOT NULL DEFAULT 0,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "AmbassadorProfile_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AmbassadorProfile_pkey" PRIMARY KEY ("userId")
 );
 
 -- CreateTable
 CREATE TABLE "Referral" (
-    "id" TEXT NOT NULL,
     "ambassadorId" TEXT NOT NULL,
     "referredId" TEXT NOT NULL,
     "totalMatches" INTEGER NOT NULL DEFAULT 0,
@@ -161,7 +159,7 @@ CREATE TABLE "Referral" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Referral_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Referral_pkey" PRIMARY KEY ("referredId")
 );
 
 -- CreateTable
@@ -235,9 +233,6 @@ CREATE INDEX "LeaderboardPlayer_position_idx" ON "LeaderboardPlayer"("position")
 CREATE INDEX "LeaderboardAmbassador_snapshotDate_idx" ON "LeaderboardAmbassador"("snapshotDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AmbassadorProfile_userId_key" ON "AmbassadorProfile"("userId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "AmbassadorProfile_code_key" ON "AmbassadorProfile"("code");
 
 -- CreateIndex
@@ -280,7 +275,7 @@ ALTER TABLE "LeaderboardPlayer" ADD CONSTRAINT "LeaderboardPlayer_userId_fkey" F
 ALTER TABLE "AmbassadorProfile" ADD CONSTRAINT "AmbassadorProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Referral" ADD CONSTRAINT "Referral_ambassadorId_fkey" FOREIGN KEY ("ambassadorId") REFERENCES "AmbassadorProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Referral" ADD CONSTRAINT "Referral_ambassadorId_fkey" FOREIGN KEY ("ambassadorId") REFERENCES "AmbassadorProfile"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Referral" ADD CONSTRAINT "Referral_referredId_fkey" FOREIGN KEY ("referredId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
