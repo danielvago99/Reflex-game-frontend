@@ -214,8 +214,7 @@ model PlayerStats {
 }
 
 model PlayerRewards {
-  id               String  @id @default(uuid())
-  userId           String  @unique
+  userId           String  @id
   
   reflexPoints     Int     @default(0)
   totalFreeStakes  Int     @default(0)
@@ -238,7 +237,6 @@ model PlayerRewards {
  */
 
 model LeaderboardPlayer {
-  id                   String   @id @default(uuid())
   userId               String   // Môže byť unique ak je to "aktuálny" leaderboard
   position             Int
   
@@ -252,17 +250,18 @@ model LeaderboardPlayer {
 
   user User @relation(fields: [userId], references: [id])
   
+  @@id([userId, snapshotDate])
   @@index([snapshotDate])
   @@index([position])
 }
 
 model LeaderboardAmbassador {
-  id              String         @id @default(uuid())
   userId          String
   tier            AmbassadorTier
   activeReferrals Int
   snapshotDate    DateTime       @default(now())
 
+  @@id([userId, snapshotDate])
   @@index([snapshotDate])
 }
 
@@ -310,7 +309,6 @@ model Referral {
  */
 
 model DailyChallengeProgress {
-  id            String   @id @default(uuid())
   userId        String
   
   date          DateTime @db.Date // Uloží len dátum (bez času) pre jednoduché query "dnes"
@@ -321,12 +319,11 @@ model DailyChallengeProgress {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@unique([userId, date]) // Jeden záznam na užívateľa na deň
+  @@id([userId, date]) // Jeden záznam na užívateľa na deň
 }
 
 model WeeklyStreak {
-  id                 String   @id @default(uuid())
-  userId             String
+  userId             String   @id
   
   currentDailyStreak Int      @default(0)
   weekStartDate      DateTime @db.Date

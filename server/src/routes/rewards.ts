@@ -23,7 +23,7 @@ router.get('/', attachUser, requireAuth, async (req, res) => {
       where: { userId_date: { userId: authUser.id, date: today } },
       select: { matchesPlayed: true, completed: true },
     }),
-    prisma.weeklyStreak.findFirst({
+    prisma.weeklyStreak.findUnique({
       where: { userId: authUser.id },
       select: { currentDailyStreak: true },
     }),
