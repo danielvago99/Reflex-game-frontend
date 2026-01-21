@@ -21,7 +21,27 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
   const freeStakesAvailable = freeStakes005 + freeStakes010 + freeStakes020;
   const activePlayers = 0;
 
-  const handleRedeem = async (amount: number, cost: number) => {
+  const getRedeemCost = (amount: number) => {
+    if (amount === 0.05) {
+      return 90;
+    }
+    if (amount === 0.1) {
+      return 170;
+    }
+    if (amount === 0.2) {
+      return 320;
+    }
+    return null;
+  };
+
+  const handleRedeem = async (amount: number) => {
+    const cost = getRedeemCost(amount);
+
+    if (cost === null) {
+      toast.error('Unsupported stake amount');
+      return;
+    }
+
     if (reflexPoints < cost) {
       toast.error('Insufficient Reflex Points', {
         description: `You need ${cost} points to redeem ${amount} SOL stake`,
@@ -30,7 +50,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
     }
 
     try {
-      await redeemStake(amount, cost);
+      await redeemStake(amount);
       toast.success('Stake Redeemed!', {
         description: `You received ${amount} SOL free stake. -${cost} Reflex Points`,
         duration: 4000,
@@ -210,7 +230,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRedeem(0.05, 90)}
+                      onClick={() => handleRedeem(0.05)}
                       disabled={loading || reflexPoints < 90}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
                         !loading && reflexPoints >= 90
@@ -240,21 +260,21 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
                       <div className="text-right">
                         <div className="flex items-center gap-1">
                           <Zap className="w-4 h-4 text-[#7C3AED]"/>
-                          <span className="text-[#7C3AED]">150 pts</span>
+                          <span className="text-[#7C3AED]">170 pts</span>
                         </div>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRedeem(0.10, 150)}
-                      disabled={loading || reflexPoints < 150}
+                      onClick={() => handleRedeem(0.1)}
+                      disabled={loading || reflexPoints < 170}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
-                        !loading && reflexPoints >= 150
+                        !loading && reflexPoints >= 170
                           ? 'bg-gradient-to-r from-[#7C3AED] to-[#00FFA3] hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] text-white'
                           : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       <span className="text-sm">
-                        {loading ? 'Loading...' : reflexPoints >= 150 ? 'Redeem 0.1 SOL' : 'Not enough points'}
+                        {loading ? 'Loading...' : reflexPoints >= 170 ? 'Redeem 0.1 SOL' : 'Not enough points'}
                       </span>
                     </button>
                   </div>
@@ -275,21 +295,21 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
                       <div className="text-right">
                         <div className="flex items-center gap-1">
                           <Zap className="w-4 h-4 text-[#06B6D4]"/>
-                          <span className="text-[#06B6D4]">250 pts</span>
+                          <span className="text-[#06B6D4]">320 pts</span>
                         </div>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRedeem(0.20, 250)}
-                      disabled={loading || reflexPoints < 250}
+                      onClick={() => handleRedeem(0.2)}
+                      disabled={loading || reflexPoints < 320}
                       className={`w-full px-4 py-2.5 rounded-lg transition-all duration-300 ${
-                        !loading && reflexPoints >= 250
+                        !loading && reflexPoints >= 320
                           ? 'bg-gradient-to-r from-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white'
                           : 'bg-white/5 border border-white/10 text-gray-500 cursor-not-allowed'
                       }`}
                     >
                       <span className="text-sm">
-                        {loading ? 'Loading...' : reflexPoints >= 250 ? 'Redeem 0.2 SOL' : 'Not enough points'}
+                        {loading ? 'Loading...' : reflexPoints >= 320 ? 'Redeem 0.2 SOL' : 'Not enough points'}
                       </span>
                     </button>
                   </div>

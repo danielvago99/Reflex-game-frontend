@@ -59,7 +59,7 @@ export function useRewardsData() {
     }
   }, []);
 
-  const redeemStake = useCallback(async (amount: number, cost: number) => {
+  const redeemStake = useCallback(async (amount: number) => {
     setLoading(true);
     setError(null);
 
@@ -72,7 +72,7 @@ export function useRewardsData() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ amount, cost }),
+        body: JSON.stringify({ amount }),
       });
 
       if (response.status === 401) {
@@ -84,8 +84,12 @@ export function useRewardsData() {
       }
 
       if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || 'Failed to redeem stake');
+        const errorPayload = await response.json().catch(() => null);
+        const message =
+          errorPayload && typeof errorPayload.error === 'string'
+            ? errorPayload.error
+            : 'Failed to redeem stake';
+        throw new Error(message);
       }
 
       const payload = (await response.json()) as RedeemResponse;
