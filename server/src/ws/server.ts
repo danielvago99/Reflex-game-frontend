@@ -24,7 +24,7 @@ interface RoundTimers {
 
 interface SessionState extends RoundTimers {
   round: number;
-  scores: { player: number; bot: number };
+  scores: { p1: number; p2: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
@@ -41,7 +41,7 @@ interface SessionState extends RoundTimers {
     round: number;
     playerTime: number;
     botTime: number;
-    winner: 'player' | 'bot' | 'none';
+    winner: 'p1' | 'p2' | 'none';
     target: Target;
   }>;
   userId?: string;
@@ -51,7 +51,7 @@ interface SessionState extends RoundTimers {
 
 interface RedisSessionState {
   round: number;
-  scores: { player: number; bot: number };
+  scores: { p1: number; p2: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
@@ -67,7 +67,7 @@ interface RedisSessionState {
     round: number;
     playerTime: number;
     botTime: number;
-    winner: 'player' | 'bot' | 'none';
+    winner: 'p1' | 'p2' | 'none';
     target: Target;
   }>;
   userId?: string;
@@ -182,12 +182,79 @@ const clearTimers = (state: SessionState) => {
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
 const sessionStates = new Map<string, SessionState>();
 const userNames = new Map<string, string>();
+const sessions = new WeakMap<WebSocket, SocketSessionRef>();
+const activeUsers = new Map<string, WebSocket>();
+const sessionSockets = new Map<string, Set<WebSocket>>();
+
+const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
+
+const getSlotForUser = (state: SessionState, userId?: string): 'p1' | 'p2' => {
+  if (isBotOpponent(state)) {
+    return 'p1';
+  }
+
+  const assignments = sessionAssignments.get(state.sessionId);
+  if (userId && assignments?.p1 === userId) {
+    return 'p1';
+  }
+  if (userId && assignments?.p2 === userId) {
+    return 'p2';
+  }
+  if (assignments?.p1 && assignments.p1.startsWith('guest')) {
+    return 'p1';
+  }
+  if (assignments?.p2 && assignments.p2.startsWith('guest')) {
+    return 'p2';
+  }
+
+  return 'p1';
+};
+
+const getRelativeScores = (state: SessionState, slot: 'p1' | 'p2') => ({
+  player: state.scores[slot],
+  bot: state.scores[getOpponentSlot(slot)],
+});
+
+const broadcastRoundResult = (
+  state: SessionState,
+  payload: {
+    round: number;
+    p1Time: number;
+    p2Time: number;
+    winnerSlot: 'p1' | 'p2' | 'none';
+    reason?: 'early-click' | 'no-reaction' | 'slower';
+    rawBotTime: number;
+  }
+) => {
+  const sockets = sessionSockets.get(state.sessionId);
+  if (!sockets || sockets.size === 0) return;
+
+  for (const sessionSocket of sockets) {
+    const sessionRef = sessions.get(sessionSocket);
+    const slot = getSlotForUser(state, sessionRef?.userId);
+    const scores = getRelativeScores(state, slot);
+    const playerTime = slot === 'p1' ? payload.p1Time : payload.p2Time;
+    const botTime = slot === 'p1' ? payload.p2Time : payload.p1Time;
+    const winner =
+      payload.winnerSlot === 'none' ? 'none' : payload.winnerSlot === slot ? 'player' : 'bot';
+
+    sendMessage(sessionSocket, 'round:result', {
+      round: payload.round,
+      playerTime,
+      botTime,
+      winner,
+      reason: payload.reason ?? (winner === 'bot' ? 'slower' : undefined),
+      scores,
+      rawBotTime: payload.rawBotTime,
+    });
+  }
+};
 
 const handleMatchReset = async (state: SessionState, payload: any) => {
   clearTimers(state);
 
   state.round = 1;
-  state.scores = { player: 0, bot: 0 };
+  state.scores = { p1: 0, p2: 0 };
   state.p1Staked = false;
   state.p2Staked = false;
   state.p1Ready = false;
@@ -272,21 +339,23 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   }
 
   try {
-    const playerWon = !forfeit && sharedState.scores.player > sharedState.scores.bot;
+    const playerSlot = sharedState.userId ? getSlotForUser(sharedState, sharedState.userId) : 'p1';
+    const opponentSlot = getOpponentSlot(playerSlot);
+    const playerWon = !forfeit && sharedState.scores[playerSlot] > sharedState.scores[opponentSlot];
     const stakeAmount =
       typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
         ? sharedState.stakeAmount
         : 0;
     const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
-    const winnerScore = playerWon ? sharedState.scores.player : sharedState.scores.bot;
-    const loserScore = playerWon ? sharedState.scores.bot : sharedState.scores.player;
+    const winnerScore = playerWon ? sharedState.scores[playerSlot] : sharedState.scores[opponentSlot];
+    const loserScore = playerWon ? sharedState.scores[opponentSlot] : sharedState.scores[playerSlot];
 
     const playerTimes = sharedState.history
-      .map((round) => round.playerTime)
+      .map((round) => (playerSlot === 'p1' ? round.playerTime : round.botTime))
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
     const botTimes = sharedState.history
-      .map((round) => round.botTime)
+      .map((round) => (playerSlot === 'p1' ? round.botTime : round.playerTime))
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
     const matchBestReaction = playerTimes.length ? Math.min(...playerTimes) : undefined;
@@ -399,8 +468,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       });
 
       for (const round of sharedState.history) {
-        const roundWinnerId = round.winner === 'player' ? sharedState.userId : null;
-        const roundLoserId = round.winner === 'player' ? null : (round.winner === 'bot' ? sharedState.userId : null);  // null pre bota
+        const roundPlayerTime = playerSlot === 'p1' ? round.playerTime : round.botTime;
+        const roundOpponentTime = playerSlot === 'p1' ? round.botTime : round.playerTime;
+        const roundWinnerId = round.winner === playerSlot ? sharedState.userId : null;
+        const roundLoserId =
+          round.winner === playerSlot ? null : round.winner === opponentSlot ? sharedState.userId : null; // null pre bota
 
         await tx.gameRound.create({
           data: {
@@ -408,8 +480,18 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             roundNumber: round.round,
             winnerId: roundWinnerId,
             loserId: roundLoserId,
-            winnerReaction: round.winner === 'player' ? round.playerTime : round.winner === 'bot' ? round.botTime : null,
-            loserReaction: round.winner === 'player' ? round.botTime : round.winner === 'bot' ? round.playerTime : null,
+            winnerReaction:
+              round.winner === playerSlot
+                ? roundPlayerTime
+                : round.winner === opponentSlot
+                  ? roundOpponentTime
+                  : null,
+            loserReaction:
+              round.winner === playerSlot
+                ? roundOpponentTime
+                : round.winner === opponentSlot
+                  ? roundPlayerTime
+                  : null,
           },
         });
       }
@@ -597,11 +679,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 };
 
 const finalizeRound = async (
-  socket: WebSocket,
   state: SessionState,
   options: {
     playerTime?: number;
     reason?: 'early-click' | 'no-reaction' | 'slower';
+    clickingUserId?: string;
   }
 ): Promise<boolean> => {
   if (state.roundResolved) return false;
@@ -609,45 +691,54 @@ const finalizeRound = async (
   state.roundResolved = true;
   clearTimers(state);
 
-  const rawBotTime = state.botReactionTime ?? 999_999;
-  const botTime = state.isBotOpponent ? rawBotTime : Number.POSITIVE_INFINITY;
+  const rawOpponentTime = state.botReactionTime ?? 999_999;
+  const opponentTime = state.isBotOpponent ? rawOpponentTime : 999_999;
   const playerTime = options.playerTime ?? 999_999;
 
-  const roundedBotTime = Math.round(state.isBotOpponent ? rawBotTime : 999_999);
+  const roundedOpponentTime = Math.round(state.isBotOpponent ? rawOpponentTime : 999_999);
   const roundedPlayerTime = Math.round(playerTime);
 
-  let winner: 'player' | 'bot' | 'none' = 'none';
-  if (playerTime < botTime) {
-    winner = 'player';
-    state.scores.player += 1;
-  } else if (playerTime > botTime || options.reason === 'early-click') {
-    winner = 'bot';
-    state.scores.bot += 1;
+  const clickingSlot = getSlotForUser(state, options.clickingUserId);
+  const opponentSlot = getOpponentSlot(clickingSlot);
+
+  let winnerSlot: 'p1' | 'p2' | 'none' = 'none';
+  if (options.reason === 'early-click') {
+    winnerSlot = opponentSlot;
+  } else if (playerTime < opponentTime) {
+    winnerSlot = clickingSlot;
+  } else if (playerTime > opponentTime) {
+    winnerSlot = opponentSlot;
   }
+
+  if (winnerSlot !== 'none') {
+    state.scores[winnerSlot] += 1;
+  }
+
+  const p1Time = clickingSlot === 'p1' ? roundedPlayerTime : roundedOpponentTime;
+  const p2Time = clickingSlot === 'p2' ? roundedPlayerTime : roundedOpponentTime;
 
   state.history.push({
     round: state.round,
-    playerTime: roundedPlayerTime,
-    botTime: roundedBotTime,
-    winner,
+    playerTime: p1Time,
+    botTime: p2Time,
+    winner: winnerSlot,
     target: state.target ?? DEFAULT_TARGET,
   });
 
   setTimeout(() => {
-    sendMessage(socket, 'round:result', {
+    broadcastRoundResult(state, {
       round: state.round,
-      playerTime: roundedPlayerTime,
-      botTime: roundedBotTime,
-      winner,
-      reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
-      scores: state.scores,
-    rawBotTime: state.isBotOpponent ? rawBotTime : 999_999,
-  });
+      p1Time,
+      p2Time,
+      winnerSlot,
+      reason: options.reason,
+      rawBotTime: state.isBotOpponent ? rawOpponentTime : 999_999,
+    });
   }, 1000);
 
   const isMatchOver =
-    state.scores.player >= ROUNDS_TO_WIN ||
-    state.scores.bot >= ROUNDS_TO_WIN ||
+    state.scores.p1 >= ROUNDS_TO_WIN ||
+    state.scores.p2 >= ROUNDS_TO_WIN ||
     state.round >= MAX_ROUNDS;
 
   if (isMatchOver) {
@@ -674,7 +765,7 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
     if (state.isBotOpponent) {
       state.botTimeout = setTimeout(() => {
         void (async () => {
-          const matchOver = await finalizeRound(socket, state, { reason: 'no-reaction' });
+          const matchOver = await finalizeRound(state, { reason: 'no-reaction' });
           if (matchOver) {
             await finalizeGame(state, false);
           }
@@ -744,7 +835,11 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
       : undefined;
 
   if (!sessionState.targetShownAt) {
-    const matchOver = await finalizeRound(socket, sessionState, { playerTime: 999_999, reason: 'early-click' });
+    const matchOver = await finalizeRound(sessionState, {
+      playerTime: 999_999,
+      reason: 'early-click',
+      clickingUserId: sessionRef.userId,
+    });
     if (matchOver) {
       await finalizeGame(sessionState, false);
     }
@@ -765,7 +860,7 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
     sessionState.botTimeout = undefined;
   }
 
-  const matchOver = await finalizeRound(socket, sessionState, { playerTime });
+  const matchOver = await finalizeRound(sessionState, { playerTime, clickingUserId: sessionRef.userId });
   if (matchOver) {
     await finalizeGame(sessionState, false);
   }
@@ -776,10 +871,6 @@ export function createWsServer(server: Server) {
     server,
     path: '/ws',
   });
-
-  const sessions = new WeakMap<WebSocket, SocketSessionRef>();
-  const activeUsers = new Map<string, WebSocket>();
-  const sessionSockets = new Map<string, Set<WebSocket>>();
 
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
@@ -811,7 +902,7 @@ export function createWsServer(server: Server) {
     const baseState: SessionState = {
       sessionId,
       round: 1,
-      scores: { player: 0, bot: 0 },
+      scores: { p1: 0, p2: 0 },
       matchType: 'ranked',
       isBotOpponent: false,
       stakeAmount: stake,
@@ -864,7 +955,7 @@ export function createWsServer(server: Server) {
     const sessionState: SessionState = {
       sessionId,
       round: 1,
-      scores: { player: 0, bot: 0 },
+      scores: { p1: 0, p2: 0 },
       matchType: 'ranked',
       isBotOpponent: true,
       stakeAmount: stake,
@@ -994,7 +1085,7 @@ export function createWsServer(server: Server) {
 
       sessionState = {
         round: 1,
-        scores: { player: 0, bot: 0 },
+        scores: { p1: 0, p2: 0 },
         stakeAmount: 0,
         matchType: 'friend',
         isBotOpponent: false,
@@ -1127,7 +1218,7 @@ export function createWsServer(server: Server) {
             const resolvedSessionState = sessionState ?? {
               sessionId,
               round: 1,
-              scores: { player: 0, bot: 0 },
+              scores: { p1: 0, p2: 0 },
               stakeAmount: 0,
               matchType: 'friend',
               isBotOpponent: false,
