@@ -8,6 +8,7 @@ import { getFreeStakes, useFreeStake, FreeStake } from '../utils/reflexPoints';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
+import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
 
 interface LobbyScreenProps {
   onNavigate: (screen: string) => void;
@@ -26,6 +27,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [selectedFreeStake, setSelectedFreeStake] = useState<string | null>(null);
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
@@ -48,13 +50,25 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
     // For ranked mode
     if (selectedMode === 'ranked') {
-      // If using external wallet provider, use their native transaction UI
-      if (walletProvider) {
-        await handleExternalWalletTransaction();
-      } else {
-        // If in-app wallet, show our custom transaction modal
-        setShowTransactionModal(true);
-      }
+      setMatchStatus('searching');
+
+      setTimeout(() => {
+        setMatchStatus('found');
+
+        setTimeout(() => {
+          setMatchStatus('signing');
+
+          setTimeout(() => {
+            setMatchStatus('idle');
+
+            if (walletProvider) {
+              handleExternalWalletTransaction();
+            } else {
+              setShowTransactionModal(true);
+            }
+          }, 1500);
+        }, 1500);
+      }, 3000);
     }
   };
 
@@ -687,6 +701,12 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
           </TabsContent>
         </Tabs>
       </div>
+
+      <MatchmakingOverlay
+        status={matchStatus}
+        onCancel={() => setMatchStatus('idle')}
+        opponentName="CyberNinja_99"
+      />
 
       {/* Dialogs */}
       <FriendInviteDialog 
