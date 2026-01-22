@@ -1,4 +1,5 @@
 import { redisClient } from '../db/redis';
+import { matchmakingEvents } from '../utils/events';
 import { logger } from '../utils/logger';
 
 const MATCH_CHECK_INTERVAL = 2000;
@@ -57,7 +58,7 @@ export class MatchmakingService {
     const now = Date.now();
     const timeoutThreshold = now - MAX_WAIT_TIME_MS;
 
-    const expiredPlayers = await redisClient.zrange<string[]>(
+    const expiredPlayers = await redisClient.zrange<{ member: string; score: number }[]>(
       timerKey,
       0,
       timeoutThreshold,
@@ -65,13 +66,14 @@ export class MatchmakingService {
     );
 
     if (expiredPlayers.length > 0) {
-      for (const userId of expiredPlayers) {
+      for (const { member } of expiredPlayers) {
+        const userId = member;
         await this.removeFromQueue(userId, stake);
         await this.createBotMatch(userId, stake);
       }
     }
 
-    const players = await redisClient.zrange<(string | number)[]>(
+    const players = await redisClient.zrange<{ member: string; score: number }[]>(
       queueKey,
       0,
       20,
@@ -80,25 +82,28 @@ export class MatchmakingService {
 
     if (players.length < 2) return;
 
+    const entries = players.filter(
+      (player): player is { member: string; score: number } =>
+        typeof player?.member === 'string' && Number.isFinite(player.score)
+    );
+
+    if (entries.length < 2) return;
+
     const matchedUsers = new Set<string>();
 
-    for (let i = 0; i < players.length; i += 2) {
-      const p1IdRaw = players[i];
-      const p1ReactionRaw = players[i + 1];
-      if (typeof p1IdRaw !== 'string' || typeof p1ReactionRaw === 'undefined') continue;
-      const p1Id = p1IdRaw;
-      const p1Reaction = Number(p1ReactionRaw);
+    for (let i = 0; i < entries.length; i += 1) {
+      const p1 = entries[i];
+      const p1Id = p1.member;
+      const p1Reaction = p1.score;
 
       if (!p1Id || Number.isNaN(p1Reaction) || matchedUsers.has(p1Id)) continue;
 
-      for (let j = i + 2; j < players.length; j += 2) {
-        const p2IdRaw = players[j];
-        const p2ReactionRaw = players[j + 1];
-        if (typeof p2IdRaw !== 'string' || typeof p2ReactionRaw === 'undefined') continue;
-        const p2Id = p2IdRaw;
-        const p2Reaction = Number(p2ReactionRaw);
+      for (let j = i + 1; j < entries.length; j += 1) {
+        const p2 = entries[j];
+        const p2Id = p2.member;
+        const p2Reaction = p2.score;
 
-        if (!p2Id || Number.isNaN(p2Reaction) || matchedUsers.has(p2Id)) continue;
+        if (!p2Id || p2Id === p1Id || Number.isNaN(p2Reaction) || matchedUsers.has(p2Id)) continue;
 
         const diff = Math.abs(p1Reaction - p2Reaction);
 
@@ -120,29 +125,23 @@ export class MatchmakingService {
     logger.info({ player1Id, player2Id, stake }, 'Human Match Found');
     const matchId = `${player1Id}-${player2Id}-${Date.now()}`;
 
-    await redisClient.publish(
-      'matchmaking:match_found',
-      JSON.stringify({
-        type: 'human',
-        matchId,
-        player1Id,
-        player2Id,
-        stake,
-      })
-    );
+    matchmakingEvents.emit('match_found', {
+      type: 'human',
+      matchId,
+      player1Id,
+      player2Id,
+      stake,
+    });
   }
 
   private async createBotMatch(userId: string, stake: number) {
     logger.info({ userId, stake }, 'Timeout reached. Creating Bot Match.');
 
-    await redisClient.publish(
-      'matchmaking:bot_match',
-      JSON.stringify({
-        userId,
-        stake,
-        difficulty: 'adaptive',
-      })
-    );
+    matchmakingEvents.emit('bot_match', {
+      userId,
+      stake,
+      difficulty: 'adaptive',
+    });
   }
 }
 
