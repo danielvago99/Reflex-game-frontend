@@ -175,6 +175,7 @@ const clearTimers = (state: SessionState) => {
 };
 
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
+const sessionStates = new Map<string, SessionState>();
 
 const handleMatchReset = async (state: SessionState, payload: any) => {
   clearTimers(state);
@@ -219,56 +220,66 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     userActiveSessions.delete(state.userId);
   }
 
-  if (state.matchType === 'bot') {
-    logger.info({ sessionId: state.sessionId }, 'Bot match finished. No persistence needed.');
+  const sharedState = sessionStates.get(state.sessionId) ?? state;
+  if (!sessionStates.has(state.sessionId)) {
+    sessionStates.set(state.sessionId, sharedState);
+  }
+
+  if (sharedState.matchType === 'bot') {
+    logger.info({ sessionId: sharedState.sessionId }, 'Bot match finished. No persistence needed.');
     // No Redis cleanup needed because we didn't persist it.
-    finalizedSessions.delete(state.sessionId);
+    finalizedSessions.delete(sharedState.sessionId);
     return;
   }
 
-  if (state.isFinished) {
+  if (sharedState.isFinished) {
     return;
   }
 
-  state.isFinished = true;
-  if (finalizedSessions.has(state.sessionId)) {
+  sharedState.isFinished = true;
+  if (sharedState !== state) {
+    state.isFinished = true;
+  }
+  if (finalizedSessions.has(sharedState.sessionId)) {
     return;
   }
 
-  finalizedSessions.add(state.sessionId);
+  finalizedSessions.add(sharedState.sessionId);
   logger.info(
-    { scores: state.scores, history: state.history, forfeit },
+    { scores: sharedState.scores, history: sharedState.history, forfeit },
     'Match completed. Persist final result with Prisma.'
   );
 
-  if (!state.userId) {
+  if (!sharedState.userId) {
     logger.info(
-      { userId: state.userId, matchType: state.matchType },
+      { userId: sharedState.userId, matchType: sharedState.matchType },
       'Skipping match persistence because user is unauthenticated'
     );
     try {
-      await redisClient.del(getSessionKey(state.sessionId));
+      await redisClient.del(getSessionKey(sharedState.sessionId));
     } catch (error) {
-      logger.warn({ error, sessionId: state.sessionId }, 'Failed to cleanup Redis session state');
+      logger.warn({ error, sessionId: sharedState.sessionId }, 'Failed to cleanup Redis session state');
     } finally {
-      finalizedSessions.delete(state.sessionId);
+      finalizedSessions.delete(sharedState.sessionId);
     }
     return;
   }
 
   try {
-    const playerWon = !forfeit && state.scores.player > state.scores.bot;
+    const playerWon = !forfeit && sharedState.scores.player > sharedState.scores.bot;
     const stakeAmount =
-      typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) ? state.stakeAmount : 0;
-    const persistedMatchType: 'friend' | 'ranked' = state.matchType === 'ranked' ? 'ranked' : 'friend';
-    const winnerScore = playerWon ? state.scores.player : state.scores.bot;
-    const loserScore = playerWon ? state.scores.bot : state.scores.player;
+      typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
+        ? sharedState.stakeAmount
+        : 0;
+    const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
+    const winnerScore = playerWon ? sharedState.scores.player : sharedState.scores.bot;
+    const loserScore = playerWon ? sharedState.scores.bot : sharedState.scores.player;
 
-    const playerTimes = state.history
+    const playerTimes = sharedState.history
       .map((round) => round.playerTime)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
-    const botTimes = state.history
+    const botTimes = sharedState.history
       .map((round) => round.botTime)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
@@ -277,8 +288,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
       : undefined;
 
-    const winnerId = playerWon ? state.userId : null;
-    const loserId = playerWon ? null : state.userId;
+    const winnerId = playerWon ? sharedState.userId : null;
+    const loserId = playerWon ? null : sharedState.userId;
 
     const avgWinnerReaction = playerWon
       ? playerTimes.length > 0
@@ -364,8 +375,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
       const session = await tx.gameSession.create({
         data: {
-          id: state.sessionId,
-          totalRounds: state.history.length,
+          id: sharedState.sessionId,
+          totalRounds: sharedState.history.length,
           status: 'completed',
           matchType: persistedMatchType,
           winnerId,
@@ -381,9 +392,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         },
       });
 
-      for (const round of state.history) {
-        const roundWinnerId = round.winner === 'player' ? state.userId : null;
-        const roundLoserId = round.winner === 'player' ? null : (round.winner === 'bot' ? state.userId : null);  // null pre bota
+      for (const round of sharedState.history) {
+        const roundWinnerId = round.winner === 'player' ? sharedState.userId : null;
+        const roundLoserId = round.winner === 'player' ? null : (round.winner === 'bot' ? sharedState.userId : null);  // null pre bota
 
         await tx.gameRound.create({
           data: {
@@ -405,22 +416,22 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         await updatePlayerStats(loserId, 'loss');
       }
 
-      if (state.userId) {
+      if (sharedState.userId) {
         const referral = await tx.referral.findFirst({
-          where: { referredId: state.userId },
+          where: { referredId: sharedState.userId },
           select: { status: true, ambassadorId: true },
         });
 
         if (referral) {
           const updatedReferral = await tx.referral.update({
-            where: { referredId: state.userId },
+            where: { referredId: sharedState.userId },
             data: { totalMatches: { increment: 1 } },
             select: { totalMatches: true },
           });
 
           if (referral.status === 'pending' && updatedReferral.totalMatches >= 10) {
             await tx.referral.update({
-              where: { referredId: state.userId },
+              where: { referredId: sharedState.userId },
               data: { status: 'active' },
             });
 
@@ -455,24 +466,24 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         today.setHours(0, 0, 0, 0);
 
         const daily = await tx.dailyChallengeProgress.upsert({
-          where: { userId_date: { userId: state.userId, date: today } },
+          where: { userId_date: { userId: sharedState.userId, date: today } },
           update: { matchesPlayed: { increment: 1 } },
-          create: { userId: state.userId, date: today, matchesPlayed: 1 },
+          create: { userId: sharedState.userId, date: today, matchesPlayed: 1 },
         });
 
         if (!daily.completed && daily.matchesPlayed === 5) {
           await tx.dailyChallengeProgress.update({
-            where: { userId_date: { userId: state.userId, date: today } },
+            where: { userId_date: { userId: sharedState.userId, date: today } },
             data: { completed: true },
           });
 
           await tx.playerRewards.update({
-            where: { userId: state.userId },
+            where: { userId: sharedState.userId },
             data: { reflexPoints: { increment: 10 } },
           });
 
           const streakRecord = await tx.weeklyStreak.findUnique({
-            where: { userId: state.userId },
+            where: { userId: sharedState.userId },
           });
 
           const normalizeDate = (value: Date) => {
@@ -506,7 +517,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             resetWeekEnd.setDate(resetWeekEnd.getDate() + 7);
 
             await tx.playerRewards.update({
-              where: { userId: state.userId },
+              where: { userId: sharedState.userId },
               data: { reflexPoints: { increment: 50 } },
             });
 
@@ -521,11 +532,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
                 },
               });
             } else {
-              await tx.weeklyStreak.create({
-                data: {
-                  userId: state.userId,
-                  currentDailyStreak: 0,
-                  completed: true,
+            await tx.weeklyStreak.create({
+              data: {
+                userId: sharedState.userId,
+                currentDailyStreak: 0,
+                completed: true,
                   weekStartDate: resetWeekStart,
                   weekEndDate: resetWeekEnd,
                 },
@@ -544,7 +555,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           } else {
             await tx.weeklyStreak.create({
               data: {
-                userId: state.userId,
+                userId: sharedState.userId,
                 currentDailyStreak: nextStreak,
                 weekStartDate,
                 weekEndDate,
@@ -566,11 +577,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         });
       }
 
-      await redisClient.del(getSessionKey(state.sessionId));
-      finalizedSessions.delete(state.sessionId);
+      await redisClient.del(getSessionKey(sharedState.sessionId));
+      finalizedSessions.delete(sharedState.sessionId);
     });
   } catch (error) {
-    finalizedSessions.delete(state.sessionId);
+    finalizedSessions.delete(sharedState.sessionId);
     if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'P2002') {
       logger.warn({ error }, 'Game already saved');
       return;
@@ -654,51 +665,86 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
       timestampStart: state.targetShownAt,
     });
 
-    state.botTimeout = setTimeout(() => {
-      void (async () => {
-        const matchOver = await finalizeRound(socket, state, { reason: 'no-reaction' });
-        if (matchOver) {
-          await finalizeGame(state, false);
-        }
-      })();
-    }, state.botReactionTime + BOT_GRACE_MS);
+    if (state.isBotOpponent) {
+      state.botTimeout = setTimeout(() => {
+        void (async () => {
+          const matchOver = await finalizeRound(socket, state, { reason: 'no-reaction' });
+          if (matchOver) {
+            await finalizeGame(state, false);
+          }
+        })();
+      }, state.botReactionTime + BOT_GRACE_MS);
+    }
   }, delay);
 };
 
+const syncSocketState = (socketState: SessionState, sharedState: SessionState) => {
+  socketState.round = sharedState.round;
+  socketState.scores = sharedState.scores;
+  socketState.stakeAmount = sharedState.stakeAmount;
+  socketState.matchType = sharedState.matchType;
+  socketState.isBotOpponent = sharedState.isBotOpponent;
+  socketState.roundResolved = sharedState.roundResolved;
+  socketState.target = sharedState.target;
+  socketState.targetShownAt = sharedState.targetShownAt;
+  socketState.botReactionTime = sharedState.botReactionTime;
+  socketState.history = sharedState.history;
+  socketState.showTimeout = sharedState.showTimeout;
+  socketState.botTimeout = sharedState.botTimeout;
+  socketState.isFinished = sharedState.isFinished;
+  socketState.p1Staked = sharedState.p1Staked;
+  socketState.p2Staked = sharedState.p2Staked;
+  socketState.p1Ready = sharedState.p1Ready;
+  socketState.p2Ready = sharedState.p2Ready;
+};
+
 const handleRoundReady = async (socket: WebSocket, state: SessionState, payload: any) => {
-  state.round = typeof payload?.round === 'number' ? payload.round : state.round;
-  state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+  const sessionId = state.sessionId;
+  const sessionState = sessionStates.get(sessionId) ?? { ...state };
+  if (!sessionStates.has(sessionId)) {
+    sessionStates.set(sessionId, sessionState);
+  }
+
+  sessionState.round = typeof payload?.round === 'number' ? payload.round : sessionState.round;
+  sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
   const validTypes = ['ranked', 'friend', 'bot'];
   const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
-  state.matchType = matchType;
+  sessionState.matchType = matchType;
   if (matchType === 'bot') {
-    state.isBotOpponent = true;
+    sessionState.isBotOpponent = true;
   } else if (matchType === 'friend') {
-    state.isBotOpponent = false;
-  } else if (matchType === 'ranked' && state.isBotOpponent === undefined) {
-    state.isBotOpponent = false;
+    sessionState.isBotOpponent = false;
+  } else if (matchType === 'ranked' && sessionState.isBotOpponent === undefined) {
+    sessionState.isBotOpponent = false;
   }
-  state.roundResolved = false;
-  state.targetShownAt = undefined;
-  state.botReactionTime = undefined;
-  clearTimers(state);
+  sessionState.roundResolved = false;
+  sessionState.targetShownAt = undefined;
+  sessionState.botReactionTime = undefined;
+  clearTimers(sessionState);
 
   const nextTarget = pickTarget() ?? DEFAULT_TARGET;
-  state.target = nextTarget;
+  sessionState.target = nextTarget;
 
   sendMessage(socket, 'round:prepare', {
-    round: state.round,
+    round: sessionState.round,
     target: nextTarget,
     instruction: createInstruction(nextTarget),
     username: state.username,
   });
 
-  await persistSessionState(state);
-  scheduleTargetShow(socket, state);
+  await persistSessionState(sessionState);
+  scheduleTargetShow(socket, sessionState);
+  syncSocketState(state, sessionState);
 };
 
 const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload: any) => {
-  if (state.roundResolved) return;
+  const sessionId = state.sessionId;
+  const sessionState = sessionStates.get(sessionId) ?? { ...state };
+  if (!sessionStates.has(sessionId)) {
+    sessionStates.set(sessionId, sessionState);
+  }
+
+  if (sessionState.roundResolved) return;
 
   const now = Date.now();
   const clientClaimedDuration =
@@ -706,15 +752,16 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
       ? payload.clientDuration
       : undefined;
 
-  if (!state.targetShownAt) {
-    const matchOver = await finalizeRound(socket, state, { playerTime: 999_999, reason: 'early-click' });
+  if (!sessionState.targetShownAt) {
+    const matchOver = await finalizeRound(socket, sessionState, { playerTime: 999_999, reason: 'early-click' });
     if (matchOver) {
-      await finalizeGame(state, false);
+      await finalizeGame(sessionState, false);
     }
+    syncSocketState(state, sessionState);
     return;
   }
 
-  const serverMeasuredTotal = now - state.targetShownAt;
+  const serverMeasuredTotal = now - sessionState.targetShownAt;
   const claimedDuration = clientClaimedDuration ?? serverMeasuredTotal;
 
   let validatedTime = Math.max(claimedDuration, 100);
@@ -723,15 +770,16 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
 
   const playerTime = validatedTime;
 
-  if (state.botTimeout && playerTime < (state.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
-    clearTimeout(state.botTimeout);
-    state.botTimeout = undefined;
+  if (sessionState.botTimeout && playerTime < (sessionState.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
+    clearTimeout(sessionState.botTimeout);
+    sessionState.botTimeout = undefined;
   }
 
-  const matchOver = await finalizeRound(socket, state, { playerTime });
+  const matchOver = await finalizeRound(socket, sessionState, { playerTime });
   if (matchOver) {
-    await finalizeGame(state, false);
+    await finalizeGame(sessionState, false);
   }
+  syncSocketState(state, sessionState);
 };
 
 export function createWsServer(server: Server) {
@@ -743,7 +791,6 @@ export function createWsServer(server: Server) {
   const sessions = new WeakMap<WebSocket, SessionState>();
   const activeUsers = new Map<string, WebSocket>();
   const sessionSockets = new Map<string, Set<WebSocket>>();
-  const sessionStates = new Map<string, SessionState>();
 
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
@@ -975,6 +1022,7 @@ export function createWsServer(server: Server) {
       };
 
       sessions.set(socket, sessionState);
+      sessionStates.set(sessionId, sessionState);
     }
 
     socket.on('message', (data) => {
@@ -1166,10 +1214,8 @@ export function createWsServer(server: Server) {
 
             if (isP1) {
               sessionState.p1Ready = true;
-              state.p1Ready = true;
             } else {
               sessionState.p2Ready = true;
-              state.p2Ready = true;
             }
 
             if (isBotOpponent(sessionState)) {
@@ -1182,6 +1228,7 @@ export function createWsServer(server: Server) {
             }
 
             void persistSessionState(sessionState);
+            syncSocketState(state, sessionState);
             break;
           }
           default:
