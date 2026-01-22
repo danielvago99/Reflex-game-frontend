@@ -118,12 +118,17 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
 });
 
 const persistSessionState = async (state: SessionState) => {
-  // OPTIMIZATION: Do not use Redis for practice/bot matches. RAM is sufficient.
+  // OPTIMIZATION: Do not use Redis for bot matches. RAM is sufficient.
   if (state.matchType === 'bot') return;
 
-  const key = getSessionKey(state.sessionId);
-  const payload = serializeSessionState(state);
-  await redisClient.set(key, JSON.stringify(payload), { ex: GAME_STATE_TTL_SECONDS });
+  try {
+    const key = getSessionKey(state.sessionId);
+    const payload = serializeSessionState(state);
+    await redisClient.set(key, JSON.stringify(payload), { ex: GAME_STATE_TTL_SECONDS });
+    logger.info({ sessionId: state.sessionId }, 'Session saved to Redis');
+  } catch (error) {
+    logger.error({ error }, 'Failed to persist session state');
+  }
 };
 
 const createInstruction = (target: Target) => {
@@ -711,11 +716,11 @@ export function createWsServer(server: Server) {
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
     if (!sockets || sockets.size === 0) {
-      logger.error({ sessionId: state.sessionId }, 'Cannot start round: No sockets found for session');
+      logger.error({ sessionId: state.sessionId }, 'CRITICAL: No sockets found to broadcast countdown');
       return;
     }
 
-    logger.info({ sessionId: state.sessionId, socketCount: sockets.size }, 'Broadcasting countdown');
+    logger.info({ sessionId: state.sessionId, count: sockets.size }, 'Broadcasting game:countdown');
 
     for (const sessionSocket of sockets) {
       sendMessage(sessionSocket, 'game:countdown', { count: 3 });
@@ -983,64 +988,51 @@ export function createWsServer(server: Server) {
             break;
           }
           case 'game:player_ready': {
-            const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : state.sessionId;
-            if (!sessionId) {
-              logger.warn({ userId: state.userId }, 'Player ready but no sessionId');
-              return;
-            }
+            const targetSessionId =
+              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : state.sessionId;
 
-            const sessionState = sessionStates.get(sessionId);
+            if (!targetSessionId) return;
+
+            const sessionState = sessionStates.get(targetSessionId);
+
             if (!sessionState) {
-              logger.warn({ sessionId }, 'Player ready but session not found in sessionStates');
+              logger.error({ targetSessionId }, 'Session not found in memory');
               return;
             }
 
-            const assignments = sessionAssignments.get(sessionId);
+            const assignments = sessionAssignments.get(targetSessionId);
             const userId = state.userId;
 
-            logger.info(
-              { userId, sessionId, assignments, matchType: sessionState.matchType },
-              'Received game:player_ready',
-            );
+            logger.info({ userId, matchType: sessionState.matchType }, 'PROCESSING PLAYER READY');
 
-            let playerFound = false;
+            let isP1 = false;
 
-            if (assignments?.p1 === userId) {
-              sessionState.p1Ready = true;
-              state.p1Ready = true;
-              playerFound = true;
-              logger.info('Player identified as P1');
-            } else if (assignments?.p2 === userId) {
-              sessionState.p2Ready = true;
-              state.p2Ready = true;
-              playerFound = true;
-              logger.info('Player identified as P2');
+            if (sessionState.matchType === 'bot') {
+              isP1 = true;
+            } else if (assignments?.p1 === userId) {
+              isP1 = true;
+            } else if (!sessionState.p1Ready && assignments?.p1 && assignments.p1.startsWith('guest')) {
+              isP1 = true;
             }
 
-            if (!playerFound && sessionState.matchType === 'ranked') {
-              if (sessionState.p1Ready && assignments?.p1 !== userId) {
-                sessionState.p2Ready = true;
-                logger.info('Player identified as P2 (Fallback)');
-              } else if (!sessionState.p1Ready) {
-                sessionState.p1Ready = true;
-                logger.info('Player identified as P1 (Fallback)');
-              }
+            if (isP1) {
+              sessionState.p1Ready = true;
+              state.p1Ready = true;
+            } else {
+              sessionState.p2Ready = true;
+              state.p2Ready = true;
             }
 
             if (sessionState.matchType === 'bot') {
               sessionState.p2Ready = true;
-              logger.info('Bot auto-readied as P2');
             }
-
-            logger.info(
-              { p1Ready: sessionState.p1Ready, p2Ready: sessionState.p2Ready },
-              'Checking Start Condition',
-            );
 
             if (sessionState.p1Ready && sessionState.p2Ready) {
-              logger.info({ sessionId }, '>>> ALL PLAYERS READY. STARTING GAME. <<<');
+              logger.info('>>> PLAYERS READY - STARTING COUNTDOWN <<<');
               startRoundSequence(sessionState);
             }
+
+            void persistSessionState(sessionState);
             break;
           }
           default:
