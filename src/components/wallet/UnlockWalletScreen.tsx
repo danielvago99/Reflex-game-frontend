@@ -1,5 +1,6 @@
 import { Lock, Fingerprint, ArrowRight, AlertCircle, FileJson, Key, XCircle, Shield, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { WalletInput } from './WalletInput';
@@ -88,7 +89,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
     }
   };
 
-  const handlePasswordUnlock = async () => {
+  const handleUnlock = async () => {
     if (isPasswordLocked) {
       return;
     }
@@ -103,25 +104,54 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
 
     try {
       const { publicKey } = await unlock(password);
-      setUnlocking(false);
-      onUnlocked(publicKey);
-    } catch (error) {
-      setUnlocking(false);
-      const newAttempts = await getUnlockAttempts();
-      setFailedAttempts(newAttempts);
-      setPassword('');
 
-      if (isUnlockBlocked(newAttempts)) {
-        setErrorMessage('Wallet locked due to too many failed attempts. Use recovery options below.');
+      toast.success('Wallet Unlocked', {
+        description: 'Welcome back to Reflex Arena',
+        style: { background: '#0B0F1A', border: '1px solid #00FFA3', color: 'white' }
+      });
+
+      onUnlocked(publicKey);
+    } catch (err: any) {
+      console.error('Unlock failed:', err);
+      const msg = err?.message || 'Unknown error';
+      const normalizedMessage = msg.toLowerCase();
+
+      if (normalizedMessage.includes('password') || normalizedMessage.includes('decrypt') || normalizedMessage.includes('mac check failed')) {
+        setErrorMessage('Incorrect password. Please try again.');
+        setFailedAttempts((prev) => prev + 1);
+        setPassword('');
+
+        toast.error('Access Denied', {
+          description: 'The password provided is incorrect.',
+          style: { background: '#0B0F1A', border: '1px solid #EF4444', color: 'white' }
+        });
+      } else if (
+        normalizedMessage.includes('nonce') ||
+        normalizedMessage.includes('missing') ||
+        normalizedMessage.includes('corrupted') ||
+        normalizedMessage.includes('unexpected token')
+      ) {
+        toast.error('Wallet Integrity Error', {
+          description: 'Local data is corrupted or expired. Redirecting to recovery...',
+          duration: 5000,
+          style: { background: '#0B0F1A', border: '1px solid #F97316', color: 'white' }
+        });
+
+        setTimeout(() => {
+          onRecoveryMethod();
+        }, 2000);
       } else {
-        setErrorMessage(`Incorrect password. ${MAX_ATTEMPTS - newAttempts} attempt${MAX_ATTEMPTS - newAttempts === 1 ? '' : 's'} remaining.`);
+        setErrorMessage('Failed to unlock. Please try recovering your wallet.');
+        toast.error('Unlock Failed', { description: msg });
       }
+    } finally {
+      setUnlocking(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isPasswordLocked && password.length >= 8) {
-      handlePasswordUnlock();
+      handleUnlock();
     }
   };
 
@@ -284,8 +314,8 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
               </div>
 
               {/* Unlock button */}
-              <WalletButton 
-                onClick={handlePasswordUnlock}
+                <WalletButton 
+                onClick={handleUnlock}
                 icon={ArrowRight}
                 disabled={!canUnlock || unlocking}
                 fullWidth

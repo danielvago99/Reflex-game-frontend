@@ -1,5 +1,6 @@
 import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
@@ -87,6 +88,37 @@ export function DashboardScreen({
       };
     });
   }, [recentMatches]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasReferralBonus = params.get('refBonus') === 'true';
+
+    if (hasReferralBonus) {
+      toast.custom(
+        () => (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-[#0B0F1A] border border-[#00FFA3]/50 shadow-[0_0_20px_rgba(0,255,163,0.3)] w-full max-w-sm backdrop-blur-md">
+            <div className="p-2 bg-[#00FFA3]/20 rounded-full shrink-0">
+              <Gift className="w-6 h-6 text-[#00FFA3]" />
+            </div>
+            <div>
+              <p className="text-[#00FFA3] text-sm font-bold uppercase tracking-wider">Referral Bonus Active!</p>
+              <p className="text-white text-xs mt-1">
+                You successfully joined via a referral link.
+              </p>
+              <div className="flex items-center gap-1 mt-2 text-[#00FFA3] font-bold bg-[#00FFA3]/10 px-2 py-1 rounded w-fit">
+                <Zap className="w-3 h-3" />
+                <span className="text-xs">+30 Reflex Points</span>
+              </div>
+            </div>
+          </div>
+        ),
+        { duration: 8000 }
+      );
+
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
