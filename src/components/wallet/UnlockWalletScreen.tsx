@@ -16,6 +16,8 @@ interface UnlockWalletScreenProps {
 
 export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: UnlockWalletScreenProps) {
   const { unlock } = useWallet();
+  const hasUnlockedBefore =
+    typeof window !== 'undefined' && localStorage.getItem('reflex_has_unlocked_wallet') === 'true';
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -77,6 +79,9 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
 
       const { publicKey } = await unlock(password);
       setBiometricVerified(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('reflex_has_unlocked_wallet', 'true');
+      }
       setUnlocking(false);
       setTimeout(() => {
         onUnlocked(publicKey);
@@ -105,10 +110,15 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
     try {
       const { publicKey } = await unlock(password);
 
-      toast.success('Wallet Unlocked', {
-        description: 'Welcome back to Reflex Arena',
-        style: { background: '#0B0F1A', border: '1px solid #00FFA3', color: 'white' }
-      });
+      if (hasUnlockedBefore) {
+        toast.success('Wallet Unlocked', {
+          description: 'Welcome back to Reflex Arena',
+          style: { background: '#0B0F1A', border: '1px solid #00FFA3', color: 'white' }
+        });
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('reflex_has_unlocked_wallet', 'true');
+      }
 
       onUnlocked(publicKey);
     } catch (err: any) {
