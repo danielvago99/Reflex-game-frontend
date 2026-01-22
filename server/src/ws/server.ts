@@ -710,7 +710,12 @@ export function createWsServer(server: Server) {
 
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
-    if (!sockets) return;
+    if (!sockets || sockets.size === 0) {
+      logger.error({ sessionId: state.sessionId }, 'Cannot start round: No sockets found for session');
+      return;
+    }
+
+    logger.info({ sessionId: state.sessionId, socketCount: sockets.size }, 'Broadcasting countdown');
 
     for (const sessionSocket of sockets) {
       sendMessage(sessionSocket, 'game:countdown', { count: 3 });
@@ -979,32 +984,61 @@ export function createWsServer(server: Server) {
           }
           case 'game:player_ready': {
             const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : state.sessionId;
-            if (!sessionId) return;
+            if (!sessionId) {
+              logger.warn({ userId: state.userId }, 'Player ready but no sessionId');
+              return;
+            }
 
             const sessionState = sessionStates.get(sessionId);
-            if (!sessionState) return;
+            if (!sessionState) {
+              logger.warn({ sessionId }, 'Player ready but session not found in sessionStates');
+              return;
+            }
 
             const assignments = sessionAssignments.get(sessionId);
             const userId = state.userId;
 
-            logger.info({ userId, sessionId, assignments }, 'Received Player Ready');
+            logger.info(
+              { userId, sessionId, assignments, matchType: sessionState.matchType },
+              'Received game:player_ready',
+            );
+
+            let playerFound = false;
 
             if (assignments?.p1 === userId) {
               sessionState.p1Ready = true;
               state.p1Ready = true;
+              playerFound = true;
+              logger.info('Player identified as P1');
             } else if (assignments?.p2 === userId) {
               sessionState.p2Ready = true;
               state.p2Ready = true;
+              playerFound = true;
+              logger.info('Player identified as P2');
+            }
+
+            if (!playerFound && sessionState.matchType === 'ranked') {
+              if (sessionState.p1Ready && assignments?.p1 !== userId) {
+                sessionState.p2Ready = true;
+                logger.info('Player identified as P2 (Fallback)');
+              } else if (!sessionState.p1Ready) {
+                sessionState.p1Ready = true;
+                logger.info('Player identified as P1 (Fallback)');
+              }
             }
 
             if (sessionState.matchType === 'bot') {
               sessionState.p2Ready = true;
+              logger.info('Bot auto-readied as P2');
             }
 
-            logger.info({ p1: sessionState.p1Ready, p2: sessionState.p2Ready }, 'Checking Ready Status');
+            logger.info(
+              { p1Ready: sessionState.p1Ready, p2Ready: sessionState.p2Ready },
+              'Checking Start Condition',
+            );
 
             if (sessionState.p1Ready && sessionState.p2Ready) {
-              logger.info({ sessionId }, 'Both players ready! Starting Countdown.');
+              logger.info({ sessionId }, '>>> ALL PLAYERS READY. STARTING GAME. <<<');
               startRoundSequence(sessionState);
             }
             break;
