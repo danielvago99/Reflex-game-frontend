@@ -40,10 +40,7 @@ export class MatchmakingService {
   private intervals: Map<number, NodeJS.Timeout> = new Map();
 
   constructor() {
-    this.startQueueProcessing(0.1);
-    this.startQueueProcessing(0.2);
-    this.startQueueProcessing(0.5);
-    logger.info('Matchmaking Service Started');
+    logger.info('Matchmaking Service Started (Lazy Mode)');
   }
 
   async addToQueue(userId: string, stake: number, avgReaction: number) {
@@ -55,6 +52,8 @@ export class MatchmakingService {
     await redisClient.zadd(timerKey, { score: now, member: userId });
 
     logger.info({ userId, stake, avgReaction }, 'Player added to matchmaking queue');
+
+    this.startQueueProcessing(stake);
   }
 
   async removeFromQueue(userId: string, stake: number) {
@@ -73,7 +72,13 @@ export class MatchmakingService {
     logger.info(`Starting matchmaking processor for stake: ${stake} SOL`);
     const interval = setInterval(async () => {
       try {
-        await this.processQueue(stake);
+        const hasPlayers = await this.processQueue(stake);
+
+        if (!hasPlayers) {
+          logger.info(`Queue empty for ${stake} SOL - Stopping processor`);
+          clearInterval(this.intervals.get(stake));
+          this.intervals.delete(stake);
+        }
       } catch (error) {
         logger.error({ error, stake }, 'Matchmaking queue processing failed');
       }
@@ -82,7 +87,7 @@ export class MatchmakingService {
     this.intervals.set(stake, interval);
   }
 
-  private async processQueue(stake: number) {
+  private async processQueue(stake: number): Promise<boolean> {
     const queueKey = `matchmaking:queue:${stake}`;
     const timerKey = `matchmaking:timers:${stake}`;
 
@@ -104,7 +109,10 @@ export class MatchmakingService {
     const playersRaw = await redisClient.zrange(queueKey, 0, 20, { withScores: true });
     const entries = parseRankedPlayers(playersRaw);
 
-    if (entries.length < 2) return;
+    if (entries.length < 2) {
+      const count = await redisClient.zcard(queueKey);
+      return count > 0;
+    }
 
     const matchedUsers = new Set<string>();
 
@@ -136,6 +144,9 @@ export class MatchmakingService {
         }
       }
     }
+
+    const count = await redisClient.zcard(queueKey);
+    return count > 0;
   }
 
   private async createHumanMatch(player1Id: string, player2Id: string, stake: number) {
