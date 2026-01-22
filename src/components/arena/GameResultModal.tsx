@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
-import { API_BASE_URL } from '../../features/auth/hooks/useAuth';
 import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
 
 interface GameResultModalProps {
@@ -55,38 +54,6 @@ export function GameResultModal({
     const syncMatchResult = async () => {
       const matchResult: 'win' | 'loss' = playerWon ? 'win' : 'loss';
       const profit = playerWon ? netProfit : -stakeAmount;
-
-      if (matchType === 'ranked') {
-        const token =
-          typeof localStorage !== 'undefined'
-            ? localStorage.getItem('auth_token')
-            : null;
-
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/user/game/end`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              result: matchResult,
-              score: Math.max(playerScore, 0) * 10,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Failed to sync ranked stats', errorText);
-            toast.error('Could not update ranked stats', {
-              description: 'Please try again once your connection is stable.',
-            });
-          }
-        } catch (error) {
-          console.error('Failed to sync ranked stats', error);
-        }
-      }
 
       addMatchToHistory({
         matchType,
