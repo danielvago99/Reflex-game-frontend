@@ -31,6 +31,7 @@ class WebSocketService {
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        this.isIntentionalClose = false;
         if (ENV.USE_MOCK_DATA || !ENV.ENABLE_WEBSOCKET) {
           this.simulateMockConnection();
           resolve();

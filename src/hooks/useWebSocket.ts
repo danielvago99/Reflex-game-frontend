@@ -75,9 +75,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       unsubOpen();
       unsubClose();
       unsubError();
-      if (options.autoConnect) {
-        disconnect();
-      }
     };
   }, [options.autoConnect, connect, disconnect]);
 
