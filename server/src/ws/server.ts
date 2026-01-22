@@ -707,15 +707,19 @@ const handleRoundReady = async (socket: WebSocket, state: SessionState, payload:
 
   sessionState.round = typeof payload?.round === 'number' ? payload.round : sessionState.round;
   sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
-  const validTypes = ['ranked', 'friend', 'bot'];
-  const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
-  sessionState.matchType = matchType;
-  if (matchType === 'bot') {
-    sessionState.isBotOpponent = true;
-  } else if (matchType === 'friend') {
-    sessionState.isBotOpponent = false;
-  } else if (matchType === 'ranked' && sessionState.isBotOpponent === undefined) {
-    sessionState.isBotOpponent = false;
+  if (sessionState.matchType === 'ranked') {
+    logger.info({ sessionId }, 'Ignoring client matchType payload because session is already Ranked');
+  } else {
+    const validTypes = ['ranked', 'friend', 'bot'];
+    const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+    sessionState.matchType = matchType;
+    if (matchType === 'bot') {
+      sessionState.isBotOpponent = true;
+    } else if (matchType === 'friend') {
+      sessionState.isBotOpponent = false;
+    } else if (matchType === 'ranked' && sessionState.isBotOpponent === undefined) {
+      sessionState.isBotOpponent = false;
+    }
   }
   sessionState.roundResolved = false;
   sessionState.targetShownAt = undefined;
