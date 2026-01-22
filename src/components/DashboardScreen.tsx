@@ -1,11 +1,12 @@
 import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
 
@@ -34,6 +35,8 @@ export function DashboardScreen({
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const { data: rewardsData } = useRewardsData();
+  const toastShownRef = useRef(false);
 
   const avatarData = useMemo(() => {
     if (avatarUrl) {
@@ -90,35 +93,47 @@ export function DashboardScreen({
   }, [recentMatches]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hasReferralBonus = params.get('refBonus') === 'true';
+    if (!rewardsData || !stats || toastShownRef.current) {
+      return;
+    }
 
-    if (hasReferralBonus) {
+    const hasRefPoints = (rewardsData.reflexPoints ?? 0) >= 30;
+    const isNewPlayer = stats.totalMatches === 0;
+    const hasSeenToast =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('referral_toast_shown') : null;
+
+    if (hasRefPoints && isNewPlayer && !hasSeenToast) {
+      toastShownRef.current = true;
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('referral_toast_shown', 'true');
+      }
+
       toast.custom(
         () => (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-[#0B0F1A] border border-[#00FFA3]/50 shadow-[0_0_20px_rgba(0,255,163,0.3)] w-full max-w-sm backdrop-blur-md">
-            <div className="p-2 bg-[#00FFA3]/20 rounded-full shrink-0">
-              <Gift className="w-6 h-6 text-[#00FFA3]" />
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-[#0B0F1A]/95 border border-[#00FFA3]/50 shadow-[0_0_30px_rgba(0,255,163,0.2)] w-full max-w-sm backdrop-blur-md animate-in slide-in-from-top-5 duration-500">
+            <div className="relative p-2 bg-[#00FFA3]/20 rounded-full shrink-0 overflow-hidden">
+              <div className="absolute inset-0 bg-[#00FFA3]/20 animate-ping rounded-full"></div>
+              <Gift className="relative w-6 h-6 text-[#00FFA3]" />
             </div>
             <div>
-              <p className="text-[#00FFA3] text-sm font-bold uppercase tracking-wider">Referral Bonus Active!</p>
-              <p className="text-white text-xs mt-1">
-                You successfully joined via a referral link.
+              <p className="text-[#00FFA3] text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                Referral Bonus Active!
               </p>
-              <div className="flex items-center gap-1 mt-2 text-[#00FFA3] font-bold bg-[#00FFA3]/10 px-2 py-1 rounded w-fit">
-                <Zap className="w-3 h-3" />
-                <span className="text-xs">+30 Reflex Points</span>
+              <p className="text-gray-300 text-xs mt-1 leading-relaxed">
+                Welcome to the Arena. You've received a starting bonus.
+              </p>
+              <div className="flex items-center gap-1.5 mt-2 bg-[#00FFA3]/10 border border-[#00FFA3]/20 px-3 py-1.5 rounded-lg w-fit">
+                <Zap className="w-3.5 h-3.5 text-[#00FFA3]" fill="#00FFA3" />
+                <span className="text-xs font-bold text-[#00FFA3]">+30 Reflex Points</span>
               </div>
             </div>
           </div>
         ),
         { duration: 8000 }
       );
-
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
     }
-  }, []);
+  }, [rewardsData, stats]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
