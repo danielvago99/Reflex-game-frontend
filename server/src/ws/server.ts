@@ -860,7 +860,6 @@ export function createWsServer(server: Server) {
     };
 
     sessions.set(socket, sessionState);
-    void persistSessionState(sessionState);
     if (userId) {
       activeUsers.set(userId, socket);
     }
@@ -957,6 +956,7 @@ export function createWsServer(server: Server) {
                 : sessionState.p1Staked && sessionState.p2Staked;
 
             if (bothStaked) {
+              void persistSessionState(sessionState);
               for (const sessionSocket of sockets) {
                 sendMessage(sessionSocket, 'game:enter_arena', { sessionId });
               }
