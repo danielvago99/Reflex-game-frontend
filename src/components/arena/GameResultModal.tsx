@@ -78,13 +78,13 @@ export function GameResultModal({
 
           if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(errorText || 'Failed to sync ranked stats');
+            console.error('Failed to sync ranked stats', errorText);
+            toast.error('Could not update ranked stats', {
+              description: 'Please try again once your connection is stable.',
+            });
           }
         } catch (error) {
           console.error('Failed to sync ranked stats', error);
-          toast.error('Could not update ranked stats', {
-            description: 'Please try again once your connection is stable.',
-          });
         }
       }
 
