@@ -53,7 +53,12 @@ export class MatchmakingService {
     const now = Date.now();
     const timeoutThreshold = now - MAX_WAIT_TIME_MS;
 
-    const expiredPlayers = await redisClient.zrangebyscore(timerKey, 0, timeoutThreshold);
+    const expiredPlayers = await redisClient.zrange<string[]>(
+      timerKey,
+      0,
+      timeoutThreshold,
+      { byScore: true }
+    );
 
     if (expiredPlayers.length > 0) {
       for (const userId of expiredPlayers) {
@@ -62,21 +67,32 @@ export class MatchmakingService {
       }
     }
 
-    const players = await redisClient.zrange(queueKey, 0, 20, { withScores: true });
+    const players = await redisClient.zrange<(string | number)[]>(
+      queueKey,
+      0,
+      20,
+      { withScores: true }
+    );
 
     if (players.length < 2) return;
 
     const matchedUsers = new Set<string>();
 
     for (let i = 0; i < players.length; i += 2) {
-      const p1Id = players[i];
-      const p1Reaction = Number(players[i + 1]);
+      const p1IdRaw = players[i];
+      const p1ReactionRaw = players[i + 1];
+      if (typeof p1IdRaw !== 'string' || typeof p1ReactionRaw === 'undefined') continue;
+      const p1Id = p1IdRaw;
+      const p1Reaction = Number(p1ReactionRaw);
 
       if (!p1Id || Number.isNaN(p1Reaction) || matchedUsers.has(p1Id)) continue;
 
       for (let j = i + 2; j < players.length; j += 2) {
-        const p2Id = players[j];
-        const p2Reaction = Number(players[j + 1]);
+        const p2IdRaw = players[j];
+        const p2ReactionRaw = players[j + 1];
+        if (typeof p2IdRaw !== 'string' || typeof p2ReactionRaw === 'undefined') continue;
+        const p2Id = p2IdRaw;
+        const p2Reaction = Number(p2ReactionRaw);
 
         if (!p2Id || Number.isNaN(p2Reaction) || matchedUsers.has(p2Id)) continue;
 

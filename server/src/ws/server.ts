@@ -854,14 +854,16 @@ export function createWsServer(server: Server) {
             void handleMatchReset(state, message.payload);
             break;
           case 'match:find':
-            if (!state.userId) return;
+            const { userId } = state;
+            if (!userId) return;
             void (async () => {
-              const stats = await prisma.playerStats.findUnique({ where: { userId: state.userId } });
+              const stats = await prisma.playerStats.findUnique({ where: { userId } });
+              const avgReaction = stats?.avgReaction ? Number(stats.avgReaction) : null;
               const reactionTime =
-                stats?.avgReaction && stats.avgReaction > 0 ? stats.avgReaction : 600;
+                avgReaction && Number.isFinite(avgReaction) && avgReaction > 0 ? avgReaction : 600;
               const stake = typeof message.payload?.stake === 'number' ? message.payload.stake : 0.1;
 
-              await matchmakingService.addToQueue(state.userId, stake, reactionTime);
+              await matchmakingService.addToQueue(userId, stake, reactionTime);
               sendMessage(socket, 'match:searching', { stake });
             })();
             break;
