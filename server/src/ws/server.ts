@@ -7,6 +7,7 @@ import prisma from '../db/prisma';
 import { env } from '../config/env';
 import { redisClient } from '../db/redis';
 import { matchmakingService } from '../services/matchmaking';
+import { matchmakingEvents } from '../utils/events';
 
 type Shape = 'circle' | 'square' | 'triangle';
 
@@ -716,94 +717,59 @@ export function createWsServer(server: Server) {
     }
   };
 
-  const redisSub =
-    (redisClient as unknown as { duplicate?: () => unknown }).duplicate?.() ?? (redisClient as unknown);
-  const canSubscribe =
-    redisSub &&
-    typeof (redisSub as { subscribe?: unknown }).subscribe === 'function' &&
-    typeof (redisSub as { on?: unknown }).on === 'function';
+  matchmakingEvents.on('match_found', (data) => {
+    const { player1Id, player2Id, stake } = data as {
+      player1Id: string;
+      player2Id: string;
+      stake: number;
+    };
+    const socket1 = activeUsers.get(player1Id);
+    const socket2 = activeUsers.get(player2Id);
 
-  if (canSubscribe) {
-    (redisSub as { subscribe: (channel: string, cb?: (err: unknown) => void) => void }).subscribe(
-      'matchmaking:match_found',
-      (err) => {
-        if (err) {
-          logger.error({ err }, 'Failed to subscribe to matchmaking:match_found');
-        }
-      }
-    );
-    (redisSub as { subscribe: (channel: string, cb?: (err: unknown) => void) => void }).subscribe(
-      'matchmaking:bot_match',
-      (err) => {
-        if (err) {
-          logger.error({ err }, 'Failed to subscribe to matchmaking:bot_match');
-        }
-      }
-    );
+    if (socket1 && socket2) {
+      const sessionId = crypto.randomUUID();
+      sendMessage(socket1, 'match_found', { sessionId, opponentId: player2Id, stake, isBot: false });
+      sendMessage(socket2, 'match_found', { sessionId, opponentId: player1Id, stake, isBot: false });
+    }
+  });
 
-    (redisSub as { on: (event: string, cb: (channel: string, message: string) => void) => void }).on(
-      'message',
-      async (channel, message) => {
-        const data = JSON.parse(message);
+  matchmakingEvents.on('bot_match', (data) => {
+    const { userId, stake } = data as { userId: string; stake: number };
+    const socket = activeUsers.get(userId);
 
-        if (channel === 'matchmaking:match_found') {
-          const { player1Id, player2Id, stake } = data as {
-            player1Id: string;
-            player2Id: string;
-            stake: number;
-          };
-          const socket1 = activeUsers.get(player1Id);
-          const socket2 = activeUsers.get(player2Id);
+    if (socket) {
+      const sessionId = crypto.randomUUID();
+      const sessionState: SessionState = {
+        sessionId,
+        round: 1,
+        scores: { player: 0, bot: 0 },
+        matchType: 'bot',
+        stakeAmount: stake,
+        roundResolved: false,
+        history: [],
+        userId,
+        botReactionTime: 600,
+        p1Staked: false,
+        p2Staked: true,
+        p1Ready: false,
+        p2Ready: true,
+      };
 
-          if (socket1 && socket2) {
-            const sessionId = crypto.randomUUID();
-            sendMessage(socket1, 'match_found', { sessionId, opponentId: player2Id, stake, isBot: false });
-            sendMessage(socket2, 'match_found', { sessionId, opponentId: player1Id, stake, isBot: false });
-          }
-        }
+      sessions.set(socket, sessionState);
+      sessionStates.set(sessionId, sessionState);
+      sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
+      sessionSockets.set(sessionId, new Set([socket]));
 
-        if (channel === 'matchmaking:bot_match') {
-          const { userId, stake } = data as { userId: string; stake: number };
-          const socket = activeUsers.get(userId);
+      sendMessage(socket, 'match_found', {
+        sessionId,
+        opponentId: 'bot_opponent',
+        stake,
+        isBot: true,
+      });
 
-          if (socket) {
-            const sessionId = crypto.randomUUID();
-            const sessionState: SessionState = {
-              sessionId,
-              round: 1,
-              scores: { player: 0, bot: 0 },
-              matchType: 'bot',
-              stakeAmount: stake,
-              roundResolved: false,
-              history: [],
-              userId,
-              botReactionTime: 600,
-              p1Staked: false,
-              p2Staked: false,
-              p1Ready: false,
-              p2Ready: false,
-            };
-
-            sessions.set(socket, sessionState);
-            sessionStates.set(sessionId, sessionState);
-            sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
-            sessionSockets.set(sessionId, new Set([socket]));
-
-            sendMessage(socket, 'match_found', {
-              sessionId,
-              opponentId: 'bot_opponent',
-              stake,
-              isBot: true,
-            });
-
-            logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
-          }
-        }
-      }
-    );
-  } else {
-    logger.warn('Redis pub/sub not available; matchmaking notifications disabled.');
-  }
+      logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
+    }
+  });
 
   wss.on('connection', async (socket: WebSocket, request) => {
     logger.info('WS client connected');
