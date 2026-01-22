@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, findAvatarIdByUrl, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
+import { LoadingOverlay } from './ui/LoadingOverlay';
 
 interface SettingsScreenProps {
   currentName: string;
@@ -17,6 +18,8 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
   const [newName, setNewName] = useState(currentName);
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Loading');
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
     return findAvatarIdByUrl(avatarUrl) || localStorage.getItem('userAvatar') || 'gradient-1';
   });
@@ -37,17 +40,27 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
 
   const handleSaveName = () => {
     if (newName.trim() && newName !== currentName) {
+      setLoadingMessage('Saving Changes');
+      setIsLoading(true);
       onUpdateName(newName.trim());
       setIsEditing(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1200);
     }
   };
 
   const handleAvatarSelect = (avatarId: string) => {
+    setLoadingMessage('Updating Avatar');
+    setIsLoading(true);
     setSelectedAvatar(avatarId);
     localStorage.setItem('userAvatar', avatarId);
     const avatar = getAvatarData(avatarId);
     onUpdateAvatar(avatar.url);
     setShowAvatarSelector(false);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
   };
 
   return (
@@ -311,6 +324,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
           onClose={() => setShowAvatarSelector(false)}
         />
       )}
+      <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
     </div>
   );
 }
