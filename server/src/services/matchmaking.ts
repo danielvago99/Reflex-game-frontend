@@ -4,7 +4,37 @@ import { logger } from '../utils/logger';
 
 const MATCH_CHECK_INTERVAL = 2000;
 const MAX_WAIT_TIME_MS = 15000;
-const REACTION_TOLERANCE_MS = 150;
+const REACTION_TOLERANCE_MS = 600;
+
+interface RankedPlayer {
+  member: string;
+  score: number;
+}
+
+const parseRankedPlayers = (raw: unknown): RankedPlayer[] => {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const first = raw[0];
+  if (typeof first === 'object' && first !== null && 'member' in first) {
+    return (raw as RankedPlayer[]).filter(
+      (entry) => typeof entry.member === 'string' && Number.isFinite(entry.score)
+    );
+  }
+
+  const parsed: RankedPlayer[] = [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const member = raw[i];
+    const score = raw[i + 1];
+    if (typeof member === 'string' && (typeof score === 'number' || typeof score === 'string')) {
+      const numericScore = Number(score);
+      if (Number.isFinite(numericScore)) {
+        parsed.push({ member, score: numericScore });
+      }
+    }
+  }
+
+  return parsed;
+};
 
 export class MatchmakingService {
   private intervals: Map<number, NodeJS.Timeout> = new Map();
@@ -13,6 +43,7 @@ export class MatchmakingService {
     this.startQueueProcessing(0.1);
     this.startQueueProcessing(0.2);
     this.startQueueProcessing(0.5);
+    logger.info('Matchmaking Service Started');
   }
 
   async addToQueue(userId: string, stake: number, avgReaction: number) {
@@ -58,34 +89,20 @@ export class MatchmakingService {
     const now = Date.now();
     const timeoutThreshold = now - MAX_WAIT_TIME_MS;
 
-    const expiredPlayers = await redisClient.zrange<{ member: string; score: number }[]>(
-      timerKey,
-      0,
-      timeoutThreshold,
-      { byScore: true }
-    );
+    const expiredRaw = await redisClient.zrange(timerKey, 0, -1, { withScores: true });
+    const expiredPlayers = parseRankedPlayers(expiredRaw);
+    const timedOutUsers = expiredPlayers.filter((player) => player.score < timeoutThreshold).map((player) => player.member);
 
-    if (expiredPlayers.length > 0) {
-      for (const { member } of expiredPlayers) {
-        const userId = member;
+    if (timedOutUsers.length > 0) {
+      for (const userId of timedOutUsers) {
         await this.removeFromQueue(userId, stake);
-        await this.createBotMatch(userId, stake);
+        matchmakingEvents.emit('bot_match', { userId, stake });
+        logger.info({ userId }, 'Triggered BOT match due to timeout');
       }
     }
 
-    const players = await redisClient.zrange<{ member: string; score: number }[]>(
-      queueKey,
-      0,
-      20,
-      { withScores: true }
-    );
-
-    if (players.length < 2) return;
-
-    const entries = players.filter(
-      (player): player is { member: string; score: number } =>
-        typeof player?.member === 'string' && Number.isFinite(player.score)
-    );
+    const playersRaw = await redisClient.zrange(queueKey, 0, 20, { withScores: true });
+    const entries = parseRankedPlayers(playersRaw);
 
     if (entries.length < 2) return;
 
@@ -122,25 +139,12 @@ export class MatchmakingService {
   }
 
   private async createHumanMatch(player1Id: string, player2Id: string, stake: number) {
-    logger.info({ player1Id, player2Id, stake }, 'Human Match Found');
-    const matchId = `${player1Id}-${player2Id}-${Date.now()}`;
+    logger.info({ player1Id, player2Id, stake }, 'Human Match Found - Emitting Event');
 
     matchmakingEvents.emit('match_found', {
-      type: 'human',
-      matchId,
       player1Id,
       player2Id,
       stake,
-    });
-  }
-
-  private async createBotMatch(userId: string, stake: number) {
-    logger.info({ userId, stake }, 'Timeout reached. Creating Bot Match.');
-
-    matchmakingEvents.emit('bot_match', {
-      userId,
-      stake,
-      difficulty: 'adaptive',
     });
   }
 }
