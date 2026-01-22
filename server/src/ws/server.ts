@@ -174,6 +174,8 @@ const clearTimers = (state: SessionState) => {
   }
 };
 
+const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
+
 const handleMatchReset = async (state: SessionState, payload: any) => {
   clearTimers(state);
 
@@ -741,7 +743,6 @@ export function createWsServer(server: Server) {
   const sessions = new WeakMap<WebSocket, SessionState>();
   const activeUsers = new Map<string, WebSocket>();
   const sessionSockets = new Map<string, Set<WebSocket>>();
-  const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
   const sessionStates = new Map<string, SessionState>();
 
   const startRoundSequence = (state: SessionState) => {
