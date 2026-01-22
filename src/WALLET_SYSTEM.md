@@ -27,7 +27,7 @@ This document describes the secure, non-custodial Web3 wallet creation and manag
 ### Security Measures
 
 - **Password Strength Validation**: Real-time password strength checking with feedback
-- **3-Attempt Limit**: Wallet locks after 3 failed password attempts
+- **5-Attempt Limit**: Wallet locks after 5 failed password attempts
 - **Seed Phrase Verification**: Users must verify their seed phrase before proceeding
 - **Biometric Authentication**: Optional fingerprint/Face ID support
 - **Recovery Options**: Multiple wallet recovery methods (seed phrase, JSON backup)
@@ -149,14 +149,14 @@ This document describes the secure, non-custodial Web3 wallet creation and manag
 **Features**:
 - 🔐 Password unlock with real decryption
 - 👆 Biometric authentication option
-- ⚠️ 3-attempt limit with lockout
+- ⚠️ 5-attempt limit with lockout
 - 🔑 Recovery method options
 - 📊 Attempt counter display
 
 **Security Measures**:
 - Attempts tracked in localStorage
 - Real AES-GCM decryption validation
-- Password locked after 3 failed attempts
+- Password locked after 5 failed attempts
 - Seed phrase recovery option
 - JSON import option
 

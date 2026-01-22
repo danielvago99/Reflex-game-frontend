@@ -140,6 +140,8 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
         setTimeout(() => {
           onRecoveryMethod();
         }, 2000);
+      } else if (normalizedMessage.includes('no wallet found')) {
+        setErrorMessage('No wallet found. Please recover your wallet or create a new one.');
       } else {
         setErrorMessage('Failed to unlock. Please try recovering your wallet.');
         toast.error('Unlock Failed', { description: msg });
