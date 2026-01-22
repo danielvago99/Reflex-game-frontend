@@ -55,6 +55,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [targetShowSignal, setTargetShowSignal] = useState(0);
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -121,6 +122,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setShowHowToPlay(true);
     setHasRequestedInitialRound(false);
     setTargetShowSignal(0);
+    setWaitingForOpponent(false);
   };
 
   // Players (get from profile in real app)
@@ -232,6 +234,11 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
 
+  useWebSocketEvent<{ count?: number }>('game:countdown', () => {
+    setWaitingForOpponent(false);
+    setGameState('countdown');
+  }, []);
+
   useEffect(() => {
     if (!isConnected) {
       setHasRequestedInitialRound(false);
@@ -263,6 +270,20 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setGameState('playing');
     setRoundResolved(false);
     setLossReason(null); // reset reason for new round
+  };
+
+  const handleReadyUp = () => {
+    setShowHowToPlay(false);
+    setWaitingForOpponent(true);
+
+    if (!isConnected) {
+      toast.error('WebSocket disconnected', {
+        description: 'Reconnecting to game server...'
+      });
+      return;
+    }
+
+    send('game:player_ready', {});
   };
 
   const handlePause = () => {
@@ -389,7 +410,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
       {/* Overlays */}
       <AnimatePresence>
-        {gameState === 'countdown' && !showHowToPlay && (
+        {gameState === 'countdown' && !showHowToPlay && !waitingForOpponent && (
           <CountdownOverlay
             onComplete={() => {
               setGameState('playing');
@@ -450,8 +471,20 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         <HowToPlayOverlay
           targetShape={(currentTarget ?? defaultTarget).shape}
           targetColor={(currentTarget ?? defaultTarget).color}
-          onContinue={() => setShowHowToPlay(false)}
+          onContinue={handleReadyUp}
         />
+      )}
+
+      {waitingForOpponent && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/60 px-8 py-6 text-center shadow-xl">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent"></div>
+            <div>
+              <p className="text-lg font-semibold text-white">Waiting for opponent...</p>
+              <p className="text-sm text-gray-400">We&apos;ll start as soon as they&apos;re ready.</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Fullscreen Toggle - Top right corner */}

@@ -237,7 +237,7 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                   <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
                 </motion.div>
                 <span className="text-lg sm:text-xl font-bold tracking-wide">
-                  Ready to Play
+                  I&apos;m Ready
                 </span>
                 <motion.div
                   animate={{ rotate: [0, -5, 5, 0] }}

@@ -1,5 +1,5 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -33,6 +33,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
   const [opponentName, setOpponentName] = useState('');
+  const [pendingMatch, setPendingMatch] = useState<{ sessionId: string; stake: number; isBot: boolean } | null>(null);
+  const matchFoundTimeoutRef = useRef<number | null>(null);
+  const pendingMatchRef = useRef<{ sessionId: string; stake: number; isBot: boolean } | null>(null);
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
@@ -45,22 +48,55 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   useEffect(() => {
     const unsubscribeMatchFound = wsService.on('match_found', (message: any) => {
       const payload = message?.payload ?? {};
-      setMatchStatus('found');
-      setOpponentName(payload.isBot ? 'Training Bot' : payload.opponentName ?? 'Unknown Opponent');
+      const matchDetails = {
+        sessionId: payload.sessionId as string,
+        stake: payload.stake ?? parseFloat(selectedStake),
+        isBot: Boolean(payload.isBot),
+      };
 
-      setTimeout(() => {
-        if (onStartMatch) {
-          onStartMatch(!payload.isBot, payload.stake ?? parseFloat(selectedStake), payload.isBot ? 'bot' : 'ranked');
+      setMatchStatus('found');
+      setOpponentName(matchDetails.isBot ? 'Training Bot' : payload.opponentName ?? 'Unknown Opponent');
+      setPendingMatch(matchDetails);
+      pendingMatchRef.current = matchDetails;
+
+      if (matchFoundTimeoutRef.current) {
+        window.clearTimeout(matchFoundTimeoutRef.current);
+      }
+
+      matchFoundTimeoutRef.current = window.setTimeout(() => {
+        if (walletProvider) {
+          void handleExternalWalletTransaction(matchDetails);
         } else {
-          onNavigate('arena');
+          setShowTransactionModal(true);
         }
       }, 1500);
     });
 
+    const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
+      if (pendingMatchRef.current) {
+        if (onStartMatch) {
+          onStartMatch(
+            !pendingMatchRef.current.isBot,
+            pendingMatchRef.current.stake,
+            pendingMatchRef.current.isBot ? 'bot' : 'ranked'
+          );
+        } else {
+          onNavigate('arena');
+        }
+      }
+      setShowTransactionModal(false);
+      setMatchStatus('idle');
+    });
+
     return () => {
       unsubscribeMatchFound();
+      unsubscribeEnterArena();
+      if (matchFoundTimeoutRef.current) {
+        window.clearTimeout(matchFoundTimeoutRef.current);
+        matchFoundTimeoutRef.current = null;
+      }
     };
-  }, [onNavigate, onStartMatch, selectedStake]);
+  }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
 
   const startRankedMatchmaking = () => {
     if (!isConnected) {
@@ -85,16 +121,16 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
     // For ranked mode
     if (selectedMode === 'ranked') {
-      if (walletProvider) {
-        handleExternalWalletTransaction();
-      } else {
-        setShowTransactionModal(true);
-      }
+      startRankedMatchmaking();
     }
   };
 
   // Handle transaction signing with external wallet providers
-  const handleExternalWalletTransaction = async () => {
+  const handleExternalWalletTransaction = async (matchDetails?: {
+    sessionId: string;
+    stake: number;
+    isBot: boolean;
+  }) => {
     try {
       // Get the wallet provider from window
       let provider: any;
@@ -125,11 +161,19 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         throw new Error('Wallet provider not found');
       }
 
+      if (!matchDetails) {
+        throw new Error('Match details are missing');
+      }
+
       // Skip transaction for free stakes (DAO treasury handles it)
       if (useFreeStakeMode && selectedFreeStake) {
         useFreeStake(selectedFreeStake);
-        
-        startRankedMatchmaking();
+
+        send('match:stake_confirmed', {
+          sessionId: matchDetails.sessionId,
+          stake: matchDetails.stake,
+          matchType: matchDetails.isBot ? 'bot' : 'ranked',
+        });
         return;
       }
 
@@ -150,13 +194,17 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       // const signature = await provider.signAndSendTransaction(transaction);
       
       // For demo purposes, simulate the external wallet approval
-      console.log(`[${walletProvider}] Transaction signing requested for ${selectedStake} SOL`);
+      console.log(`[${walletProvider}] Transaction signing requested for ${matchDetails.stake} SOL`);
       console.log('Native wallet UI would appear here for user approval...');
       
       // Simulate successful approval (in production, await actual signature)
       // The user would approve/reject in their wallet extension UI
       
-      startRankedMatchmaking();
+      send('match:stake_confirmed', {
+        sessionId: matchDetails.sessionId,
+        stake: matchDetails.stake,
+        matchType: matchDetails.isBot ? 'bot' : 'ranked',
+      });
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
       if (error.code === 4001) {
@@ -173,10 +221,18 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       useFreeStake(selectedFreeStake);
     }
 
-    // Start the match
-    if (selectedMode === 'ranked') {
-      startRankedMatchmaking();
+    if (!pendingMatch) {
+      toast.error('Match details unavailable', {
+        description: 'Please try matchmaking again.',
+      });
+      return;
     }
+
+    send('match:stake_confirmed', {
+      sessionId: pendingMatch.sessionId,
+      stake: pendingMatch.stake,
+      matchType: pendingMatch.isBot ? 'bot' : 'ranked',
+    });
     
     setShowTransactionModal(false);
   };

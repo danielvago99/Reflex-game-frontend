@@ -26,6 +26,10 @@ interface SessionState extends RoundTimers {
   scores: { player: number; bot: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
+  p1Staked: boolean;
+  p2Staked: boolean;
+  p1Ready: boolean;
+  p2Ready: boolean;
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -48,6 +52,10 @@ interface RedisSessionState {
   scores: { player: number; bot: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
+  p1Staked: boolean;
+  p2Staked: boolean;
+  p1Ready: boolean;
+  p2Ready: boolean;
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -95,6 +103,10 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   scores: state.scores,
   stakeAmount: state.stakeAmount,
   matchType: state.matchType,
+  p1Staked: state.p1Staked,
+  p2Staked: state.p2Staked,
+  p1Ready: state.p1Ready,
+  p2Ready: state.p2Ready,
   target: state.target,
   targetShownAt: state.targetShownAt,
   botReactionTime: state.botReactionTime,
@@ -156,6 +168,10 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 
   state.round = 1;
   state.scores = { player: 0, bot: 0 };
+  state.p1Staked = false;
+  state.p2Staked = false;
+  state.p1Ready = false;
+  state.p2Ready = false;
   state.history = [];
   state.roundResolved = false;
   state.target = undefined;
@@ -687,6 +703,18 @@ export function createWsServer(server: Server) {
 
   const sessions = new WeakMap<WebSocket, SessionState>();
   const activeUsers = new Map<string, WebSocket>();
+  const sessionSockets = new Map<string, Set<WebSocket>>();
+  const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
+  const sessionStates = new Map<string, SessionState>();
+
+  const startRoundSequence = (state: SessionState) => {
+    const sockets = sessionSockets.get(state.sessionId);
+    if (!sockets) return;
+
+    for (const sessionSocket of sockets) {
+      sendMessage(sessionSocket, 'game:countdown', { count: 3 });
+    }
+  };
 
   const redisSub =
     (redisClient as unknown as { duplicate?: () => unknown }).duplicate?.() ?? (redisClient as unknown);
@@ -744,15 +772,22 @@ export function createWsServer(server: Server) {
               sessionId,
               round: 1,
               scores: { player: 0, bot: 0 },
-              matchType: 'ranked',
+              matchType: 'bot',
               stakeAmount: stake,
               roundResolved: false,
               history: [],
               userId,
               botReactionTime: 600,
+              p1Staked: false,
+              p2Staked: false,
+              p1Ready: false,
+              p2Ready: false,
             };
 
             sessions.set(socket, sessionState);
+            sessionStates.set(sessionId, sessionState);
+            sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
+            sessionSockets.set(sessionId, new Set([socket]));
 
             sendMessage(socket, 'match_found', {
               sessionId,
@@ -821,6 +856,10 @@ export function createWsServer(server: Server) {
       scores: { player: 0, bot: 0 },
       stakeAmount: 0,
       matchType: 'friend',
+      p1Staked: false,
+      p2Staked: false,
+      p1Ready: false,
+      p2Ready: false,
       roundResolved: false,
       history: [],
       userId,
@@ -867,6 +906,98 @@ export function createWsServer(server: Server) {
               sendMessage(socket, 'match:searching', { stake });
             })();
             break;
+          case 'match:stake_confirmed': {
+            const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : undefined;
+            if (!sessionId) return;
+
+            const matchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
+            const stakeAmount =
+              typeof message.payload?.stake === 'number' ? message.payload.stake : state.stakeAmount ?? 0;
+
+            state.sessionId = sessionId;
+            state.matchType = matchType;
+            state.stakeAmount = stakeAmount;
+
+            const sessionState = sessionStates.get(sessionId) ?? {
+              ...state,
+              showTimeout: undefined,
+              botTimeout: undefined,
+              p1Staked: false,
+              p2Staked: false,
+              p1Ready: false,
+              p2Ready: false,
+            };
+
+            sessionState.sessionId = sessionId;
+            sessionState.matchType = matchType;
+            sessionState.stakeAmount = stakeAmount;
+            sessionStates.set(sessionId, sessionState);
+
+            const assignments = sessionAssignments.get(sessionId) ?? {};
+            const resolvedUserId = state.userId ?? `guest-${sessionId}`;
+            let slot: 'p1' | 'p2' = 'p1';
+
+            if (!assignments.p1 || assignments.p1 === resolvedUserId) {
+              assignments.p1 = resolvedUserId;
+              slot = 'p1';
+            } else if (!assignments.p2 || assignments.p2 === resolvedUserId) {
+              assignments.p2 = resolvedUserId;
+              slot = 'p2';
+            }
+
+            sessionAssignments.set(sessionId, assignments);
+
+            if (slot === 'p1') {
+              sessionState.p1Staked = true;
+              state.p1Staked = true;
+            } else {
+              sessionState.p2Staked = true;
+              state.p2Staked = true;
+            }
+
+            const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
+            sockets.add(socket);
+            sessionSockets.set(sessionId, sockets);
+
+            const bothStaked =
+              matchType === 'bot'
+                ? sessionState.p1Staked
+                : sessionState.p1Staked && sessionState.p2Staked;
+
+            if (bothStaked) {
+              for (const sessionSocket of sockets) {
+                sendMessage(sessionSocket, 'game:enter_arena', { sessionId });
+              }
+            }
+            break;
+          }
+          case 'game:player_ready': {
+            const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : state.sessionId;
+            if (!sessionId) return;
+
+            const sessionState = sessionStates.get(sessionId);
+            if (!sessionState) return;
+
+            const assignments = sessionAssignments.get(sessionId) ?? {};
+            const resolvedUserId = state.userId ?? `guest-${sessionId}`;
+
+            if (assignments.p1 === resolvedUserId) {
+              sessionState.p1Ready = true;
+              state.p1Ready = true;
+            } else if (assignments.p2 === resolvedUserId) {
+              sessionState.p2Ready = true;
+              state.p2Ready = true;
+            }
+
+            if (sessionState.matchType === 'bot') {
+              sessionState.p2Ready = true;
+            }
+
+            if (sessionState.p1Ready && sessionState.p2Ready) {
+              startRoundSequence(sessionState);
+            }
+            break;
+          }
           default:
             logger.warn({ type: message.type }, 'Unhandled WS message type');
         }
