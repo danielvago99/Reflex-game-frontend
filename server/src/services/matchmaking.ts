@@ -40,7 +40,11 @@ export class MatchmakingService {
 
     logger.info(`Starting matchmaking processor for stake: ${stake} SOL`);
     const interval = setInterval(async () => {
-      await this.processQueue(stake);
+      try {
+        await this.processQueue(stake);
+      } catch (error) {
+        logger.error({ error, stake }, 'Matchmaking queue processing failed');
+      }
     }, MATCH_CHECK_INTERVAL);
 
     this.intervals.set(stake, interval);
