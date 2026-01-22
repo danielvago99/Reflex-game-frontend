@@ -74,6 +74,11 @@ interface RedisSessionState {
   username?: string;
 }
 
+interface SocketSessionRef {
+  sessionId: string;
+  userId?: string;
+}
+
 const SHAPES: Shape[] = ['circle', 'square', 'triangle'];
 const COLORS = [
   { name: 'Green', value: '#00FF00' },
@@ -176,6 +181,7 @@ const clearTimers = (state: SessionState) => {
 
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
 const sessionStates = new Map<string, SessionState>();
+const userNames = new Map<string, string>();
 
 const handleMatchReset = async (state: SessionState, payload: any) => {
   clearTimers(state);
@@ -604,10 +610,10 @@ const finalizeRound = async (
   clearTimers(state);
 
   const rawBotTime = state.botReactionTime ?? 999_999;
-  const botTime = rawBotTime;
+  const botTime = state.isBotOpponent ? rawBotTime : Number.POSITIVE_INFINITY;
   const playerTime = options.playerTime ?? 999_999;
 
-  const roundedBotTime = Math.round(botTime);
+  const roundedBotTime = Math.round(state.isBotOpponent ? rawBotTime : 999_999);
   const roundedPlayerTime = Math.round(playerTime);
 
   let winner: 'player' | 'bot' | 'none' = 'none';
@@ -635,8 +641,8 @@ const finalizeRound = async (
       winner,
       reason: options.reason ?? (winner === 'bot' ? 'slower' : undefined),
       scores: state.scores,
-      rawBotTime,
-    });
+    rawBotTime: state.isBotOpponent ? rawBotTime : 999_999,
+  });
   }, 1000);
 
   const isMatchOver =
@@ -678,31 +684,12 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
   }, delay);
 };
 
-const syncSocketState = (socketState: SessionState, sharedState: SessionState) => {
-  socketState.round = sharedState.round;
-  socketState.scores = sharedState.scores;
-  socketState.stakeAmount = sharedState.stakeAmount;
-  socketState.matchType = sharedState.matchType;
-  socketState.isBotOpponent = sharedState.isBotOpponent;
-  socketState.roundResolved = sharedState.roundResolved;
-  socketState.target = sharedState.target;
-  socketState.targetShownAt = sharedState.targetShownAt;
-  socketState.botReactionTime = sharedState.botReactionTime;
-  socketState.history = sharedState.history;
-  socketState.showTimeout = sharedState.showTimeout;
-  socketState.botTimeout = sharedState.botTimeout;
-  socketState.isFinished = sharedState.isFinished;
-  socketState.p1Staked = sharedState.p1Staked;
-  socketState.p2Staked = sharedState.p2Staked;
-  socketState.p1Ready = sharedState.p1Ready;
-  socketState.p2Ready = sharedState.p2Ready;
-};
-
-const handleRoundReady = async (socket: WebSocket, state: SessionState, payload: any) => {
-  const sessionId = state.sessionId;
-  const sessionState = sessionStates.get(sessionId) ?? { ...state };
-  if (!sessionStates.has(sessionId)) {
-    sessionStates.set(sessionId, sessionState);
+const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
+  const sessionId = sessionRef.sessionId;
+  const sessionState = sessionStates.get(sessionId);
+  if (!sessionState) {
+    logger.error({ sessionId }, 'Session not found for round ready');
+    return;
   }
 
   sessionState.round = typeof payload?.round === 'number' ? payload.round : sessionState.round;
@@ -733,19 +720,19 @@ const handleRoundReady = async (socket: WebSocket, state: SessionState, payload:
     round: sessionState.round,
     target: nextTarget,
     instruction: createInstruction(nextTarget),
-    username: state.username,
+    username: sessionRef.userId ? userNames.get(sessionRef.userId) : undefined,
   });
 
   await persistSessionState(sessionState);
   scheduleTargetShow(socket, sessionState);
-  syncSocketState(state, sessionState);
 };
 
-const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload: any) => {
-  const sessionId = state.sessionId;
-  const sessionState = sessionStates.get(sessionId) ?? { ...state };
-  if (!sessionStates.has(sessionId)) {
-    sessionStates.set(sessionId, sessionState);
+const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
+  const sessionId = sessionRef.sessionId;
+  const sessionState = sessionStates.get(sessionId);
+  if (!sessionState) {
+    logger.error({ sessionId }, 'Session not found for player click');
+    return;
   }
 
   if (sessionState.roundResolved) return;
@@ -761,7 +748,6 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
     if (matchOver) {
       await finalizeGame(sessionState, false);
     }
-    syncSocketState(state, sessionState);
     return;
   }
 
@@ -783,7 +769,6 @@ const handlePlayerClick = async (socket: WebSocket, state: SessionState, payload
   if (matchOver) {
     await finalizeGame(sessionState, false);
   }
-  syncSocketState(state, sessionState);
 };
 
 export function createWsServer(server: Server) {
@@ -792,7 +777,7 @@ export function createWsServer(server: Server) {
     path: '/ws',
   });
 
-  const sessions = new WeakMap<WebSocket, SessionState>();
+  const sessions = new WeakMap<WebSocket, SocketSessionRef>();
   const activeUsers = new Map<string, WebSocket>();
   const sessionSockets = new Map<string, Set<WebSocket>>();
 
@@ -821,10 +806,8 @@ export function createWsServer(server: Server) {
     const socket2 = activeUsers.get(player2Id);
 
     const sessionId = crypto.randomUUID();
-    const s1Data = socket1 ? sessions.get(socket1) : undefined;
-    const s2Data = socket2 ? sessions.get(socket2) : undefined;
-    const name1 = s1Data?.username ?? 'Player 1';
-    const name2 = s2Data?.username ?? 'Player 2';
+    const name1 = userNames.get(player1Id) ?? 'Player 1';
+    const name2 = userNames.get(player2Id) ?? 'Player 2';
     const baseState: SessionState = {
       sessionId,
       round: 1,
@@ -849,7 +832,7 @@ export function createWsServer(server: Server) {
     const sockets = sessionSockets.get(sessionId);
 
     if (socket1) {
-      sessions.set(socket1, { ...baseState, userId: player1Id, username: name1 });
+      sessions.set(socket1, { sessionId, userId: player1Id });
       sockets?.add(socket1);
       sendMessage(socket1, 'match_found', {
         sessionId,
@@ -861,7 +844,7 @@ export function createWsServer(server: Server) {
     }
 
     if (socket2) {
-      sessions.set(socket2, { ...baseState, userId: player2Id, username: name2 });
+      sessions.set(socket2, { sessionId, userId: player2Id });
       sockets?.add(socket2);
       sendMessage(socket2, 'match_found', {
         sessionId,
@@ -878,7 +861,6 @@ export function createWsServer(server: Server) {
     const socket = activeUsers.get(userId);
 
     const sessionId = crypto.randomUUID();
-    const existingState = socket ? sessions.get(socket) : undefined;
     const sessionState: SessionState = {
       sessionId,
       round: 1,
@@ -889,7 +871,7 @@ export function createWsServer(server: Server) {
       roundResolved: false,
       history: [],
       userId,
-      username: existingState?.username,
+      username: userNames.get(userId),
       botReactionTime: 600,
       p1Staked: false,
       p2Staked: true,
@@ -905,7 +887,7 @@ export function createWsServer(server: Server) {
     const sockets = sessionSockets.get(sessionId);
 
     if (socket) {
-      sessions.set(socket, sessionState);
+      sessions.set(socket, { sessionId, userId });
       sockets?.add(socket);
 
       sendMessage(socket, 'match_found', {
@@ -966,21 +948,23 @@ export function createWsServer(server: Server) {
 
     if (userId) {
       activeUsers.set(userId, socket);
+      if (username) {
+        userNames.set(userId, username);
+      }
     }
 
     let sessionState: SessionState | undefined;
     if (userId) {
-      const activeSessionId = userActiveSessions.get(userId);
-      if (activeSessionId) {
-        const existingState = sessionStates.get(activeSessionId);
-        if (existingState && !existingState.isFinished) {
-          const restoredState = { ...existingState, userId, username };
-          sessions.set(socket, restoredState);
-          sessionState = restoredState;
+          const activeSessionId = userActiveSessions.get(userId);
+          if (activeSessionId) {
+            const existingState = sessionStates.get(activeSessionId);
+            if (existingState && !existingState.isFinished) {
+              sessions.set(socket, { sessionId: activeSessionId, userId });
+              sessionState = existingState;
 
-          const sockets = sessionSockets.get(activeSessionId) ?? new Set<WebSocket>();
-          sockets.add(socket);
-          sessionSockets.set(activeSessionId, sockets);
+              const sockets = sessionSockets.get(activeSessionId) ?? new Set<WebSocket>();
+              sockets.add(socket);
+              sessionSockets.set(activeSessionId, sockets);
 
           const assignments = sessionAssignments.get(activeSessionId);
           const hasBotOpponent = isBotOpponent(existingState);
@@ -1025,14 +1009,14 @@ export function createWsServer(server: Server) {
         sessionId,
       };
 
-      sessions.set(socket, sessionState);
+      sessions.set(socket, { sessionId, userId });
       sessionStates.set(sessionId, sessionState);
     }
 
     socket.on('message', (data) => {
       const raw = data.toString();
-      const state = sessions.get(socket);
-      if (!state) return;
+      const sessionRef = sessions.get(socket);
+      if (!sessionRef) return;
 
       try {
         const message = JSON.parse(raw);
@@ -1040,16 +1024,23 @@ export function createWsServer(server: Server) {
 
         switch (message.type) {
           case 'round:ready':
-            void handleRoundReady(socket, state, message.payload);
+            void handleRoundReady(socket, sessionRef, message.payload);
             break;
           case 'player:click':
-            void handlePlayerClick(socket, state, message.payload);
+            void handlePlayerClick(socket, sessionRef, message.payload);
             break;
           case 'match:reset':
-            void handleMatchReset(state, message.payload);
+            {
+              const sessionState = sessionStates.get(sessionRef.sessionId);
+              if (!sessionState) {
+                logger.error({ sessionId: sessionRef.sessionId }, 'Session not found for match reset');
+                break;
+              }
+              void handleMatchReset(sessionState, message.payload);
+            }
             break;
           case 'match:find':
-            const { userId } = state;
+            const { userId } = sessionRef;
             if (userId) {
               // CRITICAL FIX: Check if user is already in an active session (Sticky Session)
               if (userActiveSessions.has(userId)) {
@@ -1065,7 +1056,7 @@ export function createWsServer(server: Server) {
                   );
 
                   // Re-bind socket
-                  sessions.set(socket, existingState);
+                  sessions.set(socket, { sessionId: activeSessionId, userId });
                   const roomSockets = sessionSockets.get(activeSessionId);
                   if (roomSockets) roomSockets.add(socket);
 
@@ -1118,40 +1109,45 @@ export function createWsServer(server: Server) {
             const hasHumanOpponent =
               assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
             const requestedMatchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
+            const sessionState = sessionStates.get(sessionId);
             const stakeAmount =
-              typeof message.payload?.stake === 'number' ? message.payload.stake : state.stakeAmount ?? 0;
+              typeof message.payload?.stake === 'number'
+                ? message.payload.stake
+                : sessionState?.stakeAmount ?? 0;
 
             const matchType =
               hasHumanOpponent && requestedMatchType === 'bot'
                 ? 'ranked'
-                : state.matchType && state.matchType !== 'bot'
-                  ? state.matchType
+                : sessionState?.matchType && sessionState.matchType !== 'bot'
+                  ? sessionState.matchType
                   : requestedMatchType;
 
-            state.sessionId = sessionId;
-            state.matchType = matchType;
-            state.stakeAmount = stakeAmount;
+            sessionRef.sessionId = sessionId;
 
-            const sessionState = sessionStates.get(sessionId) ?? {
-              ...state,
-              showTimeout: undefined,
-              botTimeout: undefined,
+            const resolvedSessionState = sessionState ?? {
+              sessionId,
+              round: 1,
+              scores: { player: 0, bot: 0 },
+              stakeAmount: 0,
+              matchType: 'friend',
+              isBotOpponent: false,
               p1Staked: false,
               p2Staked: false,
               p1Ready: false,
               p2Ready: false,
+              roundResolved: false,
+              history: [],
             };
 
-            sessionState.sessionId = sessionId;
-            sessionState.matchType = matchType;
-            sessionState.stakeAmount = stakeAmount;
-            const hasBotOpponent = matchType === 'bot' || sessionState.isBotOpponent === true;
-            sessionState.isBotOpponent = hasBotOpponent;
-            state.isBotOpponent = hasBotOpponent;
-            sessionStates.set(sessionId, sessionState);
+            resolvedSessionState.sessionId = sessionId;
+            resolvedSessionState.matchType = matchType;
+            resolvedSessionState.stakeAmount = stakeAmount;
+            const hasBotOpponent = matchType === 'bot' || resolvedSessionState.isBotOpponent === true;
+            resolvedSessionState.isBotOpponent = hasBotOpponent;
+            sessionStates.set(sessionId, resolvedSessionState);
 
             const updatedAssignments = assignments ?? {};
-            const resolvedUserId = state.userId ?? `guest-${sessionId}`;
+            const resolvedUserId = sessionRef.userId ?? `guest-${sessionId}`;
             let slot: 'p1' | 'p2' = 'p1';
 
             if (!updatedAssignments.p1 || updatedAssignments.p1 === resolvedUserId) {
@@ -1165,11 +1161,9 @@ export function createWsServer(server: Server) {
             sessionAssignments.set(sessionId, updatedAssignments);
 
             if (slot === 'p1') {
-              sessionState.p1Staked = true;
-              state.p1Staked = true;
+              resolvedSessionState.p1Staked = true;
             } else {
-              sessionState.p2Staked = true;
-              state.p2Staked = true;
+              resolvedSessionState.p2Staked = true;
             }
 
             const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
@@ -1177,11 +1171,11 @@ export function createWsServer(server: Server) {
             sessionSockets.set(sessionId, sockets);
 
             const bothStaked = hasBotOpponent
-              ? sessionState.p1Staked
-              : sessionState.p1Staked && sessionState.p2Staked;
+              ? resolvedSessionState.p1Staked
+              : resolvedSessionState.p1Staked && resolvedSessionState.p2Staked;
 
             if (bothStaked) {
-              void persistSessionState(sessionState);
+              void persistSessionState(resolvedSessionState);
               for (const sessionSocket of sockets) {
                 sendMessage(sessionSocket, 'game:enter_arena', { sessionId });
               }
@@ -1190,7 +1184,7 @@ export function createWsServer(server: Server) {
           }
           case 'game:player_ready': {
             const targetSessionId =
-              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : state.sessionId;
+              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : sessionRef.sessionId;
 
             if (!targetSessionId) return;
 
@@ -1202,7 +1196,7 @@ export function createWsServer(server: Server) {
             }
 
             const assignments = sessionAssignments.get(targetSessionId);
-            const userId = state.userId;
+            const userId = sessionRef.userId;
 
             logger.info({ userId, matchType: sessionState.matchType }, 'PROCESSING PLAYER READY');
 
@@ -1232,7 +1226,6 @@ export function createWsServer(server: Server) {
             }
 
             void persistSessionState(sessionState);
-            syncSocketState(state, sessionState);
             break;
           }
           default:
@@ -1244,31 +1237,45 @@ export function createWsServer(server: Server) {
     });
 
     socket.on('close', () => {
-      const state = sessions.get(socket);
-      if (state) {
-        if (state.userId) {
-          activeUsers.delete(state.userId);
+      const sessionRef = sessions.get(socket);
+      if (sessionRef) {
+        if (sessionRef.userId) {
+          activeUsers.delete(sessionRef.userId);
         }
-        const sockets = sessionSockets.get(state.sessionId);
+        const sessionState = sessionStates.get(sessionRef.sessionId);
+        const sockets = sessionSockets.get(sessionRef.sessionId);
         sockets?.delete(socket);
 
-        if ((state.matchType === 'ranked' || state.matchType === 'bot') && !state.isFinished) {
-          logger.info({ sessionId: state.sessionId }, 'Client disconnected - Holding session for reconnect');
+        if (
+          sessionState &&
+          (sessionState.matchType === 'ranked' || sessionState.matchType === 'bot') &&
+          !sessionState.isFinished
+        ) {
+          logger.info(
+            { sessionId: sessionRef.sessionId },
+            'Client disconnected - Holding session for reconnect',
+          );
           return;
         }
 
-        if (state.isFinished) {
+        if (sessionState?.isFinished) {
           return;
         }
-        clearTimers(state);
+        if (sessionState) {
+          clearTimers(sessionState);
+        }
         sessions.delete(socket);
-        const isPaidMatch =
-          typeof state.stakeAmount === 'number' && Number.isFinite(state.stakeAmount) && state.stakeAmount > 0;
-        if (isPaidMatch) {
-          void finalizeGame(state, true);
-        } else {
-          if (state.matchType !== 'bot') {
-            void redisClient.del(getSessionKey(state.sessionId));
+        if (sessionState) {
+          const isPaidMatch =
+            typeof sessionState.stakeAmount === 'number' &&
+            Number.isFinite(sessionState.stakeAmount) &&
+            sessionState.stakeAmount > 0;
+          if (isPaidMatch) {
+            void finalizeGame(sessionState, true);
+          } else {
+            if (sessionState.matchType !== 'bot') {
+              void redisClient.del(getSessionKey(sessionState.sessionId));
+            }
           }
         }
       }
