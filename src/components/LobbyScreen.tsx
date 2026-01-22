@@ -9,6 +9,9 @@ import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { wsService } from '../utils/websocket';
+import { toast } from 'sonner';
 
 interface LobbyScreenProps {
   onNavigate: (screen: string) => void;
@@ -18,6 +21,7 @@ interface LobbyScreenProps {
 
 export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data } = useRewardsData();
+  const { isConnected, send } = useWebSocket({ autoConnect: true });
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(null);
   const [selectedStake, setSelectedStake] = useState('0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -28,6 +32,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
+  const [opponentName, setOpponentName] = useState('');
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
@@ -36,6 +41,36 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   useEffect(() => {
     setFreeStakes(getFreeStakes());
   }, []);
+
+  useEffect(() => {
+    const unsubscribeMatchFound = wsService.on('match_found', (message: any) => {
+      const payload = message?.payload ?? {};
+      setMatchStatus('found');
+      setOpponentName(payload.isBot ? 'Training Bot' : payload.opponentName ?? 'Unknown Opponent');
+
+      setTimeout(() => {
+        if (onStartMatch) {
+          onStartMatch(!payload.isBot, payload.stake ?? parseFloat(selectedStake), payload.isBot ? 'bot' : 'ranked');
+        } else {
+          onNavigate('arena');
+        }
+      }, 1500);
+    });
+
+    return () => {
+      unsubscribeMatchFound();
+    };
+  }, [onNavigate, onStartMatch, selectedStake]);
+
+  const startRankedMatchmaking = () => {
+    if (!isConnected) {
+      toast.error('Connection lost. Reconnecting...');
+      return;
+    }
+
+    setMatchStatus('searching');
+    send('match:find', { stake: parseFloat(selectedStake) });
+  };
 
   const handleStartMatch = async () => {
     // For bot mode (practice), no transaction needed
@@ -50,25 +85,11 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
     // For ranked mode
     if (selectedMode === 'ranked') {
-      setMatchStatus('searching');
-
-      setTimeout(() => {
-        setMatchStatus('found');
-
-        setTimeout(() => {
-          setMatchStatus('signing');
-
-          setTimeout(() => {
-            setMatchStatus('idle');
-
-            if (walletProvider) {
-              handleExternalWalletTransaction();
-            } else {
-              setShowTransactionModal(true);
-            }
-          }, 1500);
-        }, 1500);
-      }, 3000);
+      if (walletProvider) {
+        handleExternalWalletTransaction();
+      } else {
+        setShowTransactionModal(true);
+      }
     }
   };
 
@@ -108,11 +129,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       if (useFreeStakeMode && selectedFreeStake) {
         useFreeStake(selectedFreeStake);
         
-        if (onStartMatch && selectedMode) {
-          onStartMatch(selectedMode === 'ranked', parseFloat(selectedStake), 'ranked');
-        } else {
-          onNavigate('arena');
-        }
+        startRankedMatchmaking();
         return;
       }
 
@@ -139,11 +156,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       // Simulate successful approval (in production, await actual signature)
       // The user would approve/reject in their wallet extension UI
       
-      if (onStartMatch && selectedMode) {
-        onStartMatch(selectedMode === 'ranked', parseFloat(selectedStake), 'ranked');
-      } else {
-        onNavigate('arena');
-      }
+      startRankedMatchmaking();
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
       if (error.code === 4001) {
@@ -161,13 +174,16 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     }
 
     // Start the match
-    if (onStartMatch && selectedMode) {
-      onStartMatch(selectedMode === 'ranked', parseFloat(selectedStake), 'ranked');
-    } else {
-      onNavigate('arena');
+    if (selectedMode === 'ranked') {
+      startRankedMatchmaking();
     }
     
     setShowTransactionModal(false);
+  };
+
+  const handleCancelMatchmaking = () => {
+    send('match:cancel', { stake: parseFloat(selectedStake) });
+    setMatchStatus('idle');
   };
 
   const handleJoinSuccess = (roomCode: string) => {
@@ -704,8 +720,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
       <MatchmakingOverlay
         status={matchStatus}
-        onCancel={() => setMatchStatus('idle')}
-        opponentName="CyberNinja_99"
+        onCancel={handleCancelMatchmaking}
+        opponentName={opponentName}
       />
 
       {/* Dialogs */}
