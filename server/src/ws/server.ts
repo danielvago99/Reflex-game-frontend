@@ -723,11 +723,16 @@ export function createWsServer(server: Server) {
       player2Id: string;
       stake: number;
     };
+    logger.info(`SERVER: Match found ${player1Id} vs ${player2Id}`);
     const socket1 = activeUsers.get(player1Id);
     const socket2 = activeUsers.get(player2Id);
 
     if (socket1 && socket2) {
       const sessionId = crypto.randomUUID();
+      const s1Data = sessions.get(socket1);
+      const s2Data = sessions.get(socket2);
+      const name1 = s1Data?.username ?? 'Player 1';
+      const name2 = s2Data?.username ?? 'Player 2';
       const baseState: SessionState = {
         sessionId,
         round: 1,
@@ -742,17 +747,26 @@ export function createWsServer(server: Server) {
         p2Ready: false,
       };
 
-      const socket1State = sessions.get(socket1);
-      const socket2State = sessions.get(socket2);
-
-      sessions.set(socket1, { ...baseState, userId: player1Id, username: socket1State?.username });
-      sessions.set(socket2, { ...baseState, userId: player2Id, username: socket2State?.username });
+      sessions.set(socket1, { ...baseState, userId: player1Id, username: name1 });
+      sessions.set(socket2, { ...baseState, userId: player2Id, username: name2 });
       sessionStates.set(sessionId, baseState);
       sessionAssignments.set(sessionId, { p1: player1Id, p2: player2Id });
       sessionSockets.set(sessionId, new Set([socket1, socket2]));
 
-      sendMessage(socket1, 'match_found', { sessionId, opponentId: player2Id, stake, isBot: false });
-      sendMessage(socket2, 'match_found', { sessionId, opponentId: player1Id, stake, isBot: false });
+      sendMessage(socket1, 'match_found', {
+        sessionId,
+        opponentId: player2Id,
+        opponentName: name2,
+        stake,
+        isBot: false,
+      });
+      sendMessage(socket2, 'match_found', {
+        sessionId,
+        opponentId: player1Id,
+        opponentName: name1,
+        stake,
+        isBot: false,
+      });
     }
   });
 
@@ -970,13 +984,15 @@ export function createWsServer(server: Server) {
             const sessionState = sessionStates.get(sessionId);
             if (!sessionState) return;
 
-            const assignments = sessionAssignments.get(sessionId) ?? {};
-            const resolvedUserId = state.userId ?? `guest-${sessionId}`;
+            const assignments = sessionAssignments.get(sessionId);
+            const userId = state.userId;
 
-            if (assignments.p1 === resolvedUserId) {
+            logger.info({ userId, sessionId, assignments }, 'Received Player Ready');
+
+            if (assignments?.p1 === userId) {
               sessionState.p1Ready = true;
               state.p1Ready = true;
-            } else if (assignments.p2 === resolvedUserId) {
+            } else if (assignments?.p2 === userId) {
               sessionState.p2Ready = true;
               state.p2Ready = true;
             }
@@ -985,7 +1001,10 @@ export function createWsServer(server: Server) {
               sessionState.p2Ready = true;
             }
 
+            logger.info({ p1: sessionState.p1Ready, p2: sessionState.p2Ready }, 'Checking Ready Status');
+
             if (sessionState.p1Ready && sessionState.p2Ready) {
+              logger.info({ sessionId }, 'Both players ready! Starting Countdown.');
               startRoundSequence(sessionState);
             }
             break;
