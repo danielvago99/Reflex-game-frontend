@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
 import { env } from '../config/env';
 import { redisClient } from '../db/redis';
+import { matchmakingService } from '../services/matchmaking';
 
 type Shape = 'circle' | 'square' | 'triangle';
 
@@ -685,6 +686,89 @@ export function createWsServer(server: Server) {
   });
 
   const sessions = new WeakMap<WebSocket, SessionState>();
+  const activeUsers = new Map<string, WebSocket>();
+
+  const redisSub =
+    (redisClient as unknown as { duplicate?: () => unknown }).duplicate?.() ?? (redisClient as unknown);
+  const canSubscribe =
+    redisSub &&
+    typeof (redisSub as { subscribe?: unknown }).subscribe === 'function' &&
+    typeof (redisSub as { on?: unknown }).on === 'function';
+
+  if (canSubscribe) {
+    (redisSub as { subscribe: (channel: string, cb?: (err: unknown) => void) => void }).subscribe(
+      'matchmaking:match_found',
+      (err) => {
+        if (err) {
+          logger.error({ err }, 'Failed to subscribe to matchmaking:match_found');
+        }
+      }
+    );
+    (redisSub as { subscribe: (channel: string, cb?: (err: unknown) => void) => void }).subscribe(
+      'matchmaking:bot_match',
+      (err) => {
+        if (err) {
+          logger.error({ err }, 'Failed to subscribe to matchmaking:bot_match');
+        }
+      }
+    );
+
+    (redisSub as { on: (event: string, cb: (channel: string, message: string) => void) => void }).on(
+      'message',
+      async (channel, message) => {
+        const data = JSON.parse(message);
+
+        if (channel === 'matchmaking:match_found') {
+          const { player1Id, player2Id, stake } = data as {
+            player1Id: string;
+            player2Id: string;
+            stake: number;
+          };
+          const socket1 = activeUsers.get(player1Id);
+          const socket2 = activeUsers.get(player2Id);
+
+          if (socket1 && socket2) {
+            const sessionId = crypto.randomUUID();
+            sendMessage(socket1, 'match_found', { sessionId, opponentId: player2Id, stake, isBot: false });
+            sendMessage(socket2, 'match_found', { sessionId, opponentId: player1Id, stake, isBot: false });
+          }
+        }
+
+        if (channel === 'matchmaking:bot_match') {
+          const { userId, stake } = data as { userId: string; stake: number };
+          const socket = activeUsers.get(userId);
+
+          if (socket) {
+            const sessionId = crypto.randomUUID();
+            const sessionState: SessionState = {
+              sessionId,
+              round: 1,
+              scores: { player: 0, bot: 0 },
+              matchType: 'ranked',
+              stakeAmount: stake,
+              roundResolved: false,
+              history: [],
+              userId,
+              botReactionTime: 600,
+            };
+
+            sessions.set(socket, sessionState);
+
+            sendMessage(socket, 'match_found', {
+              sessionId,
+              opponentId: 'bot_opponent',
+              stake,
+              isBot: true,
+            });
+
+            logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
+          }
+        }
+      }
+    );
+  } else {
+    logger.warn('Redis pub/sub not available; matchmaking notifications disabled.');
+  }
 
   wss.on('connection', async (socket: WebSocket, request) => {
     logger.info('WS client connected');
@@ -746,6 +830,9 @@ export function createWsServer(server: Server) {
 
     sessions.set(socket, sessionState);
     void persistSessionState(sessionState);
+    if (userId) {
+      activeUsers.set(userId, socket);
+    }
 
     socket.on('message', (data) => {
       const raw = data.toString();
@@ -766,6 +853,18 @@ export function createWsServer(server: Server) {
           case 'match:reset':
             void handleMatchReset(state, message.payload);
             break;
+          case 'match:find':
+            if (!state.userId) return;
+            void (async () => {
+              const stats = await prisma.playerStats.findUnique({ where: { userId: state.userId } });
+              const reactionTime =
+                stats?.avgReaction && stats.avgReaction > 0 ? stats.avgReaction : 600;
+              const stake = typeof message.payload?.stake === 'number' ? message.payload.stake : 0.1;
+
+              await matchmakingService.addToQueue(state.userId, stake, reactionTime);
+              sendMessage(socket, 'match:searching', { stake });
+            })();
+            break;
           default:
             logger.warn({ type: message.type }, 'Unhandled WS message type');
         }
@@ -777,6 +876,9 @@ export function createWsServer(server: Server) {
     socket.on('close', () => {
       const state = sessions.get(socket);
       if (state) {
+        if (state.userId) {
+          activeUsers.delete(state.userId);
+        }
         if (state.isFinished) {
           return;
         }
