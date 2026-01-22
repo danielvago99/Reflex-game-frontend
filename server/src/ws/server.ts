@@ -344,6 +344,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     return;
   }
 
+  const validPlayer1Id = player1Id!;
+  const validPlayer2Id = player2Id!;
+
   try {
     const stakeAmount =
       typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
@@ -358,8 +361,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           : 'p2';
     const loserSlot = winnerSlot === 'none' ? null : getOpponentSlot(winnerSlot);
 
-    const winnerId = winnerSlot === 'p1' ? player1Id : winnerSlot === 'p2' ? player2Id : null;
-    const loserId = loserSlot === 'p1' ? player1Id : loserSlot === 'p2' ? player2Id : null;
+    const winnerId = winnerSlot === 'p1' ? validPlayer1Id : winnerSlot === 'p2' ? validPlayer2Id : null;
+    const loserId = loserSlot === 'p1' ? validPlayer1Id : loserSlot === 'p2' ? validPlayer2Id : null;
 
     const winnerScore =
       winnerSlot === 'p1' ? sharedState.scores.p1 : winnerSlot === 'p2' ? sharedState.scores.p2 : 0;
@@ -484,8 +487,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       });
 
       for (const round of sharedState.history) {
-        const roundWinnerId = round.winner === 'p1' ? player1Id : round.winner === 'p2' ? player2Id : null;
-        const roundLoserId = round.winner === 'p1' ? player2Id : round.winner === 'p2' ? player1Id : null;
+        const roundWinnerId = round.winner === 'p1' ? validPlayer1Id : round.winner === 'p2' ? validPlayer2Id : null;
+        const roundLoserId = round.winner === 'p1' ? validPlayer2Id : round.winner === 'p2' ? validPlayer1Id : null;
         const winnerReaction = round.winner === 'p1' ? round.playerTime : round.winner === 'p2' ? round.botTime : null;
         const loserReaction = round.winner === 'p1' ? round.botTime : round.winner === 'p2' ? round.playerTime : null;
 
@@ -658,8 +661,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         }
       };
 
-      await updatePostMatchProgress(player1Id);
-      await updatePostMatchProgress(player2Id);
+      await updatePostMatchProgress(validPlayer1Id);
+      await updatePostMatchProgress(validPlayer2Id);
 
       if (winnerId && stakeAmount > 0) {
         await tx.transaction.create({
