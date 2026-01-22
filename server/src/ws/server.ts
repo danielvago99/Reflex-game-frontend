@@ -27,6 +27,7 @@ interface SessionState extends RoundTimers {
   scores: { player: number; bot: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
+  isBotOpponent?: boolean;
   p1Staked: boolean;
   p2Staked: boolean;
   p1Ready: boolean;
@@ -53,6 +54,7 @@ interface RedisSessionState {
   scores: { player: number; bot: number };
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
+  isBotOpponent?: boolean;
   p1Staked: boolean;
   p2Staked: boolean;
   p1Ready: boolean;
@@ -104,6 +106,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   scores: state.scores,
   stakeAmount: state.stakeAmount,
   matchType: state.matchType,
+  isBotOpponent: state.isBotOpponent,
   p1Staked: state.p1Staked,
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
@@ -130,6 +133,8 @@ const persistSessionState = async (state: SessionState) => {
     logger.error({ error }, 'Failed to persist session state');
   }
 };
+
+const isBotOpponent = (state: SessionState) => state.isBotOpponent ?? state.matchType === 'bot';
 
 const createInstruction = (target: Target) => {
   const shapeName = target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
@@ -186,7 +191,15 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
   const validTypes = ['ranked', 'friend', 'bot'];
-  state.matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  state.matchType = matchType;
+  if (matchType === 'bot') {
+    state.isBotOpponent = true;
+  } else if (matchType === 'friend') {
+    state.isBotOpponent = false;
+  } else if (matchType === 'ranked' && state.isBotOpponent === undefined) {
+    state.isBotOpponent = false;
+  }
 
   await persistSessionState(state);
 };
@@ -649,7 +662,15 @@ const handleRoundReady = async (socket: WebSocket, state: SessionState, payload:
   state.round = typeof payload?.round === 'number' ? payload.round : state.round;
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
   const validTypes = ['ranked', 'friend', 'bot'];
-  state.matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  state.matchType = matchType;
+  if (matchType === 'bot') {
+    state.isBotOpponent = true;
+  } else if (matchType === 'friend') {
+    state.isBotOpponent = false;
+  } else if (matchType === 'ranked' && state.isBotOpponent === undefined) {
+    state.isBotOpponent = false;
+  }
   state.roundResolved = false;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
@@ -752,6 +773,7 @@ export function createWsServer(server: Server) {
       round: 1,
       scores: { player: 0, bot: 0 },
       matchType: 'ranked',
+      isBotOpponent: false,
       stakeAmount: stake,
       roundResolved: false,
       history: [],
@@ -804,7 +826,8 @@ export function createWsServer(server: Server) {
       sessionId,
       round: 1,
       scores: { player: 0, bot: 0 },
-      matchType: 'bot',
+      matchType: 'ranked',
+      isBotOpponent: true,
       stakeAmount: stake,
       roundResolved: false,
       history: [],
@@ -903,13 +926,13 @@ export function createWsServer(server: Server) {
           sessionSockets.set(activeSessionId, sockets);
 
           const assignments = sessionAssignments.get(activeSessionId);
-          const opponentId =
-            existingState.matchType === 'bot'
-              ? 'bot_opponent'
-              : assignments?.p1 === userId
-                ? assignments?.p2
-                : assignments?.p1;
-          const opponentName = existingState.matchType === 'bot' ? 'Training Bot' : undefined;
+          const hasBotOpponent = isBotOpponent(existingState);
+          const opponentId = hasBotOpponent
+            ? 'bot_opponent'
+            : assignments?.p1 === userId
+              ? assignments?.p2
+              : assignments?.p1;
+          const opponentName = hasBotOpponent ? 'Training Bot' : undefined;
 
           logger.info({ userId, activeSessionId }, 'RESTORING ACTIVE SESSION for user');
           sendMessage(socket, 'match_found', {
@@ -917,7 +940,7 @@ export function createWsServer(server: Server) {
             opponentId,
             opponentName,
             stake: existingState.stakeAmount,
-            isBot: existingState.matchType === 'bot',
+            isBot: hasBotOpponent,
           });
         } else {
           userActiveSessions.delete(userId);
@@ -933,6 +956,7 @@ export function createWsServer(server: Server) {
         scores: { player: 0, bot: 0 },
         stakeAmount: 0,
         matchType: 'friend',
+        isBotOpponent: false,
         p1Staked: false,
         p2Staked: false,
         p1Ready: false,
@@ -968,17 +992,65 @@ export function createWsServer(server: Server) {
             break;
           case 'match:find':
             const { userId } = state;
-            if (!userId) return;
-            void (async () => {
-              const stats = await prisma.playerStats.findUnique({ where: { userId } });
-              const avgReaction = stats?.avgReaction ? Number(stats.avgReaction) : null;
-              const reactionTime =
-                avgReaction && Number.isFinite(avgReaction) && avgReaction > 0 ? avgReaction : 600;
-              const stake = typeof message.payload?.stake === 'number' ? message.payload.stake : 0.1;
+            if (userId) {
+              // CRITICAL FIX: Check if user is already in an active session (Sticky Session)
+              if (userActiveSessions.has(userId)) {
+                const activeSessionId = userActiveSessions.get(userId)!;
+                const existingState = sessionStates.get(activeSessionId);
+                const hasBotOpponent = existingState ? isBotOpponent(existingState) : false;
 
-              await matchmakingService.addToQueue(userId, stake, reactionTime);
-              sendMessage(socket, 'match:searching', { stake });
-            })();
+                // If the session exists and isn't finished, put them back in it immediately
+                if (existingState && !existingState.isFinished) {
+                  logger.info(
+                    { userId, sessionId: activeSessionId },
+                    'User tried to search but has active session. Restoring...',
+                  );
+
+                  // Re-bind socket
+                  sessions.set(socket, existingState);
+                  const roomSockets = sessionSockets.get(activeSessionId);
+                  if (roomSockets) roomSockets.add(socket);
+
+                  // Resend match info
+                  const opponentId = hasBotOpponent ? 'bot_opponent' : 'opponent';
+                  // Need to define stake/isBot from state
+                  const isBot = hasBotOpponent;
+                  const stake = existingState.stakeAmount || 0;
+
+                  socket.send(
+                    JSON.stringify({
+                      type: 'match_found',
+                      payload: {
+                        sessionId: activeSessionId,
+                        opponentId,
+                        stake,
+                        isBot,
+                      },
+                    }),
+                  );
+                  return; // STOP HERE! Do not add to queue.
+                } else {
+                  // Stale session, clean it up
+                  userActiveSessions.delete(userId);
+                }
+              }
+
+              // Standard Matchmaking logic (Only if no active session)
+              void (async () => {
+                try {
+                  const stats = await prisma.playerStats.findUnique({ where: { userId: userId! } });
+                  const reaction = stats?.avgReaction ? Number(stats.avgReaction) : 600;
+
+                  // Ensure stake is a number
+                  const requestedStake = Number(message.payload?.stake) || 0;
+
+                  await matchmakingService.addToQueue(userId!, requestedStake, reaction);
+                  sendMessage(socket, 'match:searching', { stake: requestedStake });
+                } catch (e) {
+                  logger.error({ error: e }, 'Matchmaking queue error');
+                }
+              })();
+            }
             break;
           case 'match:stake_confirmed': {
             const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : undefined;
@@ -1005,6 +1077,9 @@ export function createWsServer(server: Server) {
             sessionState.sessionId = sessionId;
             sessionState.matchType = matchType;
             sessionState.stakeAmount = stakeAmount;
+            const hasBotOpponent = matchType === 'bot' || sessionState.isBotOpponent === true;
+            sessionState.isBotOpponent = hasBotOpponent;
+            state.isBotOpponent = hasBotOpponent;
             sessionStates.set(sessionId, sessionState);
 
             const assignments = sessionAssignments.get(sessionId) ?? {};
@@ -1033,10 +1108,9 @@ export function createWsServer(server: Server) {
             sockets.add(socket);
             sessionSockets.set(sessionId, sockets);
 
-            const bothStaked =
-              matchType === 'bot'
-                ? sessionState.p1Staked
-                : sessionState.p1Staked && sessionState.p2Staked;
+            const bothStaked = hasBotOpponent
+              ? sessionState.p1Staked
+              : sessionState.p1Staked && sessionState.p2Staked;
 
             if (bothStaked) {
               void persistSessionState(sessionState);
@@ -1066,7 +1140,7 @@ export function createWsServer(server: Server) {
 
             let isP1 = false;
 
-            if (sessionState.matchType === 'bot') {
+            if (isBotOpponent(sessionState)) {
               isP1 = true;
             } else if (assignments?.p1 === userId) {
               isP1 = true;
@@ -1082,7 +1156,7 @@ export function createWsServer(server: Server) {
               state.p2Ready = true;
             }
 
-            if (sessionState.matchType === 'bot') {
+            if (isBotOpponent(sessionState)) {
               sessionState.p2Ready = true;
             }
 
