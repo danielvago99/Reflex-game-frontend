@@ -56,6 +56,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const hasSentMatchTypeRef = useRef(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -123,6 +124,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setHasRequestedInitialRound(false);
     setTargetShowSignal(0);
     setWaitingForOpponent(false);
+    hasSentMatchTypeRef.current = false;
   };
 
   // Players (get from profile in real app)
@@ -153,13 +155,19 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
         return;
       }
 
-      send('round:ready', {
+      const payload: { round: number; stake: number; matchType?: 'ranked' | 'friend' | 'bot' } = {
         round: roundNumber,
         stake: stakeAmount,
-        matchType
-      });
+      };
+
+      if (!hasSentMatchTypeRef.current) {
+        payload.matchType = matchType;
+        hasSentMatchTypeRef.current = true;
+      }
+
+      send('round:ready', payload);
     },
-    [isConnected, matchType, send]
+    [isConnected, matchType, send, stakeAmount]
   );
 
   const handleTargetAppeared = () => {};
@@ -242,6 +250,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
   useEffect(() => {
     if (!isConnected) {
       setHasRequestedInitialRound(false);
+      hasSentMatchTypeRef.current = false;
       return;
     }
 
@@ -252,6 +261,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
       setHasRequestedInitialRound(true);
     }
   }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+
+  useEffect(() => {
+    hasSentMatchTypeRef.current = false;
+  }, [matchType]);
 
   const handleNextRound = () => {
     if (isMatchOver) {

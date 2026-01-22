@@ -323,10 +323,16 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     'Match completed. Persist final result with Prisma.'
   );
 
-  if (!sharedState.userId) {
-    logger.info(
-      { userId: sharedState.userId, matchType: sharedState.matchType },
-      'Skipping match persistence because user is unauthenticated'
+  const assignments = sessionAssignments.get(sharedState.sessionId);
+  const player1Id = assignments?.p1;
+  const player2Id = assignments?.p2;
+  const isInvalidUserId = (value?: string) =>
+    !value || value.startsWith('guest') || value === 'bot_opponent';
+
+  if (isInvalidUserId(player1Id) || isInvalidUserId(player2Id)) {
+    logger.error(
+      { sessionId: sharedState.sessionId, player1Id, player2Id },
+      'Cannot persist match: Missing player IDs in session'
     );
     try {
       await redisClient.del(getSessionKey(sharedState.sessionId));
@@ -339,51 +345,61 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   }
 
   try {
-    const playerSlot = sharedState.userId ? getSlotForUser(sharedState, sharedState.userId) : 'p1';
-    const opponentSlot = getOpponentSlot(playerSlot);
-    const playerWon = !forfeit && sharedState.scores[playerSlot] > sharedState.scores[opponentSlot];
     const stakeAmount =
       typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
         ? sharedState.stakeAmount
         : 0;
     const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
-    const winnerScore = playerWon ? sharedState.scores[playerSlot] : sharedState.scores[opponentSlot];
-    const loserScore = playerWon ? sharedState.scores[opponentSlot] : sharedState.scores[playerSlot];
+    const winnerSlot: 'p1' | 'p2' | 'none' =
+      sharedState.scores.p1 === sharedState.scores.p2
+        ? 'none'
+        : sharedState.scores.p1 > sharedState.scores.p2
+          ? 'p1'
+          : 'p2';
+    const loserSlot = winnerSlot === 'none' ? null : getOpponentSlot(winnerSlot);
 
-    const playerTimes = sharedState.history
-      .map((round) => (playerSlot === 'p1' ? round.playerTime : round.botTime))
+    const winnerId = winnerSlot === 'p1' ? player1Id : winnerSlot === 'p2' ? player2Id : null;
+    const loserId = loserSlot === 'p1' ? player1Id : loserSlot === 'p2' ? player2Id : null;
+
+    const winnerScore =
+      winnerSlot === 'p1' ? sharedState.scores.p1 : winnerSlot === 'p2' ? sharedState.scores.p2 : 0;
+    const loserScore =
+      loserSlot === 'p1' ? sharedState.scores.p1 : loserSlot === 'p2' ? sharedState.scores.p2 : 0;
+
+    const p1Times = sharedState.history
+      .map((round) => round.playerTime)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
-    const botTimes = sharedState.history
-      .map((round) => (playerSlot === 'p1' ? round.botTime : round.playerTime))
+    const p2Times = sharedState.history
+      .map((round) => round.botTime)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
-    const matchBestReaction = playerTimes.length ? Math.min(...playerTimes) : undefined;
-    const matchAverageReaction = playerTimes.length
-      ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
-      : undefined;
+    const buildReactionStats = (times: number[]) => {
+      if (!times.length) {
+        return { average: undefined, best: undefined };
+      }
 
-    const winnerId = playerWon ? sharedState.userId : null;
-    const loserId = playerWon ? null : sharedState.userId;
+      const total = times.reduce((sum, time) => sum + time, 0);
+      return {
+        average: total / times.length,
+        best: Math.min(...times),
+      };
+    };
 
-    const avgWinnerReaction = playerWon
-      ? playerTimes.length > 0
-        ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
-        : undefined
-      : botTimes.length > 0
-        ? botTimes.reduce((sum, time) => sum + time, 0) / botTimes.length
-        : undefined;
+    const p1Stats = buildReactionStats(p1Times);
+    const p2Stats = buildReactionStats(p2Times);
 
-    const avgLoserReaction = playerWon
-      ? botTimes.length > 0
-        ? botTimes.reduce((sum, time) => sum + time, 0) / botTimes.length
-        : undefined
-      : playerTimes.length > 0
-        ? playerTimes.reduce((sum, time) => sum + time, 0) / playerTimes.length
-        : undefined;
+    const avgWinnerReaction = winnerSlot === 'p1' ? p1Stats.average : winnerSlot === 'p2' ? p2Stats.average : undefined;
+    const avgLoserReaction = loserSlot === 'p1' ? p1Stats.average : loserSlot === 'p2' ? p2Stats.average : undefined;
+    const winnerStats = winnerSlot === 'p1' ? p1Stats : winnerSlot === 'p2' ? p2Stats : { average: undefined, best: undefined };
+    const loserStats = loserSlot === 'p1' ? p1Stats : loserSlot === 'p2' ? p2Stats : { average: undefined, best: undefined };
 
     await prisma.$transaction(async (tx) => {
-      const updatePlayerStats = async (userId: string, outcome: 'win' | 'loss') => {
+      const updatePlayerStats = async (
+        userId: string,
+        outcome: 'win' | 'loss',
+        reactionStats: { best?: number; average?: number }
+      ) => {
         const existingStats = await tx.playerStats.findUnique({ where: { userId } });
 
         const previousMatches = existingStats?.totalMatches ?? 0;
@@ -398,19 +414,19 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         const newWinRate = newTotalMatches > 0 ? newTotalWins / newTotalMatches : 0;
 
         const newBestReaction =
-          matchBestReaction !== undefined
+          reactionStats.best !== undefined
             ? previousBest !== undefined
-              ? Math.min(Number(previousBest), matchBestReaction)
-              : matchBestReaction
+              ? Math.min(Number(previousBest), reactionStats.best)
+              : reactionStats.best
             : previousBest !== undefined
               ? Number(previousBest)
               : undefined;
 
         const newAverageReaction =
-          matchAverageReaction !== undefined
+          reactionStats.average !== undefined
             ? previousAverage !== undefined
-              ? (Number(previousAverage) * previousMatches + matchAverageReaction) / newTotalMatches
-              : matchAverageReaction
+              ? (Number(previousAverage) * previousMatches + reactionStats.average) / newTotalMatches
+              : reactionStats.average
             : previousAverage !== undefined
               ? Number(previousAverage)
               : undefined;
@@ -458,9 +474,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           loserId,
           avgWinnerReaction,
           avgLoserReaction,
-          stakeWinner: playerWon ? stakeAmount : 0,
-          stakeLoser: playerWon ? 0 : stakeAmount,
-          payout: playerWon ? stakeAmount : 0,
+          stakeWinner: winnerId ? stakeAmount : 0,
+          stakeLoser: loserId ? stakeAmount : 0,
+          payout: winnerId ? stakeAmount : 0,
           winnerScore,
           loserScore,
           snapshotDate: new Date(),
@@ -468,11 +484,10 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       });
 
       for (const round of sharedState.history) {
-        const roundPlayerTime = playerSlot === 'p1' ? round.playerTime : round.botTime;
-        const roundOpponentTime = playerSlot === 'p1' ? round.botTime : round.playerTime;
-        const roundWinnerId = round.winner === playerSlot ? sharedState.userId : null;
-        const roundLoserId =
-          round.winner === playerSlot ? null : round.winner === opponentSlot ? sharedState.userId : null; // null pre bota
+        const roundWinnerId = round.winner === 'p1' ? player1Id : round.winner === 'p2' ? player2Id : null;
+        const roundLoserId = round.winner === 'p1' ? player2Id : round.winner === 'p2' ? player1Id : null;
+        const winnerReaction = round.winner === 'p1' ? round.playerTime : round.winner === 'p2' ? round.botTime : null;
+        const loserReaction = round.winner === 'p1' ? round.botTime : round.winner === 'p2' ? round.playerTime : null;
 
         await tx.gameRound.create({
           data: {
@@ -480,46 +495,36 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             roundNumber: round.round,
             winnerId: roundWinnerId,
             loserId: roundLoserId,
-            winnerReaction:
-              round.winner === playerSlot
-                ? roundPlayerTime
-                : round.winner === opponentSlot
-                  ? roundOpponentTime
-                  : null,
-            loserReaction:
-              round.winner === playerSlot
-                ? roundOpponentTime
-                : round.winner === opponentSlot
-                  ? roundPlayerTime
-                  : null,
+            winnerReaction,
+            loserReaction,
           },
         });
       }
 
       if (winnerId) {
-        await updatePlayerStats(winnerId, 'win');
+        await updatePlayerStats(winnerId, 'win', winnerStats);
       }
 
       if (loserId) {
-        await updatePlayerStats(loserId, 'loss');
+        await updatePlayerStats(loserId, 'loss', loserStats);
       }
 
-      if (sharedState.userId) {
+      const updatePostMatchProgress = async (userId: string) => {
         const referral = await tx.referral.findFirst({
-          where: { referredId: sharedState.userId },
+          where: { referredId: userId },
           select: { status: true, ambassadorId: true },
         });
 
         if (referral) {
           const updatedReferral = await tx.referral.update({
-            where: { referredId: sharedState.userId },
+            where: { referredId: userId },
             data: { totalMatches: { increment: 1 } },
             select: { totalMatches: true },
           });
 
           if (referral.status === 'pending' && updatedReferral.totalMatches >= 10) {
             await tx.referral.update({
-              where: { referredId: sharedState.userId },
+              where: { referredId: userId },
               data: { status: 'active' },
             });
 
@@ -554,24 +559,24 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         today.setHours(0, 0, 0, 0);
 
         const daily = await tx.dailyChallengeProgress.upsert({
-          where: { userId_date: { userId: sharedState.userId, date: today } },
+          where: { userId_date: { userId, date: today } },
           update: { matchesPlayed: { increment: 1 } },
-          create: { userId: sharedState.userId, date: today, matchesPlayed: 1 },
+          create: { userId, date: today, matchesPlayed: 1 },
         });
 
         if (!daily.completed && daily.matchesPlayed === 5) {
           await tx.dailyChallengeProgress.update({
-            where: { userId_date: { userId: sharedState.userId, date: today } },
+            where: { userId_date: { userId, date: today } },
             data: { completed: true },
           });
 
           await tx.playerRewards.update({
-            where: { userId: sharedState.userId },
+            where: { userId },
             data: { reflexPoints: { increment: 10 } },
           });
 
           const streakRecord = await tx.weeklyStreak.findUnique({
-            where: { userId: sharedState.userId },
+            where: { userId },
           });
 
           const normalizeDate = (value: Date) => {
@@ -605,7 +610,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             resetWeekEnd.setDate(resetWeekEnd.getDate() + 7);
 
             await tx.playerRewards.update({
-              where: { userId: sharedState.userId },
+              where: { userId },
               data: { reflexPoints: { increment: 50 } },
             });
 
@@ -620,11 +625,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
                 },
               });
             } else {
-            await tx.weeklyStreak.create({
-              data: {
-                userId: sharedState.userId,
-                currentDailyStreak: 0,
-                completed: true,
+              await tx.weeklyStreak.create({
+                data: {
+                  userId,
+                  currentDailyStreak: 0,
+                  completed: true,
                   weekStartDate: resetWeekStart,
                   weekEndDate: resetWeekEnd,
                 },
@@ -643,7 +648,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           } else {
             await tx.weeklyStreak.create({
               data: {
-                userId: sharedState.userId,
+                userId,
                 currentDailyStreak: nextStreak,
                 weekStartDate,
                 weekEndDate,
@@ -651,7 +656,10 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             });
           }
         }
-      }
+      };
+
+      await updatePostMatchProgress(player1Id);
+      await updatePostMatchProgress(player2Id);
 
       if (winnerId && stakeAmount > 0) {
         await tx.transaction.create({
@@ -785,19 +793,25 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
 
   sessionState.round = typeof payload?.round === 'number' ? payload.round : sessionState.round;
   sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
-  if (sessionState.matchType === 'ranked') {
-    logger.info({ sessionId }, 'Ignoring client matchType payload because session is already Ranked');
-  } else {
-    const validTypes = ['ranked', 'friend', 'bot'];
-    const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
-    sessionState.matchType = matchType;
-    if (matchType === 'bot') {
-      sessionState.isBotOpponent = true;
-    } else if (matchType === 'friend') {
-      sessionState.isBotOpponent = false;
-    } else if (matchType === 'ranked' && sessionState.isBotOpponent === undefined) {
-      sessionState.isBotOpponent = false;
-    }
+  const validTypes = ['ranked', 'friend', 'bot'];
+  const incomingMatchType =
+    payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : undefined;
+
+  if (sessionState.matchType && incomingMatchType && sessionState.matchType !== incomingMatchType) {
+    logger.warn(
+      { sessionId, currentMatchType: sessionState.matchType, incomingMatchType },
+      'Blocking attempt to change match type mid-game'
+    );
+    return;
+  }
+  const matchType = sessionState.matchType ?? incomingMatchType ?? 'friend';
+  sessionState.matchType = matchType;
+  if (matchType === 'bot') {
+    sessionState.isBotOpponent = true;
+  } else if (matchType === 'friend') {
+    sessionState.isBotOpponent = false;
+  } else if (matchType === 'ranked' && sessionState.isBotOpponent === undefined) {
+    sessionState.isBotOpponent = false;
   }
   sessionState.roundResolved = false;
   sessionState.targetShownAt = undefined;
