@@ -728,6 +728,29 @@ export function createWsServer(server: Server) {
 
     if (socket1 && socket2) {
       const sessionId = crypto.randomUUID();
+      const baseState: SessionState = {
+        sessionId,
+        round: 1,
+        scores: { player: 0, bot: 0 },
+        matchType: 'ranked',
+        stakeAmount: stake,
+        roundResolved: false,
+        history: [],
+        p1Staked: false,
+        p2Staked: false,
+        p1Ready: false,
+        p2Ready: false,
+      };
+
+      const socket1State = sessions.get(socket1);
+      const socket2State = sessions.get(socket2);
+
+      sessions.set(socket1, { ...baseState, userId: player1Id, username: socket1State?.username });
+      sessions.set(socket2, { ...baseState, userId: player2Id, username: socket2State?.username });
+      sessionStates.set(sessionId, baseState);
+      sessionAssignments.set(sessionId, { p1: player1Id, p2: player2Id });
+      sessionSockets.set(sessionId, new Set([socket1, socket2]));
+
       sendMessage(socket1, 'match_found', { sessionId, opponentId: player2Id, stake, isBot: false });
       sendMessage(socket2, 'match_found', { sessionId, opponentId: player1Id, stake, isBot: false });
     }
@@ -739,6 +762,7 @@ export function createWsServer(server: Server) {
 
     if (socket) {
       const sessionId = crypto.randomUUID();
+      const existingState = sessions.get(socket);
       const sessionState: SessionState = {
         sessionId,
         round: 1,
@@ -748,6 +772,7 @@ export function createWsServer(server: Server) {
         roundResolved: false,
         history: [],
         userId,
+        username: existingState?.username,
         botReactionTime: 600,
         p1Staked: false,
         p2Staked: true,
@@ -763,6 +788,7 @@ export function createWsServer(server: Server) {
       sendMessage(socket, 'match_found', {
         sessionId,
         opponentId: 'bot_opponent',
+        opponentName: 'Training Bot',
         stake,
         isBot: true,
       });
