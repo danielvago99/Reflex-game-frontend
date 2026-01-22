@@ -9,6 +9,7 @@ import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface LobbyScreenProps {
   onNavigate: (screen: string) => void;
@@ -17,6 +18,7 @@ interface LobbyScreenProps {
 }
 
 export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
+  useScrollToTop();
   const { data } = useRewardsData();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(null);
   const [selectedStake, setSelectedStake] = useState('0.1');

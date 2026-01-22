@@ -4,6 +4,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AvatarSelector, findAvatarIdByUrl, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { LoadingOverlay } from './ui/LoadingOverlay';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface SettingsScreenProps {
   currentName: string;
@@ -15,6 +16,7 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateName, onUpdateAvatar, onLogout }: SettingsScreenProps) {
+  useScrollToTop();
   const [newName, setNewName] = useState(currentName);
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);

@@ -9,6 +9,7 @@ import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -33,6 +34,7 @@ export function DashboardScreen({
   recentMatches = [],
   matchesLoading = false
 }: DashboardScreenProps) {
+  useScrollToTop();
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const { data: rewardsData } = useRewardsData();

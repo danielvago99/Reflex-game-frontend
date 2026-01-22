@@ -5,6 +5,7 @@ import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface ProfileScreenProps {
   onNavigate: (screen: string) => void;
@@ -25,6 +26,7 @@ export function ProfileScreen({
   matchHistory = [],
   matchHistoryLoading = false,
 }: ProfileScreenProps) {
+  useScrollToTop();
   const avatarData = useMemo(() => {
     if (avatarUrl) {
       return { id: 'custom-avatar', url: avatarUrl, style: 'custom' };

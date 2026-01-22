@@ -2,12 +2,14 @@ import { ArrowLeft } from 'lucide-react';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface DailyChallengeScreenProps {
   onBack: () => void;
 }
 
 export function DailyChallengeScreen({ onBack }: DailyChallengeScreenProps) {
+  useScrollToTop();
   const { data } = useRewardsData();
   const matchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const matchesTarget = data?.dailyTarget ?? 5;

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 import { copyToClipboard } from '../utils/clipboard';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface AmbassadorScreenProps {
   onNavigate: (screen: string) => void;
@@ -22,6 +23,7 @@ export function AmbassadorScreen({
   playerName,
   isLoading,
 }: AmbassadorScreenProps) {
+  useScrollToTop();
   const { data } = useAmbassadorData();
   const [copied, setCopied] = useState(false);
   const resolvedReferralLink = data?.referralLink ?? referralLink;

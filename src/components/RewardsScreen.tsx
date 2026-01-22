@@ -3,12 +3,14 @@ import { toast } from 'sonner';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface RewardsScreenProps {
   onNavigate: (screen: string) => void;
 }
 
 export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
+  useScrollToTop();
   const { data, loading, redeemStake } = useRewardsData();
   const reflexPoints = data?.reflexPoints ?? 0;
   const streak = data?.dailyStreak ?? data?.streak ?? 0;

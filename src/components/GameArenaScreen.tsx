@@ -1,4 +1,5 @@
 import { GameArena } from './arena/GameArena';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface GameArenaScreenProps {
   onNavigate: (screen: string) => void;
@@ -8,6 +9,7 @@ interface GameArenaScreenProps {
 }
 
 export function GameArenaScreen({ onNavigate, isRanked = false, stakeAmount = 0, matchType = 'bot' }: GameArenaScreenProps) {
+  useScrollToTop();
   const handleQuit = () => {
     onNavigate('lobby');
   };

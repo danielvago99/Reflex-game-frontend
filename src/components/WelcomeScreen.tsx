@@ -1,5 +1,6 @@
 import { Zap, Target, Timer, Trophy, Wallet, Key } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -11,6 +12,7 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProps) {
+  useScrollToTop();
   const handleConnectWallet = () => {
     if (onWalletConnect) {
       onWalletConnect('DemoWalletPublicKey123456789', 'Phantom');
