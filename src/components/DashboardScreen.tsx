@@ -93,20 +93,24 @@ export function DashboardScreen({
   }, [recentMatches]);
 
   useEffect(() => {
-    if (!rewardsData || !stats || toastShownRef.current) {
+    if (!rewardsData || toastShownRef.current) {
       return;
     }
 
     const hasRefPoints = (rewardsData.reflexPoints ?? 0) >= 30;
-    const isNewPlayer = stats.totalMatches === 0;
+    const pendingToast =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('referral_toast_pending') === 'true'
+        : false;
     const hasSeenToast =
       typeof localStorage !== 'undefined' ? localStorage.getItem('referral_toast_shown') : null;
 
-    if (hasRefPoints && isNewPlayer && !hasSeenToast) {
+    if (hasRefPoints && pendingToast && !hasSeenToast) {
       toastShownRef.current = true;
 
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('referral_toast_shown', 'true');
+        localStorage.removeItem('referral_toast_pending');
       }
 
       toast.custom(
@@ -133,7 +137,7 @@ export function DashboardScreen({
         { duration: 8000 }
       );
     }
-  }, [rewardsData, stats]);
+  }, [rewardsData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">

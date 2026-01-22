@@ -8,6 +8,7 @@ export function ReferralHandler() {
   useEffect(() => {
     if (code) {
       localStorage.setItem('referralCode', code);
+      localStorage.setItem('referral_toast_pending', 'true');
       console.log('Referral code captured:', code);
     }
 
