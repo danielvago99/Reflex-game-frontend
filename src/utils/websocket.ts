@@ -37,6 +37,14 @@ class WebSocketService {
           return;
         }
 
+        if (
+          this.ws &&
+          (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
+        ) {
+          resolve();
+          return;
+        }
+
         const url = token ? `${ENV.WS_URL}?token=${token}` : ENV.WS_URL;
         this.ws = new WebSocket(url);
 
@@ -58,7 +66,9 @@ class WebSocketService {
 
         this.ws.onerror = (error) => {
           this.errorHandlers.forEach((handler) => handler(error));
-          reject(error);
+          if (this.ws?.readyState === WebSocket.CONNECTING) {
+            reject(error);
+          }
         };
 
         this.ws.onclose = () => {

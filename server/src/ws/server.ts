@@ -1108,6 +1108,14 @@ export function createWsServer(server: Server) {
         if (state.userId) {
           activeUsers.delete(state.userId);
         }
+        const sockets = sessionSockets.get(state.sessionId);
+        sockets?.delete(socket);
+
+        if ((state.matchType === 'ranked' || state.matchType === 'bot') && !state.isFinished) {
+          logger.info({ sessionId: state.sessionId }, 'Client disconnected - Holding session for reconnect');
+          return;
+        }
+
         if (state.isFinished) {
           return;
         }
