@@ -237,7 +237,6 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(async (updates: { username?: string; avatar?: string }) => {
     if (!updates.username && !updates.avatar) return;
 
-    setLoading(true);
     setError(null);
 
     try {
@@ -267,8 +266,6 @@ function AuthProvider({ children }: { children: ReactNode }) {
       const message = err instanceof Error ? err.message : 'Unable to update profile';
       setError(message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
