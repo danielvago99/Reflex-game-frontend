@@ -191,7 +191,12 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
   const validTypes = ['ranked', 'friend', 'bot'];
-  const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  const requestedMatchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  const assignments = sessionAssignments.get(state.sessionId);
+  const hasHumanOpponent =
+    assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
+  const matchType = hasHumanOpponent && requestedMatchType === 'bot' ? 'ranked' : requestedMatchType;
+
   state.matchType = matchType;
   if (matchType === 'bot') {
     state.isBotOpponent = true;
@@ -1056,9 +1061,19 @@ export function createWsServer(server: Server) {
             const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : undefined;
             if (!sessionId) return;
 
-            const matchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
+            const assignments = sessionAssignments.get(sessionId);
+            const hasHumanOpponent =
+              assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
+            const requestedMatchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
             const stakeAmount =
               typeof message.payload?.stake === 'number' ? message.payload.stake : state.stakeAmount ?? 0;
+
+            const matchType =
+              hasHumanOpponent && requestedMatchType === 'bot'
+                ? 'ranked'
+                : state.matchType && state.matchType !== 'bot'
+                  ? state.matchType
+                  : requestedMatchType;
 
             state.sessionId = sessionId;
             state.matchType = matchType;
@@ -1082,19 +1097,19 @@ export function createWsServer(server: Server) {
             state.isBotOpponent = hasBotOpponent;
             sessionStates.set(sessionId, sessionState);
 
-            const assignments = sessionAssignments.get(sessionId) ?? {};
+            const updatedAssignments = assignments ?? {};
             const resolvedUserId = state.userId ?? `guest-${sessionId}`;
             let slot: 'p1' | 'p2' = 'p1';
 
-            if (!assignments.p1 || assignments.p1 === resolvedUserId) {
-              assignments.p1 = resolvedUserId;
+            if (!updatedAssignments.p1 || updatedAssignments.p1 === resolvedUserId) {
+              updatedAssignments.p1 = resolvedUserId;
               slot = 'p1';
-            } else if (!assignments.p2 || assignments.p2 === resolvedUserId) {
-              assignments.p2 = resolvedUserId;
+            } else if (!updatedAssignments.p2 || updatedAssignments.p2 === resolvedUserId) {
+              updatedAssignments.p2 = resolvedUserId;
               slot = 'p2';
             }
 
-            sessionAssignments.set(sessionId, assignments);
+            sessionAssignments.set(sessionId, updatedAssignments);
 
             if (slot === 'p1') {
               sessionState.p1Staked = true;
