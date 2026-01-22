@@ -34,6 +34,16 @@ export function TransactionModal({
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  useEffect(() => {
+    if (!open) {
+      toast.dismiss();
+    }
+
+    return () => {
+      toast.dismiss();
+    };
+  }, [open]);
+
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
@@ -54,6 +64,9 @@ export function TransactionModal({
 
   const handleSign = async () => {
     setState('signing');
+    const loadingToastId = toast.loading('Processing transaction...', {
+      description: 'Please wait for blockchain confirmation',
+    });
     toast.info('Signature requested', {
       description: 'Please check your wallet',
     });
@@ -74,14 +87,18 @@ export function TransactionModal({
           const mockTxId = generateMockTxId();
           setTxId(mockTxId);
           setState('success');
+          toast.dismiss(loadingToastId);
           toast.success('Transaction confirmed', {
             description: 'Stake is now active',
+            duration: 3000,
           });
         } else {
           setErrorMessage('Transaction failed. Insufficient funds or network error.');
           setState('error');
+          toast.dismiss(loadingToastId);
           toast.error('Transaction failed', {
             description: 'Please try again',
+            duration: 4000,
           });
         }
       }, 2000);
