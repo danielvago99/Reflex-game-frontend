@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, Link, Check, QrCode, Lock, Eye, Coins, Zap, Ticket } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -21,13 +21,43 @@ interface FriendInviteDialogProps {
   onRoomCreated?: (room: { sessionId: string; roomCode: string; stakeAmount: number } | null) => void;
 }
 
+const MIN_FRIEND_STAKE = 0.05;
 const MAX_FRIEND_STAKE = 10;
+const STAKE_STEP = 0.05;
+const DEFAULT_STAKE = 0.05;
+
+const formatStakeAmount = (value: number) => value.toFixed(2);
+
+const normalizeStakeInput = (value: string) => value.replace(',', '.');
+
+const parseStakeInput = (value: string) => {
+  const normalized = normalizeStakeInput(value);
+  const numeric = Number.parseFloat(normalized);
+  return { normalized, numeric };
+};
+
+const clampStakeAmount = (value: number) =>
+  Math.min(MAX_FRIEND_STAKE, Math.max(MIN_FRIEND_STAKE, value));
+
+const snapStakeAmount = (value: number) => Math.round(value / STAKE_STEP) * STAKE_STEP;
+
+const sanitizeStakeAmount = (value: string) => {
+  const { numeric } = parseStakeInput(value);
+  const baseValue = Number.isNaN(numeric) ? DEFAULT_STAKE : numeric;
+  const snapped = snapStakeAmount(baseValue);
+  const clamped = clampStakeAmount(snapped);
+  const rounded = Number(clamped.toFixed(2));
+  return {
+    numeric: rounded,
+    display: formatStakeAmount(rounded),
+  };
+};
 
 export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated }: FriendInviteDialogProps) {
   const [isPrivate, setIsPrivate] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [stakeAmount, setStakeAmount] = useState('0.1');
+  const [stakeAmount, setStakeAmount] = useState(formatStakeAmount(DEFAULT_STAKE));
   const [stakeError, setStakeError] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [sessionId, setSessionId] = useState('');
@@ -38,11 +68,28 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
 
   const { send, isConnected } = useWebSocket({ autoConnect: true });
 
+  const cleanupRoom = useCallback(() => {
+    if (roomCode && sessionId && isConnected) {
+      send('friend:room_closed', { sessionId, roomCode, reason: 'host_exit' });
+    }
+
+    onRoomCreated?.(null);
+    setRoomCode('');
+    setSessionId('');
+    setIsCreating(false);
+    setStakeAmount(formatStakeAmount(DEFAULT_STAKE));
+    setStakeError('');
+    setCopiedLink(false);
+    setShowQR(false);
+    setSelectedFreeStake(null);
+    setUseFreeStakeMode(false);
+  }, [isConnected, onRoomCreated, roomCode, send, sessionId, setUseFreeStakeMode]);
+
   useEffect(() => {
     if (open) {
       setCopiedLink(false);
       setShowQR(false);
-      setStakeAmount('0.1');
+      setStakeAmount(formatStakeAmount(DEFAULT_STAKE));
       setStakeError('');
       setRoomCode('');
       setSessionId('');
@@ -54,7 +101,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
     if (open && roomInfo) {
       setRoomCode(roomInfo.roomCode);
       setSessionId(roomInfo.sessionId);
-      setStakeAmount(roomInfo.stakeAmount.toString());
+      setStakeAmount(formatStakeAmount(roomInfo.stakeAmount));
     }
   }, [open, roomInfo]);
 
@@ -68,14 +115,8 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
   const inviteLink = roomCode ? `https://app.reflex.game/room/${roomCode}` : '';
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && roomCode && sessionId) {
-      if (isConnected) {
-        send('friend:room_closed', { sessionId, roomCode, reason: 'host_exit' });
-      }
-      onRoomCreated?.(null);
-      setRoomCode('');
-      setSessionId('');
-      setIsCreating(false);
+    if (!nextOpen) {
+      cleanupRoom();
     }
 
     onOpenChange(nextOpen);
@@ -93,17 +134,43 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
   };
 
   const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setStakeAmount(value);
-    
-    const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue <= 0) {
-      setStakeError('Stake must be greater than 0 SOL');
-    } else if (numValue > MAX_FRIEND_STAKE) {
+    const rawValue = e.target.value;
+    const normalizedValue = normalizeStakeInput(rawValue);
+    setStakeAmount(normalizedValue);
+
+    if (!normalizedValue.trim()) {
+      setStakeError('');
+      return;
+    }
+
+    const { numeric } = parseStakeInput(normalizedValue);
+    if (Number.isNaN(numeric)) {
+      setStakeError('Enter a valid number');
+    } else if (numeric < MIN_FRIEND_STAKE) {
+      setStakeError(`Minimum stake is ${MIN_FRIEND_STAKE.toFixed(2)} SOL`);
+    } else if (numeric > MAX_FRIEND_STAKE) {
       setStakeError(`Maximum stake is ${MAX_FRIEND_STAKE} SOL`);
     } else {
       setStakeError('');
     }
+  };
+
+  const handleStakeBlur = () => {
+    if (roomCode) return;
+    const sanitized = sanitizeStakeAmount(stakeAmount);
+    setStakeAmount(sanitized.display);
+    setStakeError('');
+  };
+
+  const handleAdjustStake = (direction: 'increment' | 'decrement') => {
+    if (roomCode) return;
+    const sanitized = sanitizeStakeAmount(stakeAmount);
+    const delta = direction === 'increment' ? STAKE_STEP : -STAKE_STEP;
+    const nextValue = clampStakeAmount(snapStakeAmount(sanitized.numeric + delta));
+    setStakeAmount(formatStakeAmount(nextValue));
+    setStakeError('');
+    setSelectedFreeStake(null);
+    setUseFreeStakeMode(false);
   };
 
   const handleCreateRoom = () => {
@@ -112,14 +179,11 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
       return;
     }
 
-    const numericStake = parseFloat(stakeAmount);
-    if (isNaN(numericStake) || numericStake <= 0 || numericStake > MAX_FRIEND_STAKE) {
-      setStakeError(`Stake must be between 0 and ${MAX_FRIEND_STAKE} SOL`);
-      return;
-    }
+    const sanitized = sanitizeStakeAmount(stakeAmount);
+    setStakeAmount(sanitized.display);
 
     setIsCreating(true);
-    send('friend:create_room', { stakeAmount: numericStake });
+    send('friend:create_room', { stakeAmount: sanitized.numeric });
   };
 
   useWebSocketEvent<{ sessionId: string; roomCode: string; stakeAmount: number }>(
@@ -128,7 +192,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
       if (!open) return;
       setRoomCode(payload.roomCode);
       setSessionId(payload.sessionId);
-      setStakeAmount(payload.stakeAmount.toString());
+      setStakeAmount(formatStakeAmount(payload.stakeAmount));
       setIsCreating(false);
       onRoomCreated?.(payload);
       toast.success('Room created! Share the code with your friend.');
@@ -159,8 +223,21 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
     [open, onRoomCreated],
   );
 
-  const isValidStake = !stakeError && parseFloat(stakeAmount) > 0 && parseFloat(stakeAmount) <= MAX_FRIEND_STAKE;
+  const { numeric: parsedStakeAmount } = parseStakeInput(stakeAmount);
+  const isValidStake =
+    !stakeError &&
+    Number.isFinite(parsedStakeAmount) &&
+    parsedStakeAmount >= MIN_FRIEND_STAKE &&
+    parsedStakeAmount <= MAX_FRIEND_STAKE;
+  const clampedStakeAmount = Number.isFinite(parsedStakeAmount)
+    ? clampStakeAmount(parsedStakeAmount)
+    : MIN_FRIEND_STAKE;
+  const isAtMin = clampedStakeAmount <= MIN_FRIEND_STAKE + Number.EPSILON;
+  const isAtMax = clampedStakeAmount >= MAX_FRIEND_STAKE - Number.EPSILON;
   const showRoomDetails = Boolean(roomCode && sessionId);
+  const stakeForDisplay = Number.isFinite(parsedStakeAmount) ? parsedStakeAmount : 0;
+
+  useEffect(() => () => cleanupRoom(), [cleanupRoom]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -229,21 +306,47 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
               <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                 
-                <div className="flex items-center px-4 py-3">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustStake('decrement')}
+                    disabled={Boolean(roomCode) || isAtMin}
+                    className={cn(
+                      "h-10 w-10 rounded-lg border border-[#00FFA3]/40 bg-[#0B0F1A]/70 text-[#00FFA3] text-xl font-semibold shadow-[0_0_12px_rgba(0,255,163,0.25)] transition-all duration-200",
+                      "hover:bg-[#00FFA3]/20 hover:text-white",
+                      (roomCode || isAtMin) && "opacity-40 cursor-not-allowed hover:bg-[#0B0F1A]/70 hover:text-[#00FFA3]"
+                    )}
+                    aria-label="Decrease stake"
+                  >
+                    −
+                  </button>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0.05"
+                    type="text"
+                    inputMode="decimal"
                     value={stakeAmount}
                     onChange={handleStakeChange}
+                    onBlur={handleStakeBlur}
                     disabled={Boolean(roomCode)}
                     className={cn(
-                      "bg-transparent border-0 text-2xl text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1",
+                      "bg-transparent border-0 text-2xl text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 text-center",
                       stakeError && "text-red-400",
                       roomCode && "opacity-60"
                     )}
                     placeholder="0.05"
                   />
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustStake('increment')}
+                    disabled={Boolean(roomCode) || isAtMax}
+                    className={cn(
+                      "h-10 w-10 rounded-lg border border-[#7C3AED]/40 bg-[#0B0F1A]/70 text-[#7C3AED] text-xl font-semibold shadow-[0_0_12px_rgba(124,58,237,0.35)] transition-all duration-200",
+                      "hover:bg-[#7C3AED]/20 hover:text-white",
+                      (roomCode || isAtMax) && "opacity-40 cursor-not-allowed hover:bg-[#0B0F1A]/70 hover:text-[#7C3AED]"
+                    )}
+                    aria-label="Increase stake"
+                  >
+                    +
+                  </button>
                   <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#00FFA3]/20 to-[#7C3AED]/20 rounded-lg border border-[#00FFA3]/30">
                     <Coins className="w-5 h-5 text-[#00FFA3]"/>
                     <span className="text-[#00FFA3]">SOL</span>
@@ -275,7 +378,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
             <Alert className="bg-[#00FFA3]/10 border-[#00FFA3]/30 backdrop-blur-sm">
               <Coins className="w-4 h-4 text-[#00FFA3]"/>
               <AlertDescription className="text-gray-300 text-sm">
-                💰 Winner takes {(parseFloat(stakeAmount || '0') * 2 * 0.85).toFixed(2)} SOL after staking fee
+                💰 Winner takes {(stakeForDisplay * 2 * 0.85).toFixed(2)} SOL after staking fee
               </AlertDescription>
             </Alert>
 
