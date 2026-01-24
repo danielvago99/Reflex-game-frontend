@@ -1646,12 +1646,18 @@ export function createWsServer(server: Server) {
                   ? 'friend'
                   : 'ranked';
             const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
+            const payloadStake =
+              typeof message.payload?.stake === 'number' && Number.isFinite(message.payload.stake)
+                ? message.payload.stake
+                : undefined;
+            const sessionStake =
+              typeof sessionState?.stakeAmount === 'number' && Number.isFinite(sessionState.stakeAmount)
+                ? sessionState.stakeAmount
+                : undefined;
             const stakeAmount =
               resolvedMatchType === 'friend'
-                ? sessionState?.stakeAmount ?? 0
-                : typeof message.payload?.stake === 'number'
-                  ? message.payload.stake
-                  : sessionState?.stakeAmount ?? 0;
+                ? sessionStake ?? payloadStake ?? 0
+                : payloadStake ?? sessionStake ?? 0;
 
             const matchType =
               hasHumanOpponent && requestedMatchType === 'bot'
