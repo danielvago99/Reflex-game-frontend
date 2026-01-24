@@ -41,7 +41,7 @@ export function RoomHeader({ roomCode, stakeAmount, className }: RoomHeaderProps
         {/* Scan line animation */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00FFA3]/5 to-transparent animate-pulse"></div>
         
-        <div className="relative p-6 sm:p-4 flex items-center justify-between gap-3 sm:gap-4">
+        <div className="relative p-4 sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           
           {/* Left side - Game mode and icon */}
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -59,38 +59,42 @@ export function RoomHeader({ roomCode, stakeAmount, className }: RoomHeaderProps
           </div>
 
           {/* Right side - Stake + Room code + Copy */}
-          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
-            {typeof stakeAmount === 'number' && (
-              <span className="text-[10px] sm:text-xs font-semibold text-[#00FFA3] uppercase tracking-wider whitespace-nowrap">
-                ◎ {stakeAmount.toFixed(3)} SOL
-              </span>
-            )}
-            
-            {/* Label - Presunutý sem a zafarbený na fialovo */}
-            <span className="text-[10px] sm:text-xs font-bold text-[#7C3AED] uppercase tracking-wider whitespace-nowrap">
-              Room code
-            </span>
-            
-            {/* Code Box */}
-            <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#00FFA3]/20 min-w-0">
-              <span className="text-sm sm:text-base font-mono tracking-[0.15em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)] truncate block">
-                {roomCode}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {typeof stakeAmount === 'number' && (
+                <span className="text-[10px] sm:text-xs font-semibold text-[#00FFA3] uppercase tracking-wider whitespace-nowrap">
+                  ◎ {stakeAmount.toFixed(3)} SOL
+                </span>
+              )}
+
+              {/* Label - Presunutý sem a zafarbený na fialovo */}
+              <span className="text-[10px] sm:text-xs font-bold text-[#7C3AED] uppercase tracking-wider whitespace-nowrap">
+                Room code
               </span>
             </div>
-            
-            {/* Copy Button */}
-            <Button
-              onClick={copyRoomCode}
-              size="sm"
-              className="bg-white/5 hover:bg-white/10 border border-[#00FFA3]/30 hover:border-[#00FFA3] text-white transition-all h-8 w-8 sm:h-10 sm:w-10 p-0 flex-shrink-0 rounded-lg"
-              aria-label="Copy room code"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00FFA3]" />
-              ) : (
-                <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              )}
-            </Button>
+
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              {/* Code Box */}
+              <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#00FFA3]/20 min-w-0 flex-1 sm:flex-none">
+                <span className="text-sm sm:text-base font-mono tracking-[0.15em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)] truncate block">
+                  {roomCode}
+                </span>
+              </div>
+
+              {/* Copy Button */}
+              <Button
+                onClick={copyRoomCode}
+                size="sm"
+                className="bg-white/5 hover:bg-white/10 border border-[#00FFA3]/30 hover:border-[#00FFA3] text-white transition-all h-8 w-8 sm:h-10 sm:w-10 p-0 flex-shrink-0 rounded-lg"
+                aria-label="Copy room code"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00FFA3]" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
         </div>
