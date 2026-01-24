@@ -9,10 +9,11 @@ import { copyToClipboard } from '../../utils/clipboard';
 interface RoomHeaderProps {
   roomCode: string;
   isPrivate?: boolean;
+  stakeAmount?: number;
   className?: string;
 }
 
-export function RoomHeader({ roomCode, isPrivate = true, className }: RoomHeaderProps) {
+export function RoomHeader({ roomCode, isPrivate = true, stakeAmount, className }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const copyRoomCode = async () => {
@@ -67,28 +68,39 @@ export function RoomHeader({ roomCode, isPrivate = true, className }: RoomHeader
           </div>
 
           {/* Right side - Room code */}
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Room</p>
-              <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#00FFA3]/20">
-                <span className="text-sm tracking-[0.2em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">
-                  {roomCode}
-                </span>
+          <div className="flex items-center gap-4">
+            {typeof stakeAmount === 'number' && (
+              <div className="text-right">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Stake</p>
+                <div className="bg-gradient-to-r from-[#7C3AED]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#7C3AED]/30">
+                  <span className="text-sm text-[#7C3AED]">{stakeAmount.toFixed(2)} SOL</span>
+                </div>
               </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Room</p>
+                <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#00FFA3]/20">
+                  <span className="text-sm tracking-[0.2em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">
+                    {roomCode}
+                  </span>
+                </div>
+              </div>
+              
+              <Button
+                onClick={copyRoomCode}
+                size="sm"
+                className="bg-white/5 hover:bg-white/10 border border-[#00FFA3]/30 hover:border-[#00FFA3] text-white transition-all h-9 w-9 p-0"
+                aria-label="Copy room code"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-[#00FFA3]" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </Button>
             </div>
-            
-            <Button
-              onClick={copyRoomCode}
-              size="sm"
-              className="bg-white/5 hover:bg-white/10 border border-[#00FFA3]/30 hover:border-[#00FFA3] text-white transition-all h-9 w-9 p-0"
-              aria-label="Copy room code"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-[#00FFA3]" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
           </div>
         </div>
       </div>

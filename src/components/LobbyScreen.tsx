@@ -27,15 +27,28 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [activeTab, setActiveTab] = useState('quickplay');
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [friendRoom, setFriendRoom] = useState<{ sessionId: string; roomCode: string; stakeAmount: number } | null>(null);
   const [freeStakes, setFreeStakes] = useState<FreeStake[]>([]);
   const [selectedFreeStake, setSelectedFreeStake] = useState<string | null>(null);
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
   const [opponentName, setOpponentName] = useState('');
-  const [pendingMatch, setPendingMatch] = useState<{ sessionId: string; stake: number; isBot: boolean } | null>(null);
+  const [pendingMatch, setPendingMatch] = useState<{
+    sessionId: string;
+    stake: number;
+    isBot: boolean;
+    matchType: 'ranked' | 'friend' | 'bot';
+    roomCode?: string;
+  } | null>(null);
   const matchFoundTimeoutRef = useRef<number | null>(null);
-  const pendingMatchRef = useRef<{ sessionId: string; stake: number; isBot: boolean } | null>(null);
+  const pendingMatchRef = useRef<{
+    sessionId: string;
+    stake: number;
+    isBot: boolean;
+    matchType: 'ranked' | 'friend' | 'bot';
+    roomCode?: string;
+  } | null>(null);
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
@@ -54,16 +67,30 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     const unsubscribeMatchFound = wsService.on('match_found', (message: any) => {
       console.log('match_found payload received:', message?.payload);
       const payload = message?.payload ?? {};
+      const matchType =
+        payload.matchType === 'friend' || payload.matchType === 'ranked' || payload.matchType === 'bot'
+          ? payload.matchType
+          : payload.isBot
+            ? 'bot'
+            : 'ranked';
+      const resolvedStake = payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake);
       const matchDetails = {
         sessionId: payload.sessionId as string,
-        stake: payload.stake ?? parseFloat(selectedStake),
-        isBot: Boolean(payload.isBot),
+        stake: resolvedStake,
+        isBot: matchType === 'bot',
+        matchType,
+        roomCode: payload.roomCode,
       };
 
-      setMatchStatus('found');
+      setMatchStatus(matchType === 'friend' ? 'idle' : 'found');
       setOpponentName(matchDetails.isBot ? 'Training Bot' : payload.opponentName ?? 'Unknown Opponent');
       setPendingMatch(matchDetails);
       pendingMatchRef.current = matchDetails;
+      setShowInviteDialog(false);
+      setShowJoinDialog(false);
+      if (matchType === 'friend') {
+        setFriendRoom(null);
+      }
 
       if (matchFoundTimeoutRef.current) {
         window.clearTimeout(matchFoundTimeoutRef.current);
@@ -83,9 +110,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       if (pendingMatchRef.current) {
         if (onStartMatch) {
           onStartMatch(
-            !pendingMatchRef.current.isBot,
+            pendingMatchRef.current.matchType === 'ranked',
             pendingMatchRef.current.stake,
-            pendingMatchRef.current.isBot ? 'bot' : 'ranked'
+            pendingMatchRef.current.matchType
           );
         } else {
           onNavigate('arena');
@@ -138,6 +165,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     sessionId: string;
     stake: number;
     isBot: boolean;
+    matchType: 'ranked' | 'friend' | 'bot';
   }) => {
     try {
       // Get the wallet provider from window
@@ -180,7 +208,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         send('match:stake_confirmed', {
           sessionId: matchDetails.sessionId,
           stake: matchDetails.stake,
-          matchType: matchDetails.isBot ? 'bot' : 'ranked',
+          matchType: matchDetails.matchType,
         });
         return;
       }
@@ -211,7 +239,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       send('match:stake_confirmed', {
         sessionId: matchDetails.sessionId,
         stake: matchDetails.stake,
-        matchType: matchDetails.isBot ? 'bot' : 'ranked',
+        matchType: matchDetails.matchType,
       });
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
@@ -239,7 +267,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     send('match:stake_confirmed', {
       sessionId: pendingMatch.sessionId,
       stake: pendingMatch.stake,
-      matchType: pendingMatch.isBot ? 'bot' : 'ranked',
+      matchType: pendingMatch.matchType,
     });
     
     setShowTransactionModal(false);
@@ -251,10 +279,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   };
 
   const handleJoinSuccess = (roomCode: string) => {
-    // Close join dialog and navigate to arena
     setShowJoinDialog(false);
-    // In a real app, you would pass the roomCode to the arena
-    onNavigate('arena');
+    setActiveTab('friends');
+    console.log('Joined friend room:', roomCode);
   };
 
   return (
@@ -792,14 +819,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       <FriendInviteDialog 
         open={showInviteDialog}
         onOpenChange={setShowInviteDialog}
-        onStartMatch={() => {
-          if (onStartMatch) {
-            onStartMatch(true, parseFloat(selectedStake), 'friend');
-          } else {
-            onNavigate('arena');
-          }
-          setShowInviteDialog(false);
-        }}
+        roomInfo={friendRoom}
+        onRoomCreated={setFriendRoom}
       />
       
       <FriendJoinDialog 
@@ -812,7 +833,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         open={showTransactionModal}
         onOpenChange={setShowTransactionModal}
         onConfirm={handleTransactionConfirm}
-        stakeAmount={parseFloat(selectedStake)}
+        stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
         isFreeStake={useFreeStakeMode}
       />
     </div>

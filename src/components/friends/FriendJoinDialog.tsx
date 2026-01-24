@@ -1,22 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Users, LogIn, AlertCircle, Check, Coins } from 'lucide-react';
+import { Users, LogIn, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
-import { cn } from '../ui/utils';
-import {
-  joinRoom,
-  subscribeToRoom,
-  updatePlayerReady,
-  leaveRoom,
-  getCurrentUser,
-  getRoom,
-  type Room
-} from '../../utils/roomManager';
+import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
 
 interface FriendJoinDialogProps {
   open: boolean;
@@ -28,36 +18,16 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const [room, setRoom] = useState<Room | null>(null);
-  const [hasJoined, setHasJoined] = useState(false);
-
-  const currentUser = getCurrentUser();
-
-  // Subscribe to room updates when joined
-  useEffect(() => {
-    if (hasJoined && roomCode) {
-      const unsubscribe = subscribeToRoom(roomCode, (updatedRoom) => {
-        setRoom(updatedRoom);
-      });
-
-      return () => {
-        unsubscribe();
-      };
-    }
-  }, [hasJoined, roomCode]);
+  const { send, isConnected } = useWebSocket({ autoConnect: true });
 
   // Clean up on close
   useEffect(() => {
     if (!open) {
-      if (hasJoined && roomCode) {
-        leaveRoom(roomCode, currentUser.id);
-      }
       setRoomCode('');
       setError('');
-      setHasJoined(false);
-      setRoom(null);
+      setIsJoining(false);
     }
-  }, [open, hasJoined, roomCode, currentUser.id]);
+  }, [open]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
@@ -72,49 +42,55 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
       return;
     }
 
+    if (!isConnected) {
+      toast.error('Connection lost. Reconnecting...');
+      return;
+    }
+
     setIsJoining(true);
-
-    // Try to join the room
-    setTimeout(() => {
-      const joinedRoom = joinRoom(roomCode, currentUser.id, currentUser.username);
-
-      if (joinedRoom) {
-        toast.success('Successfully joined room!');
-        setRoom(joinedRoom);
-        setHasJoined(true);
-        setError('');
-      } else {
-        setError('Room not found or is full. Please check the code and try again.');
-      }
-
-      setIsJoining(false);
-    }, 500);
+    send('friend:join_room', { roomCode });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && roomCode.length === 6 && !hasJoined) {
+    if (e.key === 'Enter' && roomCode.length === 6) {
       handleJoinRoom();
     }
   };
 
-  const handleToggleReady = () => {
-    if (room && roomCode) {
-      const guestPlayer = room.players.find(p => !p.isHost);
-      if (guestPlayer) {
-        updatePlayerReady(roomCode, guestPlayer.id, !guestPlayer.isReady);
-      }
-    }
-  };
+  useWebSocketEvent<{ message?: string }>(
+    'friend:join_error',
+    payload => {
+      if (!open) return;
+      setIsJoining(false);
+      const message = payload?.message ?? 'Room not found or is full. Please check the code and try again.';
+      setError(message);
+      toast.error(message);
+    },
+    [open],
+  );
 
-  const handleStartMatch = () => {
-    if (bothReady) {
+  useWebSocketEvent<{ matchType?: string }>(
+    'match_found',
+    payload => {
+      if (!open) return;
+      if (payload?.matchType !== 'friend') return;
+      setIsJoining(false);
       onJoinSuccess(roomCode);
-    }
-  };
+    },
+    [open, roomCode, onJoinSuccess],
+  );
 
-  const hostPlayer = room?.players.find(p => p.isHost);
-  const guestPlayer = room?.players.find(p => !p.isHost);
-  const bothReady = hostPlayer?.isReady && guestPlayer?.isReady;
+  useWebSocketEvent<{ message?: string }>(
+    'friend:room_closed',
+    payload => {
+      if (!open) return;
+      setIsJoining(false);
+      const message = payload?.message ?? 'Room closed. Please try another code.';
+      setError(message);
+      toast.error(message);
+    },
+    [open],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,25 +126,24 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4] to-[#7C3AED] blur-md opacity-60"></div>
               <div className="relative bg-gradient-to-br from-[#06B6D4] to-[#7C3AED] p-3 rounded-lg">
-                {hasJoined ? <Users className="w-6 h-6 text-white" /> : <LogIn className="w-6 h-6 text-white" />}
+                <LogIn className="w-6 h-6 text-white" />
               </div>
             </div>
             <div>
               <DialogTitle className="text-white text-2xl">
-                {hasJoined ? 'Room Joined' : "Join Friend's Room"}
+                Join Friend's Room
               </DialogTitle>
               <DialogDescription className="text-gray-400 text-sm mt-1">
-                {hasJoined ? 'Waiting for both players to be ready' : 'Enter the 6-digit room code to join'}
+                Enter the 6-digit room code to join
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="relative z-10 space-y-5 mt-4">
-          {!hasJoined ? (
-            <>
-              {/* Room Code Input */}
-              <div className="space-y-3">
+          <>
+            {/* Room Code Input */}
+            <div className="space-y-3">
                 <Label className="text-gray-300 text-sm uppercase tracking-wider">Room Code</Label>
                 
                 <div className="relative">
@@ -254,121 +229,6 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
                 Tip: You can paste the full invite link - we'll extract the code
               </p>
             </>
-          ) : (
-            <>
-              {/* Room Stake Info */}
-              <Alert className="bg-[#00FFA3]/10 border-[#00FFA3]/30 backdrop-blur-sm">
-                <Coins className="w-4 h-4 text-[#00FFA3]"/>
-                <AlertDescription className="text-gray-300 text-sm">
-                  💰 Match stake: {room?.stakeAmount} SOL • Winner takes {(parseFloat(room?.stakeAmount || '0') * 2 * 0.85).toFixed(2)} SOL
-                </AlertDescription>
-              </Alert>
-
-              {/* Player Status */}
-              <div className="relative">
-                <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/20 to-[#06B6D4]/20 blur-sm rounded-xl"></div>
-                
-                <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-gray-300 text-sm uppercase tracking-wider">Players</Label>
-                    <span className="text-xs text-gray-400">{room?.players.length || 0} / 2</span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {/* Host */}
-                    {hostPlayer && (
-                      <div className="flex items-center justify-between bg-gradient-to-r from-[#00FFA3]/10 to-transparent backdrop-blur-sm px-4 py-3 rounded-lg border border-[#00FFA3]/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-[#0B0F1A]" />
-                          </div>
-                          <div>
-                            <p className="text-white text-sm">{hostPlayer.username} (Host)</p>
-                            <p className="text-xs text-gray-400">@{hostPlayer.id.substring(0, 10)}</p>
-                          </div>
-                        </div>
-                        <Badge className={cn(
-                          "text-xs backdrop-blur-sm",
-                          hostPlayer.isReady
-                            ? "bg-[#00FFA3]/20 text-[#00FFA3] border-[#00FFA3]/50"
-                            : "bg-white/10 text-gray-400 border-white/20"
-                        )}>
-                          {hostPlayer.isReady ? 'Ready' : 'Not Ready'}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* You (Guest) */}
-                    {guestPlayer && (
-                      <div className="flex items-center justify-between bg-gradient-to-r from-[#06B6D4]/10 to-transparent backdrop-blur-sm px-4 py-3 rounded-lg border border-[#06B6D4]/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-[#06B6D4] to-[#7C3AED] rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-white text-sm">You</p>
-                            <p className="text-xs text-gray-400">@{guestPlayer.id.substring(0, 10)}</p>
-                          </div>
-                        </div>
-                        <Badge className={cn(
-                          "text-xs backdrop-blur-sm",
-                          guestPlayer.isReady
-                            ? "bg-[#00FFA3]/20 text-[#00FFA3] border-[#00FFA3]/50"
-                            : "bg-white/10 text-gray-400 border-white/20"
-                        )}>
-                          {guestPlayer.isReady ? 'Ready' : 'Not Ready'}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={handleToggleReady}
-                  className={cn(
-                    "flex-1 transition-all duration-300",
-                    guestPlayer?.isReady
-                      ? "bg-[#00FFA3]/20 hover:bg-[#00FFA3]/30 border-2 border-[#00FFA3] text-[#00FFA3] shadow-[0_0_20px_rgba(0,255,163,0.3)]"
-                      : "bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-[#00FFA3]/50 text-white"
-                  )}
-                >
-                  {guestPlayer?.isReady ? (
-                    <>
-                      <Check className="w-5 h-5 mr-2" />
-                      I'm Ready
-                    </>
-                  ) : (
-                    <>
-                      <Users className="w-5 h-5 mr-2" />
-                      Mark Ready
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleStartMatch}
-                  disabled={!bothReady}
-                  className={cn(
-                    "flex-1 transition-all duration-300",
-                    bothReady
-                      ? "bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A]"
-                      : "bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed"
-                  )}
-                >
-                  Start Match
-                </Button>
-              </div>
-
-              {!bothReady && (
-                <p className="text-center text-xs text-gray-500">
-                  Both players must be ready to start the match
-                </p>
-              )}
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>
