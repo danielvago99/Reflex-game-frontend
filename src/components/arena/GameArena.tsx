@@ -195,7 +195,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
     setHasSentClick(false);
 
     setPlayerReactionTime(result.playerTime);
-    setOpponentReactionTime(result.botTime);
+    setOpponentReactionTime(result.opponentTime);
 
     setPlayerScore(result.scores.player);
     setOpponentScore(result.scores.bot);
@@ -208,7 +208,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
     setAllOpponentTimes(prev => {
       const updated = [...prev];
-      updated[result.round - 1] = result.botTime;
+      updated[result.round - 1] = result.opponentTime;
       return updated;
     });
 

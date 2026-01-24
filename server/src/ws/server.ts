@@ -20,6 +20,7 @@ interface Target {
 interface RoundTimers {
   showTimeout?: NodeJS.Timeout;
   botTimeout?: NodeJS.Timeout;
+  roundTimeout?: NodeJS.Timeout;
 }
 
 interface SessionState extends RoundTimers {
@@ -37,10 +38,11 @@ interface SessionState extends RoundTimers {
   botReactionTime?: number;
   roundResolved: boolean;
   isFinished?: boolean;
+  reactions: { p1?: number; p2?: number };
   history: Array<{
     round: number;
-    playerTime: number;
-    botTime: number;
+    p1Time: number;
+    p2Time: number;
     winner: 'p1' | 'p2' | 'none';
     target: Target;
   }>;
@@ -63,10 +65,11 @@ interface RedisSessionState {
   targetShownAt?: number;
   botReactionTime?: number;
   roundResolved: boolean;
+  reactions: { p1?: number; p2?: number };
   history: Array<{
     round: number;
-    playerTime: number;
-    botTime: number;
+    p1Time: number;
+    p2Time: number;
     winner: 'p1' | 'p2' | 'none';
     target: Target;
   }>;
@@ -100,6 +103,8 @@ const DEFAULT_TARGET: Target = {
 const ROUNDS_TO_WIN = 3;
 const MAX_ROUNDS = 5;
 const BOT_GRACE_MS = 600;
+const HUMAN_GRACE_MS = 2000;
+const MAX_TIME = 999_999;
 const BOT_REACTION_MIN = 400;
 const BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
 const GAME_STATE_TTL_SECONDS = 60 * 60;
@@ -120,6 +125,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   targetShownAt: state.targetShownAt,
   botReactionTime: state.botReactionTime,
   roundResolved: state.roundResolved,
+  reactions: state.reactions,
   history: state.history,
   userId: state.userId,
   username: state.username,
@@ -191,6 +197,11 @@ const clearTimers = (state: SessionState) => {
     clearTimeout(state.botTimeout);
     state.botTimeout = undefined;
   }
+
+  if (state.roundTimeout) {
+    clearTimeout(state.roundTimeout);
+    state.roundTimeout = undefined;
+  }
 };
 
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
@@ -238,6 +249,7 @@ const broadcastRoundResult = (
     winnerSlot: 'p1' | 'p2' | 'none';
     reason?: 'early-click' | 'no-reaction' | 'slower';
     rawBotTime: number;
+    target: Target;
   }
 ) => {
   const sockets = sessionSockets.get(state.sessionId);
@@ -248,14 +260,19 @@ const broadcastRoundResult = (
     const slot = getSlotForUser(state, sessionRef?.userId);
     const scores = getRelativeScores(state, slot);
     const playerTime = slot === 'p1' ? payload.p1Time : payload.p2Time;
-    const botTime = slot === 'p1' ? payload.p2Time : payload.p1Time;
+    const opponentTime = slot === 'p1' ? payload.p2Time : payload.p1Time;
     const winner =
       payload.winnerSlot === 'none' ? 'none' : payload.winnerSlot === slot ? 'player' : 'bot';
 
     sendMessage(sessionSocket, 'round:result', {
       round: payload.round,
       playerTime,
-      botTime,
+      opponentTime,
+      p1Time: payload.p1Time,
+      p2Time: payload.p2Time,
+      playerSlot: slot,
+      winnerSlot: payload.winnerSlot,
+      target: payload.target,
       winner,
       reason: payload.reason ?? (winner === 'bot' ? 'slower' : undefined),
       scores,
@@ -278,6 +295,7 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.target = undefined;
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
+  state.reactions = {};
 
   state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
   const validTypes = ['ranked', 'friend', 'bot'];
@@ -375,11 +393,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const loserScore = sharedState.scores[loserSlot];
 
     const playerTimes = sharedState.history
-      .map((round) => round.playerTime)
+      .map((round) => round.p1Time)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
     const opponentTimes = sharedState.history
-      .map((round) => round.botTime)
+      .map((round) => round.p2Time)
       .filter((time) => Number.isFinite(time) && time < 999_000);
 
     const playerBestReaction = playerTimes.length ? Math.min(...playerTimes) : undefined;
@@ -491,8 +509,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       });
 
       for (const round of sharedState.history) {
-        const roundPlayerTime = round.playerTime;
-        const roundOpponentTime = round.botTime;
+        const roundPlayerTime = round.p1Time;
+        const roundOpponentTime = round.p2Time;
         const roundWinnerId = round.winner === 'p1' ? player1Id : round.winner === 'p2' ? player2Id : null;
         const roundLoserId =
           round.winner === 'p1' ? player2Id : round.winner === 'p2' ? player1Id : null;
@@ -708,7 +726,6 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 const finalizeRound = async (
   state: SessionState,
   options: {
-    playerTime?: number;
     reason?: 'early-click' | 'no-reaction' | 'slower';
     clickingUserId?: string;
   }
@@ -718,39 +735,52 @@ const finalizeRound = async (
   state.roundResolved = true;
   clearTimers(state);
 
-  const rawOpponentTime = state.botReactionTime ?? 999_999;
-  const opponentTime = state.isBotOpponent ? rawOpponentTime : 999_999;
-  const playerTime = options.playerTime ?? 999_999;
-
-  const roundedOpponentTime = Math.round(state.isBotOpponent ? rawOpponentTime : 999_999);
-  const roundedPlayerTime = Math.round(playerTime);
+  const rawOpponentTime = state.botReactionTime ?? MAX_TIME;
+  const p1Reaction = state.reactions.p1;
+  const p2Reaction = state.reactions.p2;
 
   const clickingSlot = getSlotForUser(state, options.clickingUserId);
   const opponentSlot = getOpponentSlot(clickingSlot);
 
+  let p1Time = Number.isFinite(p1Reaction) ? Math.round(p1Reaction ?? 0) : MAX_TIME;
+  let p2Time = Number.isFinite(p2Reaction) ? Math.round(p2Reaction ?? 0) : MAX_TIME;
+
+  if (state.isBotOpponent) {
+    const botTime = Math.round(rawOpponentTime);
+    p2Time = botTime;
+    if (!Number.isFinite(p1Reaction)) {
+      p1Time = MAX_TIME;
+    }
+  } else {
+    if (!Number.isFinite(p1Reaction)) {
+      p1Time = MAX_TIME;
+    }
+    if (!Number.isFinite(p2Reaction)) {
+      p2Time = MAX_TIME;
+    }
+  }
+
   let winnerSlot: 'p1' | 'p2' | 'none' = 'none';
   if (options.reason === 'early-click') {
     winnerSlot = opponentSlot;
-  } else if (playerTime < opponentTime) {
-    winnerSlot = clickingSlot;
-  } else if (playerTime > opponentTime) {
-    winnerSlot = opponentSlot;
+  } else if (p1Time < p2Time) {
+    winnerSlot = 'p1';
+  } else if (p2Time < p1Time) {
+    winnerSlot = 'p2';
   }
 
   if (winnerSlot !== 'none') {
     state.scores[winnerSlot] += 1;
   }
 
-  const p1Time = clickingSlot === 'p1' ? roundedPlayerTime : roundedOpponentTime;
-  const p2Time = clickingSlot === 'p2' ? roundedPlayerTime : roundedOpponentTime;
-
   state.history.push({
     round: state.round,
-    playerTime: p1Time,
-    botTime: p2Time,
+    p1Time,
+    p2Time,
     winner: winnerSlot,
     target: state.target ?? DEFAULT_TARGET,
   });
+  logger.debug({ round: state.round, p1Time, p2Time }, 'Round history recorded with both reaction times');
 
   setTimeout(() => {
     broadcastRoundResult(state, {
@@ -759,7 +789,8 @@ const finalizeRound = async (
       p2Time,
       winnerSlot,
       reason: options.reason,
-      rawBotTime: state.isBotOpponent ? rawOpponentTime : 999_999,
+      rawBotTime: state.isBotOpponent ? rawOpponentTime : MAX_TIME,
+      target: state.target ?? DEFAULT_TARGET,
     });
   }, 1000);
 
@@ -822,6 +853,7 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     sessionState.targetShownAt = undefined;
     sessionState.botReactionTime = undefined;
     sessionState.target = undefined;
+    sessionState.reactions = {};
     clearTimers(sessionState);
   }
 
@@ -873,6 +905,10 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
   }
 
   if (sessionState.roundResolved) return;
+  const slot = getSlotForUser(sessionState, sessionRef.userId);
+  if (sessionState.reactions[slot] !== undefined) {
+    return;
+  }
 
   const now = Date.now();
   const clientClaimedDuration =
@@ -881,8 +917,8 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
       : undefined;
 
   if (!sessionState.targetShownAt) {
+    sessionState.reactions[slot] = MAX_TIME;
     const matchOver = await finalizeRound(sessionState, {
-      playerTime: 999_999,
       reason: 'early-click',
       clickingUserId: sessionRef.userId,
     });
@@ -899,16 +935,42 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
   validatedTime = Math.min(validatedTime, serverMeasuredTotal);
   validatedTime = Math.max(validatedTime, serverMeasuredTotal - 1000);
 
-  const playerTime = validatedTime;
+  const playerTime = Math.round(validatedTime);
+  sessionState.reactions[slot] = playerTime;
 
   if (sessionState.botTimeout && playerTime < (sessionState.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
     clearTimeout(sessionState.botTimeout);
     sessionState.botTimeout = undefined;
   }
 
-  const matchOver = await finalizeRound(sessionState, { playerTime, clickingUserId: sessionRef.userId });
-  if (matchOver) {
-    await finalizeGame(sessionState, false);
+  if (sessionState.isBotOpponent) {
+    const matchOver = await finalizeRound(sessionState, { clickingUserId: sessionRef.userId });
+    if (matchOver) {
+      await finalizeGame(sessionState, false);
+    }
+    return;
+  }
+
+  if (sessionState.reactions.p1 !== undefined && sessionState.reactions.p2 !== undefined) {
+    const matchOver = await finalizeRound(sessionState, { clickingUserId: sessionRef.userId });
+    if (matchOver) {
+      await finalizeGame(sessionState, false);
+    }
+    return;
+  }
+
+  if (!sessionState.roundTimeout) {
+    sessionState.roundTimeout = setTimeout(() => {
+      void (async () => {
+        const matchOver = await finalizeRound(sessionState, {
+          reason: 'no-reaction',
+          clickingUserId: sessionRef.userId,
+        });
+        if (matchOver) {
+          await finalizeGame(sessionState, false);
+        }
+      })();
+    }, HUMAN_GRACE_MS);
   }
 };
 
@@ -960,6 +1022,7 @@ export function createWsServer(server: Server) {
       isBotOpponent: false,
       stakeAmount: stake,
       roundResolved: false,
+      reactions: {},
       history: [],
       p1Staked: false,
       p2Staked: false,
@@ -1014,6 +1077,7 @@ export function createWsServer(server: Server) {
       isBotOpponent: true,
       stakeAmount: stake,
       roundResolved: false,
+      reactions: {},
       history: [],
       userId,
       username: userNames.get(userId),
@@ -1148,6 +1212,7 @@ export function createWsServer(server: Server) {
         p1Ready: false,
         p2Ready: false,
         roundResolved: false,
+        reactions: {},
         history: [],
         userId,
         username,
