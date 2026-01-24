@@ -1474,6 +1474,39 @@ export function createWsServer(server: Server) {
               void handleMatchReset(sessionState, message.payload);
             }
             break;
+          case 'match:cancel': {
+            const sessionId =
+              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : sessionRef.sessionId;
+            const userId = sessionRef.userId;
+
+            if (!sessionId) break;
+
+            const sessionState = sessionStates.get(sessionId);
+
+            if (sessionState) {
+              logger.info({ sessionId, userId }, '🛑 Host cancelled the friend room - Destroying session');
+
+              broadcastToSession(sessionId, 'match:cancel', { reason: 'Host closed the room' });
+              clearTimers(sessionState);
+              await redisClient.del(getSessionKey(sessionId));
+              if (sessionState.roomCode) {
+                await redisClient.del(getRoomCodeKey(sessionState.roomCode));
+              }
+              sessionStates.delete(sessionId);
+            }
+
+            const assignments = sessionAssignments.get(sessionId);
+            if (assignments?.p1) userActiveSessions.delete(assignments.p1);
+            if (assignments?.p2) userActiveSessions.delete(assignments.p2);
+            sessionAssignments.delete(sessionId);
+
+            const roomSockets = sessionSockets.get(sessionId);
+            if (roomSockets) {
+              roomSockets.forEach((sessionSocket) => sessions.delete(sessionSocket));
+              sessionSockets.delete(sessionId);
+            }
+            break;
+          }
           case 'match:find':
             const { userId } = sessionRef;
             if (userId) {

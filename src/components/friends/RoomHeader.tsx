@@ -1,4 +1,4 @@
-import { Users, Copy, Check, Lock } from 'lucide-react';
+import { Users, Copy, Check, Lock, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -11,9 +11,16 @@ interface RoomHeaderProps {
   isPrivate?: boolean;
   stakeAmount?: number;
   className?: string;
+  onClose?: () => void;
 }
 
-export function RoomHeader({ roomCode, isPrivate = true, stakeAmount, className }: RoomHeaderProps) {
+export function RoomHeader({
+  roomCode,
+  isPrivate = true,
+  stakeAmount,
+  className,
+  onClose,
+}: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const copyRoomCode = async () => {
@@ -87,7 +94,7 @@ export function RoomHeader({ roomCode, isPrivate = true, stakeAmount, className 
                   </span>
                 </div>
               </div>
-              
+
               <Button
                 onClick={copyRoomCode}
                 size="sm"
@@ -100,6 +107,17 @@ export function RoomHeader({ roomCode, isPrivate = true, stakeAmount, className 
                   <Copy className="w-4 h-4" />
                 )}
               </Button>
+
+              {onClose && (
+                <Button
+                  onClick={onClose}
+                  size="sm"
+                  className="bg-white/5 hover:bg-white/10 border border-white/20 text-white transition-all h-9 w-9 p-0"
+                  aria-label="Close lobby"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
