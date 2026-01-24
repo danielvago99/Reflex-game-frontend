@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 
 const MATCH_CHECK_INTERVAL = 2000;
 const MAX_WAIT_TIME_MS = 15000;
-const REACTION_TOLERANCE_MS = 600;
+const REACTION_TOLERANCE_MS = 5000;
 
 interface RankedPlayer {
   member: string;
