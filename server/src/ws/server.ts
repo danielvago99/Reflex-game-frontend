@@ -1346,6 +1346,7 @@ export function createWsServer(server: Server) {
               p1Ready: false,
               p2Ready: false,
               roundResolved: false,
+              reactions: {},
               history: [],
             };
 
