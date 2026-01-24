@@ -309,7 +309,16 @@ export interface WSRoundShowTarget {
 export interface WSRoundResult {
   round: number;
   playerTime: number;
-  botTime: number;
+  opponentTime: number;
+  p1Time: number;
+  p2Time: number;
+  playerSlot: 'p1' | 'p2';
+  winnerSlot: 'p1' | 'p2' | 'none';
+  target: {
+    shape: 'circle' | 'square' | 'triangle';
+    color: string;
+    colorName: string;
+  };
   winner: 'player' | 'bot' | 'none';
   reason?: 'early-click' | 'no-reaction' | 'slower';
   scores: {
