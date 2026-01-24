@@ -516,11 +516,13 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
           </div>
 
           {showRoomDetails && (
-            <div className="relative overflow-hidden bg-[#06B6D4]/5 border border-[#06B6D4]/20 rounded-xl p-4 flex items-center gap-4">
-              <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[#06B6D4]/10 border border-[#06B6D4]/20 flex-shrink-0">
-                <Loader2 className="w-5 h-5 text-[#06B6D4] animate-spin" />
+            <div className="relative overflow-hidden bg-[#7C3AED]/5 border border-[#7C3AED]/20 rounded-xl p-4 flex items-center gap-4">
+              {/* Kruh s načítavaním - fialové pozadie a rámik */}
+              <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex-shrink-0">
+                <Loader2 className="w-5 h-5 text-[#7C3AED] animate-spin" />
               </div>
 
+              {/* Textová časť */}
               <div className="flex-1 min-w-0">
                 <p className="text-[#7C3AED] font-medium text-sm animate-pulse">
                   Waiting for friend to join...
