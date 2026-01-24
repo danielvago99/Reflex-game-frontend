@@ -7,10 +7,11 @@ import { copyToClipboard } from '../../utils/clipboard';
 
 interface RoomHeaderProps {
   roomCode: string;
+  stakeAmount?: number;
   className?: string;
 }
 
-export function RoomHeader({ roomCode, className }: RoomHeaderProps) {
+export function RoomHeader({ roomCode, stakeAmount, className }: RoomHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const copyRoomCode = async () => {
@@ -57,8 +58,13 @@ export function RoomHeader({ roomCode, className }: RoomHeaderProps) {
             </div>
           </div>
 
-          {/* Right side - Label + Room code + Copy */}
+          {/* Right side - Stake + Room code + Copy */}
           <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+            {typeof stakeAmount === 'number' && (
+              <span className="text-[10px] sm:text-xs font-semibold text-[#00FFA3] uppercase tracking-wider whitespace-nowrap">
+                ◎ {stakeAmount.toFixed(3)} SOL
+              </span>
+            )}
             
             {/* Label - Presunutý sem a zafarbený na fialovo */}
             <span className="text-[10px] sm:text-xs font-bold text-[#7C3AED] uppercase tracking-wider whitespace-nowrap">

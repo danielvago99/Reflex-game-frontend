@@ -14,6 +14,7 @@ import { CustomStatusBar } from './CustomStatusBar';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
+import { useGame } from '../../features/arena/context/GameProvider';
 import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
 import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget } from '../../types/api';
 
@@ -22,6 +23,7 @@ interface GameArenaProps {
   isRanked?: boolean;
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
+  opponentName?: string;
 }
 
 type GameState = 'countdown' | 'playing' | 'result';
@@ -32,7 +34,14 @@ interface Target {
   colorName: string;
 }
 
-export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType = 'bot' }: GameArenaProps) {
+export function GameArena({
+  onQuit,
+  isRanked = false,
+  stakeAmount = 0,
+  matchType = 'bot',
+  opponentName,
+}: GameArenaProps) {
+  const { playerName } = useGame();
   // Game state
   const [gameState, setGameState] = useState<GameState>('countdown');
   const [currentRound, setCurrentRound] = useState(1);
@@ -127,12 +136,12 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
 
   // Players (get from profile in real app)
   const player = {
-    name: 'You',
+    name: playerName || 'You',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player1',
   };
 
   const opponent = {
-    name: 'CryptoNinja',
+    name: opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Opponent'),
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=opponent1',
   };
 
@@ -370,6 +379,7 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           opponentScore={opponentScore}
           currentRound={currentRound}
           totalRounds={MAX_ROUNDS}
+          stakeAmount={stakeAmount}
         />
 
         {/* Arena Canvas */}
@@ -480,8 +490,10 @@ export function GameArena({ onQuit, isRanked = false, stakeAmount = 0, matchType
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/60 px-8 py-6 text-center shadow-xl">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent"></div>
             <div>
-              <p className="text-lg font-semibold text-white">Waiting for opponent...</p>
-              <p className="text-sm text-gray-400">We&apos;ll start as soon as they&apos;re ready.</p>
+              <p className="text-lg font-semibold text-white">Waiting for opponent to get ready...</p>
+              <p className="text-sm text-gray-400">
+                {opponent.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
+              </p>
             </div>
           </div>
         </div>

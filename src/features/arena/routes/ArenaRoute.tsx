@@ -24,6 +24,7 @@ export default function ArenaRoute() {
       isRanked={matchDetails.isRanked}
       stakeAmount={matchDetails.stakeAmount}
       matchType={matchDetails.matchType}
+      opponentName={matchDetails.opponentName}
     />
   );
 }

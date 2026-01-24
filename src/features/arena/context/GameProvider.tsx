@@ -7,6 +7,7 @@ interface MatchDetails {
   isRanked: boolean;
   stakeAmount: number;
   matchType: MatchType;
+  opponentName?: string;
 }
 
 interface GameContextValue {
@@ -17,7 +18,7 @@ interface GameContextValue {
   resetMatch: () => void;
 }
 
-const defaultMatch: MatchDetails = { isRanked: false, stakeAmount: 0, matchType: 'bot' };
+const defaultMatch: MatchDetails = { isRanked: false, stakeAmount: 0, matchType: 'bot', opponentName: 'Training Bot' };
 
 const GameContext = createContext<GameContextValue | null>(null);
 

@@ -18,8 +18,8 @@ export default function LobbyRoute() {
   return (
     <LobbyScreen
       onNavigate={handleNavigate}
-      onStartMatch={(isRanked, stakeAmount, matchType) => {
-        setMatchDetails({ isRanked, stakeAmount, matchType });
+      onStartMatch={(isRanked, stakeAmount, matchType, opponentName) => {
+        setMatchDetails({ isRanked, stakeAmount, matchType, opponentName });
         navigate('/arena');
       }}
     />
