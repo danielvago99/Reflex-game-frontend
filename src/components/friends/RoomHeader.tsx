@@ -52,17 +52,26 @@ export function RoomHeader({ roomCode, className }: RoomHeaderProps) {
             </div>
             
             <div className="flex flex-col">
-              <h3 className="text-white font-bold tracking-wider text-sm sm:text-base">ROOM</h3>
+              <h3 className="text-white font-bold tracking-wider text-sm sm:text-base">FRIEND</h3>
               <p className="text-[10px] sm:text-xs text-gray-400">Custom match</p>
             </div>
           </div>
 
           {/* Right side - Room code & Copy */}
-          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
-            <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#00FFA3]/20 min-w-0">
-              <span className="text-sm sm:text-base font-mono tracking-[0.15em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)] truncate block">
-                {roomCode}
-              </span>
+          {/* Pridal som items-end, aby tlačidlo Copy sedelo zarovno s kódom, nie s nadpisom */}
+          <div className="flex items-end gap-2 sm:gap-3 overflow-hidden">
+            
+            {/* Wrapper pre nadpis a kód */}
+            <div className="flex flex-col items-end min-w-0">
+              <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1">
+                Room code
+              </p>
+              
+              <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#00FFA3]/20 w-full text-right">
+                <span className="text-sm sm:text-base font-mono tracking-[0.15em] text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)] truncate block">
+                  {roomCode}
+                </span>
+              </div>
             </div>
             
             <Button
