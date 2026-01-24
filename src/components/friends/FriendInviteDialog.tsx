@@ -67,6 +67,20 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
 
   const inviteLink = roomCode ? `https://app.reflex.game/room/${roomCode}` : '';
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && roomCode && sessionId) {
+      if (isConnected) {
+        send('friend:room_closed', { sessionId, roomCode, reason: 'host_exit' });
+      }
+      onRoomCreated?.(null);
+      setRoomCode('');
+      setSessionId('');
+      setIsCreating(false);
+    }
+
+    onOpenChange(nextOpen);
+  };
+
   const handleCopy = async (text: string) => {
     const success = await copyToClipboard(text);
     if (success) {
@@ -149,11 +163,11 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
   const showRoomDetails = Boolean(roomCode && sessionId);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] border-[#00FFA3]/30 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto backdrop-blur-2xl shadow-[0_0_60px_rgba(0,255,163,0.3)]">
         {/* Custom Close Button - More Visible */}
         <button
-          onClick={() => onOpenChange(false)}
+          onClick={() => handleOpenChange(false)}
           className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
           aria-label="Close dialog"
         >
