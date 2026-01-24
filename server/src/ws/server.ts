@@ -275,6 +275,90 @@ const attachSocketToSession = (sessionId: string, socket: WebSocket, userId?: st
   sessions.set(socket, { sessionId, userId });
 };
 
+const closeFriendRoom = async (
+  sessionId: string,
+  requestedByUserId: string | undefined,
+  options?: { roomCode?: string; socket?: WebSocket },
+) => {
+  const sessionState = sessionStates.get(sessionId);
+  const roomCode = sessionState?.roomCode ?? options?.roomCode;
+  const assignments = sessionAssignments.get(sessionId);
+  const hostId = assignments?.p1;
+
+  if (!sessionState) {
+    logger.info({ sessionId, roomCode }, 'Friend room close requested but session missing');
+    return;
+  }
+
+  if (sessionState.matchType !== 'friend') {
+    logger.info({ sessionId, roomCode }, 'Friend room close ignored for non-friend session');
+    return;
+  }
+
+  const isHost = Boolean(requestedByUserId && hostId && requestedByUserId === hostId);
+  if (!isHost) {
+    if (requestedByUserId && assignments?.p2 === requestedByUserId) {
+      assignments.p2 = undefined;
+      sessionAssignments.set(sessionId, assignments);
+      userActiveSessions.delete(requestedByUserId);
+      if (options?.socket) {
+        const sockets = sessionSockets.get(sessionId);
+        sockets?.delete(options.socket);
+      }
+      logger.info({ sessionId, userId: requestedByUserId }, 'Guest sent room close; treated as leave');
+    } else {
+      logger.info({ sessionId, userId: requestedByUserId }, 'Friend room close ignored from non-host');
+    }
+    return;
+  }
+
+  sessionState.isFinished = true;
+  clearTimers(sessionState);
+
+  if (assignments?.p1) userActiveSessions.delete(assignments.p1);
+  if (assignments?.p2) userActiveSessions.delete(assignments.p2);
+  if (sessionState.userId) userActiveSessions.delete(sessionState.userId);
+
+  const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
+  const socketsCount = sockets.size;
+
+  if (socketsCount > 0) {
+    for (const sessionSocket of sockets) {
+      sendMessage(sessionSocket, 'friend:room_closed', {
+        message: 'Room closed by host.',
+        sessionId,
+        roomCode,
+      });
+    }
+  }
+
+  sessionAssignments.delete(sessionId);
+  sessionStates.delete(sessionId);
+  sessionSockets.delete(sessionId);
+
+  for (const sessionSocket of sockets) {
+    const sessionRef = sessions.get(sessionSocket);
+    if (sessionRef?.userId) {
+      userActiveSessions.delete(sessionRef.userId);
+    }
+    sessions.delete(sessionSocket);
+    sessionSocket.close();
+  }
+
+  logger.info({ sessionId, roomCode, socketsCount }, 'Friend room closed by host');
+
+  try {
+    const sessionDeleted = await redisClient.del(getSessionKey(sessionId));
+    const roomCodeDeleted = roomCode ? await redisClient.del(getRoomCodeKey(roomCode)) : 0;
+    logger.info(
+      { sessionId, roomCode, sessionDeleted, roomCodeDeleted },
+      'Redis cleanup complete for friend room',
+    );
+  } catch (error) {
+    logger.warn({ error, sessionId, roomCode }, 'Failed to cleanup Redis for friend room');
+  }
+};
+
 const broadcastRoundResult = (
   state: SessionState,
   payload: {
@@ -1456,6 +1540,15 @@ export function createWsServer(server: Server) {
                 roomCode: sessionState.roomCode ?? normalizedCode,
               });
             }
+            break;
+          }
+          case 'friend:room_closed': {
+            const sessionId = sessionRef.sessionId;
+            const roomCode =
+              typeof message.payload?.roomCode === 'string'
+                ? normalizeRoomCode(message.payload.roomCode)
+                : undefined;
+            void closeFriendRoom(sessionId, sessionRef.userId, { roomCode, socket });
             break;
           }
           case 'round:ready':
