@@ -1027,8 +1027,8 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     'Broadcasting round:prepare',
   );
 
-  await persistSessionState(sessionState);
   scheduleTargetShow(sessionId, sessionState);
+  await persistSessionState(sessionState);
 };
 
 const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
@@ -1639,7 +1639,12 @@ export function createWsServer(server: Server) {
             const hasHumanOpponent =
               assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
             const sessionState = sessionStates.get(sessionId);
-            const requestedMatchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
+            const requestedMatchType =
+              message.payload?.matchType === 'bot'
+                ? 'bot'
+                : message.payload?.matchType === 'friend'
+                  ? 'friend'
+                  : 'ranked';
             const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
             const stakeAmount =
               resolvedMatchType === 'friend'
