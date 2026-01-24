@@ -162,13 +162,18 @@ export function GameArena({
         return;
       }
 
-      send('round:ready', {
+      const roundReadyPayload: { round: number; stake: number; matchType?: 'ranked' | 'friend' | 'bot' } = {
         round: roundNumber,
         stake: stakeAmount,
-        matchType
-      });
+      };
+
+      if (!hasRequestedInitialRound) {
+        roundReadyPayload.matchType = matchType;
+      }
+
+      send('round:ready', roundReadyPayload);
     },
-    [isConnected, matchType, send]
+    [hasRequestedInitialRound, isConnected, matchType, send, stakeAmount]
   );
 
   const handleTargetAppeared = () => {};
