@@ -424,7 +424,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <Button
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               className={cn(
                 "flex-1 transition-all duration-300",
                 "bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-[#00FFA3]/50 text-white"
