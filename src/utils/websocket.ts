@@ -210,10 +210,15 @@ export const WS_EVENTS = {
   game: {
     start: (handler: MessageHandler) => wsService.on('game:start', handler),
     countdown: (handler: MessageHandler) => wsService.on('game:countdown', handler),
+    enterArena: (handler: MessageHandler) => wsService.on('game:enter_arena', handler),
     showButton: (handler: MessageHandler) => wsService.on('game:show_button', handler),
     playerClicked: (handler: MessageHandler) => wsService.on('game:player_clicked', handler),
     result: (handler: MessageHandler) => wsService.on('game:result', handler),
     end: (handler: MessageHandler) => wsService.on('game:end', handler)
+  },
+  match: {
+    searching: (handler: MessageHandler) => wsService.on('match:searching', handler),
+    found: (handler: MessageHandler) => wsService.on('match_found', handler)
   },
   round: {
     prepare: (handler: MessageHandler) => wsService.on('round:prepare', handler),

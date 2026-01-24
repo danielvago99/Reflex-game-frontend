@@ -167,6 +167,20 @@ const sendMessage = (socket: WebSocket, type: string, payload: unknown) => {
   );
 };
 
+const broadcastToSession = (sessionId: string, type: string, payload: unknown) => {
+  const sockets = sessionSockets.get(sessionId);
+  if (!sockets || sockets.size === 0) {
+    logger.error({ sessionId, type }, 'No sockets found to broadcast');
+    return 0;
+  }
+
+  for (const sessionSocket of sockets) {
+    sendMessage(sessionSocket, type, payload);
+  }
+
+  return sockets.size;
+};
+
 const clearTimers = (state: SessionState) => {
   if (state.showTimeout) {
     clearTimeout(state.showTimeout);
@@ -762,7 +776,7 @@ const finalizeRound = async (
   return false;
 };
 
-const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
+const scheduleTargetShow = (sessionId: string, state: SessionState) => {
   const delay = 3000 + Math.random() * 5000;
 
   state.showTimeout = setTimeout(() => {
@@ -770,10 +784,14 @@ const scheduleTargetShow = (socket: WebSocket, state: SessionState) => {
     state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
     void persistSessionState(state);
 
-    sendMessage(socket, 'round:show_target', {
+    const socketsCount = broadcastToSession(sessionId, 'round:show_target', {
       round: state.round,
       timestampStart: state.targetShownAt,
     });
+    logger.info(
+      { sessionId, round: state.round, target: state.target, socketsCount },
+      'Broadcasting round:show_target',
+    );
 
     if (state.isBotOpponent) {
       state.botTimeout = setTimeout(() => {
@@ -796,7 +814,17 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     return;
   }
 
-  sessionState.round = typeof payload?.round === 'number' ? payload.round : sessionState.round;
+  const requestedRound = typeof payload?.round === 'number' ? payload.round : sessionState.round;
+  const isAdvancingRound = requestedRound > sessionState.round;
+  if (isAdvancingRound) {
+    sessionState.round = requestedRound;
+    sessionState.roundResolved = false;
+    sessionState.targetShownAt = undefined;
+    sessionState.botReactionTime = undefined;
+    sessionState.target = undefined;
+    clearTimers(sessionState);
+  }
+
   sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
   if (sessionState.matchType === 'ranked') {
     logger.info({ sessionId }, 'Ignoring client matchType payload because session is already Ranked');
@@ -812,23 +840,28 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
       sessionState.isBotOpponent = false;
     }
   }
-  sessionState.roundResolved = false;
-  sessionState.targetShownAt = undefined;
-  sessionState.botReactionTime = undefined;
-  clearTimers(sessionState);
+  if (sessionState.showTimeout || sessionState.targetShownAt) {
+    logger.info({ sessionId, round: sessionState.round }, 'Round already prepared; skipping duplicate ready');
+    return;
+  }
 
-  const nextTarget = pickTarget() ?? DEFAULT_TARGET;
-  sessionState.target = nextTarget;
+  if (!sessionState.target) {
+    sessionState.target = pickTarget() ?? DEFAULT_TARGET;
+  }
+  const nextTarget = sessionState.target;
 
-  sendMessage(socket, 'round:prepare', {
+  const socketsCount = broadcastToSession(sessionId, 'round:prepare', {
     round: sessionState.round,
     target: nextTarget,
     instruction: createInstruction(nextTarget),
-    username: sessionRef.userId ? userNames.get(sessionRef.userId) : undefined,
   });
+  logger.info(
+    { sessionId, round: sessionState.round, target: nextTarget, socketsCount },
+    'Broadcasting round:prepare',
+  );
 
   await persistSessionState(sessionState);
-  scheduleTargetShow(socket, sessionState);
+  scheduleTargetShow(sessionId, sessionState);
 };
 
 const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
@@ -908,6 +941,13 @@ export function createWsServer(server: Server) {
     logger.info(`SERVER: Match found ${player1Id} vs ${player2Id}`);
     const socket1 = activeUsers.get(player1Id);
     const socket2 = activeUsers.get(player2Id);
+    if (!socket1 || !socket2) {
+      logger.warn(
+        { player1Id, player2Id, socket1Online: Boolean(socket1), socket2Online: Boolean(socket2) },
+        'Match found but one or more players offline; aborting session creation',
+      );
+      return;
+    }
 
     const sessionId = crypto.randomUUID();
     const name1 = userNames.get(player1Id) ?? 'Player 1';
@@ -935,29 +975,30 @@ export function createWsServer(server: Server) {
 
     const sockets = sessionSockets.get(sessionId);
 
-    if (socket1) {
-      sessions.set(socket1, { sessionId, userId: player1Id });
-      sockets?.add(socket1);
-      sendMessage(socket1, 'match_found', {
-        sessionId,
-        opponentId: player2Id,
-        opponentName: name2,
-        stake,
-        isBot: false,
-      });
-    }
+    sessions.set(socket1, { sessionId, userId: player1Id });
+    sockets?.add(socket1);
+    sendMessage(socket1, 'match_found', {
+      sessionId,
+      opponentId: player2Id,
+      opponentName: name2,
+      stake,
+      isBot: false,
+    });
 
-    if (socket2) {
-      sessions.set(socket2, { sessionId, userId: player2Id });
-      sockets?.add(socket2);
-      sendMessage(socket2, 'match_found', {
-        sessionId,
-        opponentId: player1Id,
-        opponentName: name1,
-        stake,
-        isBot: false,
-      });
-    }
+    sessions.set(socket2, { sessionId, userId: player2Id });
+    sockets?.add(socket2);
+    sendMessage(socket2, 'match_found', {
+      sessionId,
+      opponentId: player1Id,
+      opponentName: name1,
+      stake,
+      isBot: false,
+    });
+
+    logger.info(
+      { sessionId, player1Id, player2Id, socketsCount: sockets?.size ?? 0 },
+      'Created human match session',
+    );
   });
 
   matchmakingEvents.on('bot_match', (data) => {
