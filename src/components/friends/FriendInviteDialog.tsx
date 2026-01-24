@@ -522,7 +522,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-[#06B6D4] font-medium text-sm animate-pulse">
+                <p className="text-[#7C3AED] font-medium text-sm animate-pulse">
                   Waiting for friend to join...
                 </p>
                 <p className="text-gray-500 text-xs mt-0.5">

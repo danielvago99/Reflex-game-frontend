@@ -40,7 +40,7 @@ export function RoomHeader({ roomCode, className }: RoomHeaderProps) {
         {/* Scan line animation */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00FFA3]/5 to-transparent animate-pulse"></div>
         
-        <div className="relative p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4">
+        <div className="relative p-6 sm:p-4 flex items-center justify-between gap-3 sm:gap-4">
           
           {/* Left side - Game mode and icon */}
           <div className="flex items-center gap-3 flex-shrink-0">
