@@ -49,6 +49,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     roomCode?: string;
     opponentName?: string;
   } | null>(null);
+  const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const pendingMatchRef = useRef<{
     sessionId: string;
@@ -898,6 +899,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         onOpenChange={setShowInviteDialog}
         roomInfo={friendRoom}
         onRoomCreated={setFriendRoom}
+        suppressRoomClose={suppressFriendRoomClose}
       />
       
       <FriendJoinDialog 
