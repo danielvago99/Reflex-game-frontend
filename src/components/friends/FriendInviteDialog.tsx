@@ -199,7 +199,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
                 <Users className="w-6 h-6 text-[#0B0F1A]" />
               </div>
             </div>
-            <DialogTitle className="text-white text-2xl">Private Room Created</DialogTitle>
+            <DialogTitle className="text-white text-2xl">Creating Private Room</DialogTitle>
           </div>
           <DialogDescription className="sr-only">
             Create a private room to play with your friends. Set your stake, share the room code, and wait for players to join.
@@ -210,62 +210,6 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
           {showRoomDetails && (
             <RoomHeader roomCode={roomCode} stakeAmount={parseFloat(stakeAmount)} />
           )}
-
-          {/* Invite Link */}
-          {showRoomDetails && (
-            <div className="space-y-2">
-            <Label className="text-gray-300 text-sm uppercase tracking-wider">Share Link</Label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/10">
-                <span className="text-sm text-gray-300 break-all">{inviteLink}</span>
-              </div>
-              <Button
-                onClick={() => handleCopy(inviteLink)}
-                className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] transition-all"
-              >
-                {copiedLink ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
-              </Button>
-              <Button
-                onClick={() => setShowQR(!showQR)}
-                className={cn(
-                  "bg-white/5 hover:bg-white/10 border border-[#06B6D4]/30 hover:border-[#06B6D4] text-white transition-all",
-                  showQR && "bg-[#06B6D4]/20 border-[#06B6D4]"
-                )}
-              >
-                <QrCode className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            {showQR && (
-              <Alert className="bg-white/5 border-[#06B6D4]/30 backdrop-blur-sm">
-                <QrCode className="w-4 h-4 text-[#06B6D4]" />
-                <AlertDescription className="text-gray-300 text-sm">
-                  QR code feature coming soon. Share the link or code for now.
-                </AlertDescription>
-              </Alert>
-            )}
-            </div>
-          )}
-
-          {/* Privacy Toggle */}
-          <div className="flex items-center justify-between bg-white/5 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/10">
-            <div className="flex items-center gap-3">
-              {isPrivate ? <Lock className="w-4 h-4 text-[#7C3AED]" /> : <Eye className="w-4 h-4 text-[#00FFA3]"/>}
-              <div>
-                <Label className="text-white text-sm cursor-pointer">
-                  {isPrivate ? 'Private Room' : 'Visible to Friends'}
-                </Label>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {isPrivate ? 'Only accessible via code' : 'Friends can see and join'}
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={!isPrivate}
-              onCheckedChange={(checked) => setIsPrivate(!checked)}
-              className="data-[state=checked]:bg-[#00FFA3]"
-            />
-          </div>
 
           {/* Custom Stake Input */}
           <div className="space-y-3">
