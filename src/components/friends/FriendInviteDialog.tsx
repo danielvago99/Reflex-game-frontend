@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Link, Check, QrCode, Lock, Eye, Coins, Zap, Ticket } from 'lucide-react';
+import { Users, Link, Check, QrCode, Lock, Eye, Coins, Zap, Ticket, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -516,12 +516,20 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
           </div>
 
           {showRoomDetails && (
-            <Alert className="bg-white/5 border-[#00FFA3]/30 backdrop-blur-sm">
-              <Users className="w-4 h-4 text-[#00FFA3]" />
-              <AlertDescription className="text-gray-300 text-sm">
-                Waiting for your friend to join. Share the room code or invite link above.
-              </AlertDescription>
-            </Alert>
+            <div className="relative overflow-hidden bg-[#06B6D4]/5 border border-[#06B6D4]/20 rounded-xl p-4 flex items-center gap-4">
+              <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[#06B6D4]/10 border border-[#06B6D4]/20 flex-shrink-0">
+                <Loader2 className="w-5 h-5 text-[#06B6D4] animate-spin" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-[#06B6D4] font-medium text-sm animate-pulse">
+                  Waiting for friend to join...
+                </p>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  Share the room code above.
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Action Buttons */}
