@@ -192,7 +192,7 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
               <Alert className="bg-[#06B6D4]/10 border-[#06B6D4]/30 backdrop-blur-sm">
                 <Users className="w-4 h-4 text-[#06B6D4]" />
                 <AlertDescription className="text-gray-300 text-sm">
-                  Ask your friend for their 6-digit room code or use the invite link they shared.
+                  Ask your friend for their 6-digit room code.
                 </AlertDescription>
               </Alert>
 
@@ -224,10 +224,6 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
                 </Button>
               </div>
 
-              {/* Paste Hint */}
-              <p className="text-center text-xs text-gray-500">
-                Tip: You can paste the full invite link - we'll extract the code
-              </p>
             </>
         </div>
       </DialogContent>
