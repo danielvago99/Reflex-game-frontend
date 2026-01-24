@@ -15,7 +15,12 @@ import { toast } from 'sonner';
 
 interface LobbyScreenProps {
   onNavigate: (screen: string) => void;
-  onStartMatch?: (isRanked: boolean, stakeAmount: number, matchType: 'ranked' | 'friend' | 'bot') => void;
+  onStartMatch?: (
+    isRanked: boolean,
+    stakeAmount: number,
+    matchType: 'ranked' | 'friend' | 'bot',
+    opponentName?: string
+  ) => void;
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
 
@@ -34,12 +39,15 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
   const [opponentName, setOpponentName] = useState('');
+  const [friendIntroOpen, setFriendIntroOpen] = useState(false);
+  const [waitingForStakeConfirmation, setWaitingForStakeConfirmation] = useState(false);
   const [pendingMatch, setPendingMatch] = useState<{
     sessionId: string;
     stake: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
     roomCode?: string;
+    opponentName?: string;
   } | null>(null);
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const pendingMatchRef = useRef<{
@@ -48,6 +56,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
     roomCode?: string;
+    opponentName?: string;
   } | null>(null);
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
@@ -80,14 +89,17 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         isBot: matchType === 'bot',
         matchType,
         roomCode: payload.roomCode,
+        opponentName: payload.opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Unknown Opponent'),
       };
 
       setMatchStatus(matchType === 'friend' ? 'idle' : 'found');
-      setOpponentName(matchDetails.isBot ? 'Training Bot' : payload.opponentName ?? 'Unknown Opponent');
+      setOpponentName(matchDetails.opponentName ?? 'Unknown Opponent');
       setPendingMatch(matchDetails);
       pendingMatchRef.current = matchDetails;
       setShowInviteDialog(false);
       setShowJoinDialog(false);
+      setWaitingForStakeConfirmation(false);
+      setFriendIntroOpen(matchType === 'friend');
       if (matchType === 'friend') {
         setFriendRoom(null);
       }
@@ -96,23 +108,28 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         window.clearTimeout(matchFoundTimeoutRef.current);
       }
 
-      matchFoundTimeoutRef.current = window.setTimeout(() => {
-        if (walletProvider) {
-          void handleExternalWalletTransaction(matchDetails);
-        } else {
-          setShowTransactionModal(true);
-        }
-      }, 1500);
+      if (matchType !== 'friend') {
+        matchFoundTimeoutRef.current = window.setTimeout(() => {
+          if (walletProvider) {
+            void handleExternalWalletTransaction(matchDetails);
+          } else {
+            setShowTransactionModal(true);
+          }
+        }, 1500);
+      }
     });
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
       console.log('game:enter_arena received');
+      setWaitingForStakeConfirmation(false);
+      setFriendIntroOpen(false);
       if (pendingMatchRef.current) {
         if (onStartMatch) {
           onStartMatch(
             pendingMatchRef.current.matchType === 'ranked',
             pendingMatchRef.current.stake,
-            pendingMatchRef.current.matchType
+            pendingMatchRef.current.matchType,
+            pendingMatchRef.current.opponentName
           );
         } else {
           onNavigate('arena');
@@ -147,7 +164,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     // For bot mode (practice), no transaction needed
     if (selectedMode === 'bot') {
       if (onStartMatch) {
-        onStartMatch(false, 0, 'bot');
+        onStartMatch(false, 0, 'bot', 'Training Bot');
       } else {
         onNavigate('arena');
       }
@@ -166,6 +183,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     stake: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
+    opponentName?: string;
   }) => {
     try {
       // Get the wallet provider from window
@@ -241,6 +259,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         stake: matchDetails.stake,
         matchType: matchDetails.matchType,
       });
+      if (matchDetails.matchType === 'friend') {
+        setWaitingForStakeConfirmation(true);
+      }
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
       if (error.code === 4001) {
@@ -271,6 +292,19 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     });
     
     setShowTransactionModal(false);
+    if (pendingMatch.matchType === 'friend') {
+      setWaitingForStakeConfirmation(true);
+    }
+  };
+
+  const handleFriendContinue = () => {
+    setFriendIntroOpen(false);
+    if (!pendingMatchRef.current) return;
+    if (walletProvider) {
+      void handleExternalWalletTransaction(pendingMatchRef.current);
+      return;
+    }
+    setShowTransactionModal(true);
   };
 
   const handleCancelMatchmaking = () => {
@@ -814,6 +848,49 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         onCancel={handleCancelMatchmaking}
         opponentName={opponentName}
       />
+
+      {friendIntroOpen && pendingMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0B0F1A]/90 p-6 shadow-2xl">
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-xl"></div>
+            <div className="relative space-y-4 text-center">
+              <h2 className="text-2xl font-semibold text-white">Friend Match Ready</h2>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left">
+                <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
+                <p className="truncate text-lg font-semibold text-white">{pendingMatch.opponentName ?? 'Unknown Opponent'}</p>
+                <p className="mt-3 text-xs uppercase tracking-wider text-gray-400">Stake</p>
+                <p className="text-lg font-semibold text-[#00FFA3]">◎ {pendingMatch.stake.toFixed(3)} SOL</p>
+              </div>
+              <p className="text-sm text-gray-400">
+                Review the details and continue to confirm your stake.
+              </p>
+              <button
+                onClick={handleFriendContinue}
+                className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)]"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {waitingForStakeConfirmation && pendingMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0B0F1A]/90 p-6 shadow-2xl text-center">
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 blur-xl"></div>
+            <div className="relative space-y-4">
+              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#7C3AED] border-t-transparent"></div>
+              <div>
+                <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
+                <p className="text-sm text-gray-400">
+                  {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {pendingMatch.stake.toFixed(3)} SOL.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <FriendInviteDialog 

@@ -8,6 +8,7 @@ interface HUDProps {
   opponentScore: number;
   currentRound: number;
   totalRounds: number;
+  stakeAmount?: number;
 }
 
 export function HUD({
@@ -17,6 +18,7 @@ export function HUD({
   opponentScore,
   currentRound,
   totalRounds,
+  stakeAmount = 0,
 }: HUDProps) {
   return (
     <div 
@@ -82,7 +84,7 @@ export function HUD({
             
             {/* Round indicator - bottom mini bar */}
             <div className="mt-1 pt-1 border-t border-white/10">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] text-gray-400 font-mono">
                   R{currentRound}/{totalRounds}
                 </span>
@@ -92,6 +94,9 @@ export function HUD({
                     style={{ width: `${(currentRound / totalRounds) * 100}%` }}
                   ></div>
                 </div>
+                {stakeAmount > 0 && (
+                  <span className="text-[10px] font-semibold text-[#00FFA3]">◎ {stakeAmount.toFixed(3)}</span>
+                )}
               </div>
             </div>
           </div>
@@ -150,6 +155,11 @@ export function HUD({
                     <span className="text-[10px] md:text-xs lg:text-sm text-gray-300 font-mono">
                       ROUND {currentRound}/{totalRounds}
                     </span>
+                    {stakeAmount > 0 && (
+                      <span className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#00FFA3]">
+                        ◎ {stakeAmount.toFixed(3)} SOL
+                      </span>
+                    )}
                   </div>
                 </div>
 

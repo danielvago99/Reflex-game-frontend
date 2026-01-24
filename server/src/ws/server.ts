@@ -1754,7 +1754,9 @@ export function createWsServer(server: Server) {
               sessionState.p2Ready = true;
             }
 
-            if (sessionState.p1Ready && sessionState.p2Ready) {
+            const hasBothPlayers = Boolean(assignments?.p1 && assignments?.p2);
+            const canStartMatch = sessionState.p1Ready && sessionState.p2Ready;
+            if (canStartMatch && (sessionState.matchType !== 'friend' || hasBothPlayers)) {
               logger.info('>>> PLAYERS READY - STARTING COUNTDOWN <<<');
               startRoundSequence(sessionState);
             }
