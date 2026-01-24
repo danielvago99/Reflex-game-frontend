@@ -521,6 +521,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
+    const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
+    const payoutAmount = totalPot > 0 ? totalPot * 0.85 : 0;
 
     const playerTimes = sharedState.history
       .map((round) => round.p1Time)
@@ -597,7 +599,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               bestReaction: newBestReaction ?? 9999,
               avgReaction: newAverageReaction ?? 0,
               totalVolumeSolPlayed: stakeAmount,
-              totalSolWon: outcome === 'win' ? stakeAmount : 0,
+              totalSolWon: outcome === 'win' ? payoutAmount : 0,
               totalSolLost: outcome === 'loss' ? stakeAmount : 0,
             },
           });
@@ -612,7 +614,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               bestReaction: newBestReaction ?? undefined,
               avgReaction: newAverageReaction ?? undefined,
               totalVolumeSolPlayed: stakeAmount ? { increment: stakeAmount } : undefined,
-              totalSolWon: outcome === 'win' && stakeAmount ? { increment: stakeAmount } : undefined,
+              totalSolWon: outcome === 'win' && payoutAmount ? { increment: payoutAmount } : undefined,
               totalSolLost: outcome === 'loss' && stakeAmount ? { increment: stakeAmount } : undefined,
             },
           });
@@ -631,7 +633,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           avgLoserReaction,
           stakeWinner: stakeAmount,
           stakeLoser: stakeAmount,
-          payout: stakeAmount,
+          payout: payoutAmount,
           winnerScore,
           loserScore,
           snapshotDate: new Date(),
@@ -828,12 +830,12 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         }
       }
 
-      if (winnerId && stakeAmount > 0) {
+      if (winnerId && payoutAmount > 0) {
         await tx.transaction.create({
           data: {
             userId: winnerId,
             gameSessionId: session.id,
-            amount: stakeAmount,
+            amount: payoutAmount,
             type: 'game_payout',
             status: 'confirmed',
           },
