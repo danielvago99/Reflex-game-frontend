@@ -46,7 +46,13 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   }, []);
 
   useEffect(() => {
+    const unsubscribeSearching = wsService.on('match:searching', (message: any) => {
+      console.log('match:searching payload received:', message?.payload);
+      setMatchStatus('searching');
+    });
+
     const unsubscribeMatchFound = wsService.on('match_found', (message: any) => {
+      console.log('match_found payload received:', message?.payload);
       const payload = message?.payload ?? {};
       const matchDetails = {
         sessionId: payload.sessionId as string,
@@ -73,6 +79,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     });
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
+      console.log('game:enter_arena received');
       if (pendingMatchRef.current) {
         if (onStartMatch) {
           onStartMatch(
@@ -89,6 +96,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     });
 
     return () => {
+      unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeEnterArena();
       if (matchFoundTimeoutRef.current) {
