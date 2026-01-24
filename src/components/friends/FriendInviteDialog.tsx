@@ -199,7 +199,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
                 <Users className="w-6 h-6 text-[#0B0F1A]" />
               </div>
             </div>
-            <DialogTitle className="text-white text-2xl">Creating Private Room</DialogTitle>
+            <DialogTitle className="text-white text-2xl">Create Private Room</DialogTitle>
           </div>
           <DialogDescription className="sr-only">
             Create a private room to play with your friends. Set your stake, share the room code, and wait for players to join.
