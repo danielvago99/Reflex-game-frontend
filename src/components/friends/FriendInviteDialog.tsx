@@ -19,6 +19,7 @@ interface FriendInviteDialogProps {
   onOpenChange: (open: boolean) => void;
   roomInfo?: { sessionId: string; roomCode: string; stakeAmount: number } | null;
   onRoomCreated?: (room: { sessionId: string; roomCode: string; stakeAmount: number } | null) => void;
+  suppressRoomClose?: boolean;
 }
 
 const MIN_FRIEND_STAKE = 0.05;
@@ -53,7 +54,13 @@ const sanitizeStakeAmount = (value: string) => {
   };
 };
 
-export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated }: FriendInviteDialogProps) {
+export function FriendInviteDialog({
+  open,
+  onOpenChange,
+  roomInfo,
+  onRoomCreated,
+  suppressRoomClose = false,
+}: FriendInviteDialogProps) {
   const [isPrivate, setIsPrivate] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -69,7 +76,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
   const { send, isConnected } = useWebSocket({ autoConnect: true });
 
   const cleanupRoom = useCallback(() => {
-    if (roomCode && sessionId && isConnected) {
+    if (!suppressRoomClose && roomCode && sessionId && isConnected) {
       send('friend:room_closed', { sessionId, roomCode, reason: 'host_exit' });
     }
 
@@ -83,7 +90,7 @@ export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated
     setShowQR(false);
     setSelectedFreeStake(null);
     setUseFreeStakeMode(false);
-  }, [isConnected, onRoomCreated, roomCode, send, sessionId, setUseFreeStakeMode]);
+  }, [isConnected, onRoomCreated, roomCode, send, sessionId, setUseFreeStakeMode, suppressRoomClose]);
 
   useEffect(() => {
     if (open) {
