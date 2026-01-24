@@ -249,6 +249,12 @@ export type WSMessageType =
   | 'match:searching'
   | 'match_found'
   | 'match:reset'
+  | 'friend:create_room'
+  | 'friend:join_room'
+  | 'friend:room_created'
+  | 'friend:join_error'
+  | 'friend:room_closed'
+  | 'friend:error'
   | 'error'
   | 'ping'
   | 'pong';

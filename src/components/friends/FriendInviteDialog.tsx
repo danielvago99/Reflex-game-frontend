@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Link, Copy, Check, QrCode, Lock, Eye, Coins, Zap, Ticket } from 'lucide-react';
+import { Users, Link, Check, QrCode, Lock, Eye, Coins, Zap, Ticket } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -11,83 +11,52 @@ import { toast } from 'sonner';
 import { cn } from '../ui/utils';
 import { copyToClipboard } from '../../utils/clipboard';
 import { getFreeStakes, FreeStake } from '../../utils/reflexPoints';
-import {
-  createRoom,
-  subscribeToRoom,
-  updatePlayerReady,
-  updateRoomStake,
-  leaveRoom,
-  getCurrentUser,
-  type Room
-} from '../../utils/roomManager';
+import { RoomHeader } from './RoomHeader';
+import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
 
 interface FriendInviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onStartMatch: () => void;
+  roomInfo?: { sessionId: string; roomCode: string; stakeAmount: number } | null;
+  onRoomCreated?: (room: { sessionId: string; roomCode: string; stakeAmount: number } | null) => void;
 }
 
-// Generate random 6-character room code
-function generateRoomCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
+const MAX_FRIEND_STAKE = 10;
 
-export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendInviteDialogProps) {
-  const [roomCode, setRoomCode] = useState('');
+export function FriendInviteDialog({ open, onOpenChange, roomInfo, onRoomCreated }: FriendInviteDialogProps) {
   const [isPrivate, setIsPrivate] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [stakeAmount, setStakeAmount] = useState('0.1');
   const [stakeError, setStakeError] = useState('');
-  const [room, setRoom] = useState<Room | null>(null);
+  const [roomCode, setRoomCode] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   const [freeStakes, setFreeStakes] = useState<FreeStake[]>([]);
   const [selectedFreeStake, setSelectedFreeStake] = useState<string | null>(null);
-  const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
+  const [, setUseFreeStakeMode] = useState(false);
 
-  const currentUser = getCurrentUser();
+  const { send, isConnected } = useWebSocket({ autoConnect: true });
 
-  // Generate room code and create room when dialog opens
   useEffect(() => {
     if (open) {
-      const code = generateRoomCode();
-      setRoomCode(code);
       setCopiedLink(false);
-      setCopiedCode(false);
       setShowQR(false);
       setStakeAmount('0.1');
       setStakeError('');
-
-      // Create room
-      const newRoom = createRoom(code, currentUser.id, currentUser.username, stakeAmount, isPrivate);
-      setRoom(newRoom);
-
-      // Subscribe to room updates
-      const unsubscribe = subscribeToRoom(code, (updatedRoom) => {
-        setRoom(updatedRoom);
-      });
-
-      return () => {
-        unsubscribe();
-        // Leave room when dialog closes
-        if (!open) {
-          leaveRoom(code, currentUser.id);
-        }
-      };
+      setRoomCode('');
+      setSessionId('');
+      setIsCreating(false);
     }
-  }, [open, currentUser.id, currentUser.username, isPrivate]);
+  }, [open]);
 
-  // Clean up room when dialog closes
   useEffect(() => {
-    if (!open && roomCode) {
-      leaveRoom(roomCode, currentUser.id);
+    if (open && roomInfo) {
+      setRoomCode(roomInfo.roomCode);
+      setSessionId(roomInfo.sessionId);
+      setStakeAmount(roomInfo.stakeAmount.toString());
     }
-  }, [open, roomCode, currentUser.id]);
+  }, [open, roomInfo]);
 
   // Fetch free stakes when dialog opens
   useEffect(() => {
@@ -96,19 +65,14 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
     }
   }, [open]);
 
-  const inviteLink = `https://app.reflex.game/room/${roomCode}`;
+  const inviteLink = roomCode ? `https://app.reflex.game/room/${roomCode}` : '';
 
-  const handleCopy = async (text: string, type: 'link' | 'code') => {
+  const handleCopy = async (text: string) => {
     const success = await copyToClipboard(text);
     if (success) {
-      if (type === 'link') {
-        setCopiedLink(true);
-        setTimeout(() => setCopiedLink(false), 2000);
-      } else {
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
-      }
-      toast.success(`${type === 'link' ? 'Link' : 'Code'} copied to clipboard!`);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+      toast.success('Link copied to clipboard!');
     } else {
       toast.error('Failed to copy to clipboard');
     }
@@ -119,28 +83,70 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
     setStakeAmount(value);
     
     const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue < 0.05) {
-      setStakeError('Minimum stake is 0.05 SOL');
+    if (isNaN(numValue) || numValue <= 0) {
+      setStakeError('Stake must be greater than 0 SOL');
+    } else if (numValue > MAX_FRIEND_STAKE) {
+      setStakeError(`Maximum stake is ${MAX_FRIEND_STAKE} SOL`);
     } else {
       setStakeError('');
-      // Update room stake
-      if (roomCode) {
-        updateRoomStake(roomCode, value);
-      }
     }
   };
 
-  const handleToggleReady = () => {
-    if (roomCode && currentUser.id) {
-      // Directly update using the current user ID (host)
-      updatePlayerReady(roomCode, currentUser.id, !(hostPlayer?.isReady || false));
+  const handleCreateRoom = () => {
+    if (!isConnected) {
+      toast.error('Connection lost. Reconnecting...');
+      return;
     }
+
+    const numericStake = parseFloat(stakeAmount);
+    if (isNaN(numericStake) || numericStake <= 0 || numericStake > MAX_FRIEND_STAKE) {
+      setStakeError(`Stake must be between 0 and ${MAX_FRIEND_STAKE} SOL`);
+      return;
+    }
+
+    setIsCreating(true);
+    send('friend:create_room', { stakeAmount: numericStake });
   };
 
-  const isValidStake = !stakeError && parseFloat(stakeAmount) >= 0.05;
-  const hostPlayer = room?.players.find(p => p.isHost);
-  const guestPlayer = room?.players.find(p => !p.isHost);
-  const bothReady = hostPlayer?.isReady && guestPlayer?.isReady;
+  useWebSocketEvent<{ sessionId: string; roomCode: string; stakeAmount: number }>(
+    'friend:room_created',
+    payload => {
+      if (!open) return;
+      setRoomCode(payload.roomCode);
+      setSessionId(payload.sessionId);
+      setStakeAmount(payload.stakeAmount.toString());
+      setIsCreating(false);
+      onRoomCreated?.(payload);
+      toast.success('Room created! Share the code with your friend.');
+    },
+    [open, onRoomCreated],
+  );
+
+  useWebSocketEvent<{ message?: string }>(
+    'friend:error',
+    payload => {
+      if (!open) return;
+      setIsCreating(false);
+      toast.error(payload?.message ?? 'Unable to create room.');
+    },
+    [open],
+  );
+
+  useWebSocketEvent<{ message?: string }>(
+    'friend:room_closed',
+    payload => {
+      if (!open) return;
+      setRoomCode('');
+      setSessionId('');
+      setIsCreating(false);
+      onRoomCreated?.(null);
+      toast.error(payload?.message ?? 'Room closed. Please create a new room.');
+    },
+    [open, onRoomCreated],
+  );
+
+  const isValidStake = !stakeError && parseFloat(stakeAmount) > 0 && parseFloat(stakeAmount) <= MAX_FRIEND_STAKE;
+  const showRoomDetails = Boolean(roomCode && sessionId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,49 +192,21 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative z-10 space-y-5 mt-4">
-          {/* Room Code Display */}
-          <div className="relative">
-            <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/30 to-[#06B6D4]/30 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
-              
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <Label className="text-gray-300 text-sm uppercase tracking-wider">Room Code</Label>
-                  <Badge className="bg-[#00FFA3]/20 text-[#00FFA3] border-[#00FFA3]/50 backdrop-blur-sm">
-                    Active
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-6 py-4 rounded-xl border border-[#00FFA3]/20">
-                    <span className="text-3xl tracking-[0.3em] text-[#00FFA3] drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]">
-                      {roomCode}
-                    </span>
-                  </div>
-                  
-                  <Button
-                    onClick={() => handleCopy(roomCode, 'code')}
-                    className="bg-white/5 hover:bg-white/10 border border-[#00FFA3]/30 hover:border-[#00FFA3] text-white transition-all h-[56px] px-4"
-                  >
-                    {copiedCode ? <Check className="w-5 h-5 text-[#00FFA3]" /> : <Copy className="w-5 h-5" />}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div className="relative z-10 space-y-5 mt-4">
+          {showRoomDetails && (
+            <RoomHeader roomCode={roomCode} stakeAmount={parseFloat(stakeAmount)} />
+          )}
 
           {/* Invite Link */}
-          <div className="space-y-2">
+          {showRoomDetails && (
+            <div className="space-y-2">
             <Label className="text-gray-300 text-sm uppercase tracking-wider">Share Link</Label>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-white/5 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/10">
                 <span className="text-sm text-gray-300 break-all">{inviteLink}</span>
               </div>
               <Button
-                onClick={() => handleCopy(inviteLink, 'link')}
+                onClick={() => handleCopy(inviteLink)}
                 className="bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] transition-all"
               >
                 {copiedLink ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
@@ -252,7 +230,8 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
                 </AlertDescription>
               </Alert>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Privacy Toggle */}
           <div className="flex items-center justify-between bg-white/5 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/10">
@@ -299,9 +278,11 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
                     min="0.05"
                     value={stakeAmount}
                     onChange={handleStakeChange}
+                    disabled={Boolean(roomCode)}
                     className={cn(
                       "bg-transparent border-0 text-2xl text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1",
-                      stakeError && "text-red-400"
+                      stakeError && "text-red-400",
+                      roomCode && "opacity-60"
                     )}
                     placeholder="0.05"
                   />
@@ -321,7 +302,7 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
                 </span>
               ) : (
                 <span className="text-gray-500">
-                  Minimum: 0.05 SOL • Enter your preferred stake
+                  Enter your preferred stake (max {MAX_FRIEND_STAKE} SOL)
                 </span>
               )}
               {isValidStake && (
@@ -383,6 +364,7 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
                           <button
                             key={amount}
                             onClick={() => {
+                              if (roomCode) return;
                               if (selectedStakeInGroup) {
                                 // Deselect if already selected
                                 setSelectedFreeStake(null);
@@ -392,10 +374,6 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
                                 setStakeAmount(stakes[0].amount.toString());
                                 setSelectedFreeStake(stakes[0].id);
                                 setUseFreeStakeMode(true);
-                                // Update room stake
-                                if (roomCode) {
-                                  updateRoomStake(roomCode, stakes[0].amount.toString());
-                                }
                               }
                             }}
                             className="relative group"
@@ -476,120 +454,44 @@ export function FriendInviteDialog({ open, onOpenChange, onStartMatch }: FriendI
             )}
           </div>
 
-          {/* Player Status */}
-          <div className="relative">
-            <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/20 to-[#06B6D4]/20 blur-sm rounded-xl"></div>
-            
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-gray-300 text-sm uppercase tracking-wider">Players</Label>
-                <span className="text-xs text-gray-400">{room?.players.length || 1} / 2</span>
-              </div>
-              
-              <div className="space-y-3">
-                {/* Host (You) */}
-                <div className="flex items-center justify-between bg-gradient-to-r from-[#00FFA3]/10 to-transparent backdrop-blur-sm px-4 py-3 rounded-lg border border-[#00FFA3]/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-[#0B0F1A]" />
-                    </div>
-                    <div>
-                      <p className="text-white text-sm">{hostPlayer?.username || 'You'} (Creator)</p>
-                      <p className="text-xs text-gray-400">@{String(hostPlayer?.id || '').substring(0, 10)}</p>
-                    </div>
-                  </div>
-                  <Badge className={cn(
-                    "text-xs backdrop-blur-sm",
-                    hostPlayer?.isReady
-                      ? "bg-[#00FFA3]/20 text-[#00FFA3] border-[#00FFA3]/50"
-                      : "bg-white/10 text-gray-400 border-white/20"
-                  )}>
-                    {hostPlayer?.isReady ? 'Ready' : 'Not Ready'}
-                  </Badge>
-                </div>
-
-                {/* Guest */}
-                {guestPlayer ? (
-                  <div className="flex items-center justify-between bg-gradient-to-r from-[#06B6D4]/10 to-transparent backdrop-blur-sm px-4 py-3 rounded-lg border border-[#06B6D4]/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#06B6D4] to-[#7C3AED] rounded-full flex items-center justify-center">
-                        <Users className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-white text-sm">{guestPlayer.username}</p>
-                        <p className="text-xs text-gray-400">@{String(guestPlayer.id).substring(0, 10)}</p>
-                      </div>
-                    </div>
-                    <Badge className={cn(
-                      "text-xs backdrop-blur-sm",
-                      guestPlayer.isReady
-                        ? "bg-[#00FFA3]/20 text-[#00FFA3] border-[#00FFA3]/50"
-                        : "bg-white/10 text-gray-400 border-white/20"
-                    )}>
-                      {guestPlayer.isReady ? 'Ready' : 'Not Ready'}
-                    </Badge>
-                  </div>
-                ) : (
-                <div className="flex items-center justify-between bg-white/5 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border-2 border-dashed border-white/20">
-                      <Users className="w-5 h-5 text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-sm">Waiting for friend...</p>
-                      <p className="text-xs text-gray-500">Share the code to invite</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-white/10 text-gray-400 border-white/20 text-xs backdrop-blur-sm">
-                    Not Ready
-                  </Badge>
-                </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {showRoomDetails && (
+            <Alert className="bg-white/5 border-[#00FFA3]/30 backdrop-blur-sm">
+              <Users className="w-4 h-4 text-[#00FFA3]" />
+              <AlertDescription className="text-gray-300 text-sm">
+                Waiting for your friend to join. Share the room code or invite link above.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <Button
-              onClick={handleToggleReady}
+              onClick={() => onOpenChange(false)}
               className={cn(
                 "flex-1 transition-all duration-300",
-                hostPlayer?.isReady
-                  ? "bg-[#00FFA3]/20 hover:bg-[#00FFA3]/30 border-2 border-[#00FFA3] text-[#00FFA3] shadow-[0_0_20px_rgba(0,255,163,0.3)]"
-                  : "bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-[#00FFA3]/50 text-white"
+                "bg-white/5 hover:bg-white/10 border-2 border-white/10 hover:border-[#00FFA3]/50 text-white"
               )}
             >
-              {hostPlayer?.isReady ? (
-                <>
-                  <Check className="w-5 h-5 mr-2" />
-                  I'm Ready
-                </>
-              ) : (
-                <>
-                  <Users className="w-5 h-5 mr-2" />
-                  Mark Ready
-                </>
-              )}
+              Close
             </Button>
 
             <Button
-              onClick={onStartMatch}
-              disabled={!bothReady}
+              onClick={handleCreateRoom}
+              disabled={!isValidStake || Boolean(roomCode) || isCreating}
               className={cn(
                 "flex-1 transition-all duration-300",
-                bothReady
-                  ? "bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A]"
-                  : "bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed"
+                !isValidStake || roomCode
+                  ? "bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed"
+                  : "bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A]"
               )}
             >
-              Start Match
+              {roomCode ? 'Room Ready' : isCreating ? 'Creating...' : 'Create Room'}
             </Button>
           </div>
 
-          {!bothReady && (
+          {!roomCode && (
             <p className="text-center text-xs text-gray-500">
-              Both players must be ready to start the match
+              Create the room to generate a shareable code.
             </p>
           )}
         </div>

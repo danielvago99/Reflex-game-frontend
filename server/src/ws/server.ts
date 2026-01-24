@@ -29,6 +29,8 @@ interface SessionState extends RoundTimers {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
+  roomCode?: string;
+  hasStarted?: boolean;
   p1Staked: boolean;
   p2Staked: boolean;
   p1Ready: boolean;
@@ -57,6 +59,8 @@ interface RedisSessionState {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
+  roomCode?: string;
+  hasStarted?: boolean;
   p1Staked: boolean;
   p2Staked: boolean;
   p1Ready: boolean;
@@ -108,8 +112,12 @@ const MAX_TIME = 999_999;
 const BOT_REACTION_MIN = 400;
 const BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
 const GAME_STATE_TTL_SECONDS = 60 * 60;
+const ROOM_CODE_TTL_SECONDS = 60 * 60;
+const ROOM_CODE_LENGTH = 6;
+const MAX_FRIEND_STAKE = 10;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
+const getRoomCodeKey = (roomCode: string) => `game:roomcode:${roomCode}`;
 
 const serializeSessionState = (state: SessionState): RedisSessionState => ({
   round: state.round,
@@ -117,6 +125,8 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   stakeAmount: state.stakeAmount,
   matchType: state.matchType,
   isBotOpponent: state.isBotOpponent,
+  roomCode: state.roomCode,
+  hasStarted: state.hasStarted,
   p1Staked: state.p1Staked,
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
@@ -240,6 +250,31 @@ const getRelativeScores = (state: SessionState, slot: 'p1' | 'p2') => ({
   bot: state.scores[getOpponentSlot(slot)],
 });
 
+const normalizeRoomCode = (roomCode: string) => roomCode.trim().toUpperCase();
+
+const generateRoomCode = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < ROOM_CODE_LENGTH; i += 1) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
+const getValidStakeAmount = (stakeAmount: unknown) => {
+  const numeric = typeof stakeAmount === 'number' ? stakeAmount : Number(stakeAmount);
+  if (!Number.isFinite(numeric)) return null;
+  if (numeric <= 0 || numeric > MAX_FRIEND_STAKE) return null;
+  return numeric;
+};
+
+const attachSocketToSession = (sessionId: string, socket: WebSocket, userId?: string) => {
+  const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
+  sockets.add(socket);
+  sessionSockets.set(sessionId, sockets);
+  sessions.set(socket, { sessionId, userId });
+};
+
 const broadcastRoundResult = (
   state: SessionState,
   payload: {
@@ -297,13 +332,21 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.botReactionTime = undefined;
   state.reactions = {};
 
-  state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+  if (state.matchType !== 'friend') {
+    state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+  }
   const validTypes = ['ranked', 'friend', 'bot'];
-  const requestedMatchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+  const requestedMatchType =
+    payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : state.matchType ?? 'friend';
   const assignments = sessionAssignments.get(state.sessionId);
   const hasHumanOpponent =
     assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
-  const matchType = hasHumanOpponent && requestedMatchType === 'bot' ? 'ranked' : requestedMatchType;
+  const matchType =
+    state.matchType && state.matchType !== 'bot'
+      ? state.matchType
+      : hasHumanOpponent && requestedMatchType === 'bot'
+        ? 'ranked'
+        : requestedMatchType;
 
   state.matchType = matchType;
   if (matchType === 'bot') {
@@ -372,6 +415,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     );
     try {
       await redisClient.del(getSessionKey(sharedState.sessionId));
+      if (sharedState.matchType === 'friend' && sharedState.roomCode) {
+        await redisClient.del(getRoomCodeKey(sharedState.roomCode));
+      }
     } catch (error) {
       logger.warn({ error, sessionId: sharedState.sessionId }, 'Failed to cleanup Redis session state');
     } finally {
@@ -711,6 +757,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       }
 
       await redisClient.del(getSessionKey(sharedState.sessionId));
+      if (sharedState.matchType === 'friend' && sharedState.roomCode) {
+        await redisClient.del(getRoomCodeKey(sharedState.roomCode));
+      }
       finalizedSessions.delete(sharedState.sessionId);
     });
   } catch (error) {
@@ -857,9 +906,11 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     clearTimers(sessionState);
   }
 
-  sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
-  if (sessionState.matchType === 'ranked') {
-    logger.info({ sessionId }, 'Ignoring client matchType payload because session is already Ranked');
+  if (sessionState.matchType !== 'friend') {
+    sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
+  }
+  if (sessionState.matchType) {
+    logger.info({ sessionId }, 'Ignoring client matchType payload because session is already set');
   } else {
     const validTypes = ['ranked', 'friend', 'bot'];
     const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
@@ -987,6 +1038,8 @@ export function createWsServer(server: Server) {
       return;
     }
 
+    state.hasStarted = true;
+    void persistSessionState(state);
     logger.info({ sessionId: state.sessionId, count: sockets.size }, 'Broadcasting game:countdown');
 
     for (const sessionSocket of sockets) {
@@ -1046,6 +1099,7 @@ export function createWsServer(server: Server) {
       opponentName: name2,
       stake,
       isBot: false,
+      matchType: 'ranked',
     });
 
     sessions.set(socket2, { sessionId, userId: player2Id });
@@ -1056,6 +1110,7 @@ export function createWsServer(server: Server) {
       opponentName: name1,
       stake,
       isBot: false,
+      matchType: 'ranked',
     });
 
     logger.info(
@@ -1105,6 +1160,7 @@ export function createWsServer(server: Server) {
         opponentName: 'Training Bot',
         stake,
         isBot: true,
+        matchType: 'bot',
       });
     }
 
@@ -1191,6 +1247,8 @@ export function createWsServer(server: Server) {
             opponentName,
             stake: existingState.stakeAmount,
             isBot: hasBotOpponent,
+            matchType: existingState.matchType ?? (hasBotOpponent ? 'bot' : 'ranked'),
+            roomCode: existingState.roomCode,
           });
         } else {
           userActiveSessions.delete(userId);
@@ -1207,6 +1265,7 @@ export function createWsServer(server: Server) {
         stakeAmount: 0,
         matchType: 'friend',
         isBotOpponent: false,
+        hasStarted: false,
         p1Staked: false,
         p2Staked: false,
         p1Ready: false,
@@ -1223,7 +1282,7 @@ export function createWsServer(server: Server) {
       sessionStates.set(sessionId, sessionState);
     }
 
-    socket.on('message', (data) => {
+    socket.on('message', async (data) => {
       const raw = data.toString();
       const sessionRef = sessions.get(socket);
       if (!sessionRef) return;
@@ -1233,6 +1292,172 @@ export function createWsServer(server: Server) {
         logger.debug({ message }, 'WS message');
 
         switch (message.type) {
+          case 'friend:create_room': {
+            const { userId } = sessionRef;
+            if (!userId) {
+              sendMessage(socket, 'friend:error', { message: 'Authentication required.' });
+              break;
+            }
+
+            const stakeAmount = getValidStakeAmount(message.payload?.stakeAmount);
+            if (stakeAmount === null) {
+              sendMessage(socket, 'friend:error', {
+                message: `Stake amount must be between 0 and ${MAX_FRIEND_STAKE} SOL.`,
+              });
+              break;
+            }
+
+            const existingSessionId = userActiveSessions.get(userId);
+            if (existingSessionId) {
+              const existingState = sessionStates.get(existingSessionId);
+              if (existingState && !existingState.isFinished) {
+                sendMessage(socket, 'friend:error', {
+                  message: 'You already have an active session.',
+                });
+                break;
+              }
+              userActiveSessions.delete(userId);
+            }
+
+            const sessionId = crypto.randomUUID();
+            let roomCode = '';
+            let mappingCreated = false;
+
+            for (let attempt = 0; attempt < 5; attempt += 1) {
+              roomCode = generateRoomCode();
+              const result = await redisClient.set(getRoomCodeKey(roomCode), sessionId, {
+                nx: true,
+                ex: ROOM_CODE_TTL_SECONDS,
+              });
+              if (result) {
+                mappingCreated = true;
+                break;
+              }
+            }
+
+            if (!mappingCreated) {
+              sendMessage(socket, 'friend:error', { message: 'Unable to create room. Please try again.' });
+              break;
+            }
+
+            const sessionState: SessionState = {
+              sessionId,
+              round: 1,
+              scores: { p1: 0, p2: 0 },
+              matchType: 'friend',
+              isBotOpponent: false,
+              stakeAmount,
+              roomCode,
+              hasStarted: false,
+              roundResolved: false,
+              reactions: {},
+              history: [],
+              p1Staked: false,
+              p2Staked: false,
+              p1Ready: false,
+              p2Ready: false,
+            };
+
+            sessionStates.set(sessionId, sessionState);
+            sessionAssignments.set(sessionId, { p1: userId });
+            sessionSockets.set(sessionId, new Set());
+            userActiveSessions.set(userId, sessionId);
+            attachSocketToSession(sessionId, socket, userId);
+
+            await persistSessionState(sessionState);
+
+            sendMessage(socket, 'friend:room_created', {
+              sessionId,
+              roomCode,
+              stakeAmount,
+            });
+            break;
+          }
+          case 'friend:join_room': {
+            const { userId } = sessionRef;
+            if (!userId) {
+              sendMessage(socket, 'friend:join_error', { message: 'Authentication required.' });
+              break;
+            }
+
+            const normalizedCode = normalizeRoomCode(String(message.payload?.roomCode ?? ''));
+            if (normalizedCode.length !== ROOM_CODE_LENGTH) {
+              sendMessage(socket, 'friend:join_error', { message: 'Room code must be 6 characters.' });
+              break;
+            }
+
+            let sessionId: string | null = null;
+            try {
+              const lookup = await redisClient.get(getRoomCodeKey(normalizedCode));
+              sessionId = typeof lookup === 'string' ? lookup : lookup ? String(lookup) : null;
+            } catch (error) {
+              logger.error({ error, roomCode: normalizedCode }, 'Failed to fetch room code mapping');
+            }
+
+            if (!sessionId) {
+              sendMessage(socket, 'friend:join_error', { message: 'Room code invalid or expired.' });
+              break;
+            }
+
+            const sessionState = sessionStates.get(sessionId);
+            if (!sessionState) {
+              sendMessage(socket, 'friend:join_error', { message: 'Room not available. Please try again.' });
+              break;
+            }
+
+            if (sessionState.matchType !== 'friend') {
+              sendMessage(socket, 'friend:join_error', { message: 'Room is not a friend match.' });
+              break;
+            }
+
+            if (!sessionState.roomCode) {
+              sessionState.roomCode = normalizedCode;
+            }
+
+            const assignments = sessionAssignments.get(sessionId) ?? {};
+            if (assignments.p2 && assignments.p2 !== userId) {
+              sendMessage(socket, 'friend:join_error', { message: 'Room is already full.' });
+              break;
+            }
+
+            assignments.p2 = userId;
+            sessionAssignments.set(sessionId, assignments);
+            userActiveSessions.set(userId, sessionId);
+            attachSocketToSession(sessionId, socket, userId);
+
+            const p1Id = assignments.p1 ?? userId;
+            const p2Id = assignments.p2 ?? userId;
+            const p1Name = userNames.get(p1Id) ?? 'Player 1';
+            const p2Name = userNames.get(p2Id) ?? 'Player 2';
+
+            await persistSessionState(sessionState);
+
+            sendMessage(activeUsers.get(p1Id) ?? socket, 'match_found', {
+              sessionId,
+              opponentId: p2Id,
+              opponentName: p2Name,
+              stake: sessionState.stakeAmount ?? 0,
+              stakeAmount: sessionState.stakeAmount ?? 0,
+              isBot: false,
+              matchType: 'friend',
+              roomCode: sessionState.roomCode ?? normalizedCode,
+            });
+
+            const p2Socket = activeUsers.get(p2Id);
+            if (p2Socket && p2Socket !== (activeUsers.get(p1Id) ?? socket)) {
+              sendMessage(p2Socket, 'match_found', {
+                sessionId,
+                opponentId: p1Id,
+                opponentName: p1Name,
+                stake: sessionState.stakeAmount ?? 0,
+                stakeAmount: sessionState.stakeAmount ?? 0,
+                isBot: false,
+                matchType: 'friend',
+                roomCode: sessionState.roomCode ?? normalizedCode,
+              });
+            }
+            break;
+          }
           case 'round:ready':
             void handleRoundReady(socket, sessionRef, message.payload);
             break;
@@ -1284,6 +1509,8 @@ export function createWsServer(server: Server) {
                         opponentId,
                         stake,
                         isBot,
+                        matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
+                        roomCode: existingState?.roomCode,
                       },
                     }),
                   );
@@ -1318,12 +1545,15 @@ export function createWsServer(server: Server) {
             const assignments = sessionAssignments.get(sessionId);
             const hasHumanOpponent =
               assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
-            const requestedMatchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
             const sessionState = sessionStates.get(sessionId);
+            const requestedMatchType = message.payload?.matchType === 'bot' ? 'bot' : 'ranked';
+            const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
             const stakeAmount =
-              typeof message.payload?.stake === 'number'
-                ? message.payload.stake
-                : sessionState?.stakeAmount ?? 0;
+              resolvedMatchType === 'friend'
+                ? sessionState?.stakeAmount ?? 0
+                : typeof message.payload?.stake === 'number'
+                  ? message.payload.stake
+                  : sessionState?.stakeAmount ?? 0;
 
             const matchType =
               hasHumanOpponent && requestedMatchType === 'bot'
@@ -1439,6 +1669,9 @@ export function createWsServer(server: Server) {
             void persistSessionState(sessionState);
             break;
           }
+          case 'ping':
+            sendMessage(socket, 'pong', {});
+            break;
           default:
             logger.warn({ type: message.type }, 'Unhandled WS message type');
         }
@@ -1456,6 +1689,27 @@ export function createWsServer(server: Server) {
         const sessionState = sessionStates.get(sessionRef.sessionId);
         const sockets = sessionSockets.get(sessionRef.sessionId);
         sockets?.delete(socket);
+
+        if (sessionState?.matchType === 'friend' && !sessionState.isFinished && !sessionState.hasStarted) {
+          sessionState.isFinished = true;
+          clearTimers(sessionState);
+          const assignments = sessionAssignments.get(sessionRef.sessionId);
+          if (assignments?.p1) userActiveSessions.delete(assignments.p1);
+          if (assignments?.p2) userActiveSessions.delete(assignments.p2);
+          sessionAssignments.delete(sessionRef.sessionId);
+          sessionStates.delete(sessionRef.sessionId);
+          sessionSockets.delete(sessionRef.sessionId);
+
+          if (sessionState.roomCode) {
+            void redisClient.del(getRoomCodeKey(sessionState.roomCode));
+          }
+          void redisClient.del(getSessionKey(sessionState.sessionId));
+          broadcastToSession(sessionRef.sessionId, 'friend:room_closed', {
+            message: 'Room closed because a player disconnected.',
+          });
+          sessions.delete(socket);
+          return;
+        }
 
         if (
           sessionState &&
