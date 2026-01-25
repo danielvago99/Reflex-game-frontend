@@ -145,7 +145,7 @@ export function DashboardScreen({
       
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header with Avatar and Balance */}
-        <div className="relative mb-4 xs:mb-6">
+        <div className="relative mb-4 xs:mb-6 glass-panel-strong rounded-2xl">
           {/* Outer glow - static, no animation */}
           <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] via-[#7C3AED] to-[#06B6D4] opacity-40 blur-xl rounded-2xl"></div>
           
@@ -189,7 +189,7 @@ export function DashboardScreen({
                 {/* Inner glow border - static */}
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur opacity-50 rounded-xl"></div>
                 
-                <div className="relative bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
+                <div className="relative glass-panel border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
                   {/* Animated background grid */}
                   <div className="absolute inset-0 opacity-10" style={{
                     backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%)',
@@ -234,7 +234,7 @@ export function DashboardScreen({
                         onClick={() => {
                           setShowDeposit(true);
                         }}
-                        className="relative group/btn"
+                        className="relative group/btn glass-button rounded-lg"
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
                         <div className="relative bg-white/10 hover:bg-white/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
@@ -247,7 +247,7 @@ export function DashboardScreen({
                         onClick={() => {
                           setShowWithdraw(true);
                         }}
-                        className="relative group/btn"
+                        className="relative group/btn glass-button rounded-lg"
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#06B6D4]/50 to-[#7C3AED]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
                         <div className="relative bg-white/10 hover:bg-white/20 border border-[#06B6D4]/30 hover:border-[#06B6D4]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
@@ -272,7 +272,7 @@ export function DashboardScreen({
         <div className="space-y-3 mb-6">
           <button
             onClick={() => onNavigate('lobby')}
-            className="relative w-full overflow-hidden p-5 rounded-xl transition-all duration-300 transform hover:scale-[1.03] group"
+            className="relative w-full overflow-hidden p-5 rounded-xl transition-all duration-300 transform hover:scale-[1.03] group glass-button-neon"
           >
             {/* Animated gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#00FFA3] animate-[gradient_3s_ease_infinite]"></div>
@@ -294,7 +294,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('ambassador')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full glass-button border-[#7C3AED]/30 hover:border-[#7C3AED]/60 text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Gift className="w-6 h-6 text-[#7C3AED]" />
             <span>Ambassador Dashboard</span>
@@ -302,7 +302,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('rewards')}
-            className="relative w-full overflow-hidden p-4 rounded-xl transition-all duration-300 group"
+            className="relative w-full overflow-hidden p-4 rounded-xl transition-all duration-300 group glass-button"
           >
             {/* Animated gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 transition-all duration-300 group-hover:from-[#7C3AED]/30 group-hover:via-[#00FFA3]/30 group-hover:to-[#06B6D4]/30"></div>
@@ -319,7 +319,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('profile')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full glass-button border-white/10 hover:border-[#06B6D4]/50 text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
             <span>My Stats</span>
@@ -327,7 +327,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('settings')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full glass-button border-white/10 hover:border-white/20 text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Settings className="w-6 h-6 text-gray-300" />
             <span>Settings</span>
@@ -335,7 +335,7 @@ export function DashboardScreen({
         </div>
 
         {/* Recent Activity - Futuristic Panel */}
-        <div className="relative">
+        <div className="relative glass-panel-strong rounded-lg">
           {/* Multi-layer border effect */}
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 via-[#06B6D4]/10 to-[#7C3AED]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
           
@@ -359,13 +359,13 @@ export function DashboardScreen({
               
               <div className="space-y-2">
                 {matchesLoading ? (
-                  <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                  <div className="glass-panel rounded-xl p-6 text-center">
                     <p className="text-sm text-gray-400">Loading recent matches...</p>
                   </div>
                 ) : formattedMatches.length === 0 ? (
                   // Empty State - Motivational
                   <div className="relative">
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-8 text-center">
+                    <div className="relative glass-panel rounded-lg p-8 text-center">
                       {/* Decorative elements */}
                       <div className="absolute top-2 left-2 w-16 h-16 border-t-2 border-l-2 border-[#00FFA3]/20 rounded-tl-lg"></div>
                       <div className="absolute bottom-2 right-2 w-16 h-16 border-b-2 border-r-2 border-[#06B6D4]/20 rounded-br-lg"></div>
@@ -385,7 +385,7 @@ export function DashboardScreen({
                         {/* CTA */}
                         <button
                           onClick={() => onNavigate('lobby')}
-                          className="mx-auto bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 hover:from-[#00FFA3]/30 hover:to-[#06B6D4]/30 border border-[#00FFA3]/30 text-[#00FFA3] py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                          className="mx-auto glass-button-neon border-[#00FFA3]/30 text-[#00FFA3] py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
                         >
                           <Gamepad2 className="w-4 h-4" />
                           <span className="text-sm">Play Your First Match</span>
