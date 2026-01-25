@@ -56,7 +56,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             
             <div className="p-6">
               <p className="text-gray-300 text-center leading-relaxed">
-                Compete worldwide or challenge friends in real-time reflex battles to win SOL. Test your speed and climb the global leaderboard in this gaming experience.
+                Compete worldwide or challenge friends in real-time reflex battles to win SOL. 
               </p>
             </div>
           </div>
