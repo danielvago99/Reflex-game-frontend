@@ -65,15 +65,15 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
 
         {/* Game features mini preview */}
         <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
-          <div className="bg-white/5 backdrop-blur-lg border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
+          <div className="bg-white/5 backdrop-blur-sm border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Target className="w-6 h-6 text-[#00FFA3]" strokeWidth={2} />
             <span className="text-xs text-gray-400">Quick Reflexes</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-lg border border-[#06B6D4]/20 rounded-xl p-3 flex flex-col items-center gap-2">
+          <div className="bg-white/5 backdrop-blur-sm border border-[#06B6D4]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Timer className="w-6 h-6 text-[#06B6D4]" strokeWidth={2} />
             <span className="text-xs text-gray-400">Real-time</span>
           </div>
-          <div className="bg-white/5 backdrop-blur-lg border border-[#7C3AED]/20 rounded-xl p-3 flex flex-col items-center gap-2">
+          <div className="bg-white/5 backdrop-blur-sm border border-[#7C3AED]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Trophy className="w-6 h-6 text-[#7C3AED]" strokeWidth={2} />
             <span className="text-xs text-gray-400">Earn SOL</span>
           </div>
@@ -83,7 +83,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         <div className="w-full space-y-3 max-w-xs mx-auto">
           <button
             onClick={handleConnectWallet}
-            className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-[#00FFA3]/80 to-[#06B6D4]/80 hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             <Wallet className="w-5 h-5" />
             <span>Connect Wallet</span>
@@ -91,7 +91,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
           
           <button
             onClick={() => onNavigate('create-wallet')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-[#00FFA3]/30 hover:bg-white/10 hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 hover:bg-white/10 hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
           >
             <Zap className="w-5 h-5" />
             <span>Create Wallet</span>
