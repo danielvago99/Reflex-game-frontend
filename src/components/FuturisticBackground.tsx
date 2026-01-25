@@ -31,7 +31,7 @@ export function FuturisticBackground() {
 
     const particles: Particle[] = [];
     const particleCount = 80;
-    const colors = ['#00FFA3', '#7C3AED', '#06B6D4'];
+    const colors = ['#38E8FF', '#7C3AED', '#FF4FD8'];
 
     for (let i = 0; i < particleCount; i++) {
       particles.push({
@@ -106,12 +106,12 @@ export function FuturisticBackground() {
 
   return (
     <>
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0B0F1A] via-[#0A0E1F] to-[#0B0F1A]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0A0F1C] via-[#0C0B22] to-[#120B2A]" />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#00FFA3] opacity-[0.08] rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#38E8FF] opacity-[0.08] rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-[#7C3AED] opacity-[0.08] rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#06B6D4] opacity-[0.06] rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FF4FD8] opacity-[0.06] rounded-full blur-[100px]" />
       </div>
 
       <canvas
@@ -120,29 +120,18 @@ export function FuturisticBackground() {
         style={{ mixBlendMode: 'screen' }}
       />
 
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 255, 163, 0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 163, 0.5) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px'
-        }}
-      />
-
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3]/30 to-transparent" />
-        <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#06B6D4]/20 to-transparent" />
+        <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#38E8FF]/30 to-transparent" />
+        <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#FF4FD8]/20 to-transparent" />
         <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED]/20 to-transparent" />
-        <div className="absolute bottom-[30%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4]/30 to-transparent" />
+        <div className="absolute bottom-[30%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#7C3AED]/30 to-transparent" />
       </div>
 
       <div className="absolute inset-0 pointer-events-none p-4">
-        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-[#00FFA3]/40" />
-        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-[#06B6D4]/40" />
+        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-[#38E8FF]/40" />
+        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-[#FF4FD8]/40" />
         <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-[#7C3AED]/40" />
-        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-[#00FFA3]/40" />
+        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-[#38E8FF]/40" />
       </div>
 
       <div
