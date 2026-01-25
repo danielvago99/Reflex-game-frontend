@@ -22,7 +22,7 @@ export function DepositDialog({ open, onClose, walletAddress }: DepositDialogPro
         {/* Custom Close Button - More Visible */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 glass rounded-lg p-2 transition-all duration-300 hover:bg-white/10 hover:scale-105 group"
           aria-label="Close dialog"
         >
           <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
@@ -68,7 +68,7 @@ export function DepositDialog({ open, onClose, walletAddress }: DepositDialogPro
           {/* QR Code Toggle */}
           <button
             onClick={() => setShowQR(!showQR)}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-4 rounded-lg transition-all flex items-center justify-center gap-2"
+            className="w-full glass rounded-lg p-4 transition-all flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white"
           >
             <QrCode className="w-5 h-5" />
             <span>{showQR ? 'Hide' : 'Show'} QR Code</span>
@@ -83,7 +83,7 @@ export function DepositDialog({ open, onClose, walletAddress }: DepositDialogPro
           {/* Instructions */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm rounded-lg"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="relative glass rounded-lg p-4">
               <h3 className="text-white mb-3 flex items-center gap-2">
                 <Copy className="w-4 h-4 text-[#00FFA3]" />
                 How to Deposit

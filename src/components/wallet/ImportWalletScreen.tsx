@@ -97,7 +97,7 @@ export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: I
           {/* URL/Domain reminder */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm rounded-lg"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="relative glass rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
                 <div>
@@ -115,7 +115,7 @@ export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: I
 
           {/* Import tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10">
+            <TabsList className="grid w-full grid-cols-2 glass">
               <TabsTrigger value="seed" className="data-[state=active]:bg-[#00FFA3]/20 data-[state=active]:text-[#00FFA3]">
                 Seed Phrase
               </TabsTrigger>

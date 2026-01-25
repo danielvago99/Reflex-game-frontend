@@ -122,7 +122,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
 
           {/* Enhanced Password strength indicator */}
           {password.length > 0 && passwordStrength && (
-            <div className="space-y-3 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="space-y-3 glass rounded-lg p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Password Strength</span>
                 <span className={`${
@@ -161,7 +161,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
 
           {/* Checkboxes */}
           <div className="space-y-4">
-            <div className="flex items-start gap-3 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="flex items-start gap-3 glass rounded-lg p-4">
               <Checkbox 
                 checked={understand}
                 onCheckedChange={(checked) => setUnderstand(checked as boolean)}
@@ -173,7 +173,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
             </div>
 
             {/* Biometric option */}
-            <div className="flex items-center justify-between bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="flex items-center justify-between glass rounded-lg p-4">
               <div className="flex items-center gap-3">
                 <Fingerprint className="w-5 h-5 text-[#00FFA3]" />
                 <div>

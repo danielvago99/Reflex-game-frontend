@@ -108,7 +108,7 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
           {/* Seed phrase display */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur-sm rounded-xl"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5 md:p-6 overflow-hidden">
+            <div className="relative glass rounded-xl p-5 md:p-6 overflow-hidden">
               <div className="min-h-[360px] md:min-h-[380px] flex flex-col">
                 {!isRevealed ? (
                   <div className="flex flex-1 flex-col items-center justify-center text-center gap-4 py-6">
@@ -126,7 +126,7 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
                   <div className="flex flex-1 flex-col">
                     <div className="grid grid-cols-3 gap-2.5 md:gap-3 mb-4 md:mb-5">
                       {seedPhrase.map((word, index) => (
-                        <div key={index} className="bg-white/5 border border-white/10 rounded-lg p-3">
+                        <div key={index} className="glass rounded-lg p-3">
                           <div className="text-xs font-semibold text-[#00FFA3] mb-1">#{index + 1}</div>
                           <div className="text-white">{word}</div>
                         </div>
@@ -137,14 +137,14 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
                     <div className="grid grid-cols-2 gap-2.5 md:gap-3 mt-auto">
                       <button
                         onClick={handleCopy}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                        className="glass rounded-lg p-3 transition-all flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white"
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
                       </button>
                       <button
                         onClick={handleDownload}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                        className="glass rounded-lg p-3 transition-all flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white"
                       >
                         <Download className="w-4 h-4" />
                         <span className="text-sm">Download</span>
@@ -178,7 +178,7 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
 
           {/* Confirmation */}
           {isRevealed && (
-            <div className="flex items-start gap-3 bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="flex items-start gap-3 glass rounded-lg p-4">
               <Checkbox 
                 checked={saved}
                 onCheckedChange={(checked) => setSaved(checked as boolean)}

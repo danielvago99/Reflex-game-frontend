@@ -140,7 +140,7 @@ export function RoundResultModal({
             {/* Player time */}
             <div className="relative">
               <div className={`absolute -inset-1 bg-gradient-to-r ${isWin ? 'from-cyan-500/30 to-blue-500/30' : 'from-white/10 to-white/10'} rounded-xl blur-sm`}></div>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <div className="relative glass rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${isWin ? 'bg-cyan-400' : 'bg-gray-400'}`}></div>
@@ -159,7 +159,7 @@ export function RoundResultModal({
             {/* Opponent time */}
             <div className="relative">
               <div className={`absolute -inset-1 bg-gradient-to-r ${!isWin ? 'from-pink-500/30 to-purple-500/30' : 'from-white/10 to-white/10'} rounded-xl blur-sm`}></div>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <div className="relative glass rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${!isWin ? 'bg-pink-400' : 'bg-gray-400'}`}></div>

@@ -196,7 +196,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
           {biometricAvailable && !biometricVerified && !isPasswordLocked && (
             <div className="relative">
               <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/30 to-[#00FFA3]/30 blur-sm rounded-xl"></div>
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5">
+              <div className="relative glass rounded-xl p-5">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#7C3AED]/20 to-[#00FFA3]/20 border border-[#7C3AED]/30 flex items-center justify-center mb-3">
                     <Fingerprint className="w-7 h-7 text-[#7C3AED]" />
@@ -349,7 +349,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
               {/* Recovery methods info */}
               <div className="relative">
                 <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#00FFA3]/20 blur-sm rounded-xl"></div>
-                <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+                <div className="relative glass rounded-xl p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#06B6D4]/20 border border-[#06B6D4]/30 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-[#06B6D4]" />

@@ -71,7 +71,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
+            className="p-3 glass rounded-xl transition-all hover:bg-white/10 hover:scale-105"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
@@ -124,7 +124,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/20 to-[#00FFA3]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
 
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+            <div className="relative glass shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#7C3AED]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#00FFA3]/50"></div>
@@ -141,7 +141,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
 
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+            <div className="relative glass shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#00FFA3]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#06B6D4]/50"></div>
@@ -158,7 +158,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
           <div className="relative group">
             <div className="absolute -inset-px bg-gradient-to-br from-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
 
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+            <div className="relative glass shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-[#06B6D4]/50"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-[#7C3AED]/50"></div>
@@ -188,7 +188,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
         <div className="relative">
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
+          <div className="relative glass-strong shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
             {/* Corner accents */}
             <div className="absolute top-0 left-0 w-4 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
             <div className="absolute top-0 left-0 w-px h-4 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
@@ -213,7 +213,7 @@ export function RewardsScreen({ onNavigate }: RewardsScreenProps) {
                 {/* 0.05 SOL Stake */}
                 <div className="relative group">
                   <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                  <div className="relative glass rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">

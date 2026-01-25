@@ -328,7 +328,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         <div className="flex items-center gap-3 xs:gap-4 mb-4 xs:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-2.5 xs:p-3 rounded-xl transition-all"
+            className="glass rounded-xl p-2.5 xs:p-3 transition-all hover:bg-white/10 hover:scale-105"
           >
             <ArrowLeft className="w-4 h-4 xs:w-5 xs:h-5 text-white" />
           </button>
@@ -349,7 +349,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
         {/* Tabs for Quick Play vs Friends */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4 xs:mb-6">
-          <TabsList className="bg-white/5 backdrop-blur-lg border border-white/10 w-full grid grid-cols-2 p-1">
+          <TabsList className="glass w-full grid grid-cols-2 p-1">
             <TabsTrigger 
               value="quickplay"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00FFA3] data-[state=active]:to-[#06B6D4] data-[state=active]:text-[#0B0F1A] data-[state=active]:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-gray-400 hover:text-white transition-all duration-300"
@@ -462,7 +462,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
             <div className="relative mb-6">
               <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
               
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
+              <div className="relative glass-strong shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
                 {/* Decorative lines */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                 <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
@@ -828,7 +828,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
             </div>
 
             {/* Info box */}
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 mt-6">
+            <div className="glass rounded-xl p-4 mt-6">
               <div className="flex items-start gap-3">
                 <Users className="w-5 h-5 text-[#7C3AED] mt-0.5" />
                 <div>

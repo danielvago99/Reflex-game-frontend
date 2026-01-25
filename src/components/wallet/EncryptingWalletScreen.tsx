@@ -120,7 +120,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
         {/* Progress Section */}
         <div className="flex-1 space-y-4 md:space-y-6">
           {/* Current stage */}
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-5 md:p-6">
+          <div className="relative glass rounded-lg p-5 md:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="relative">
                 <div className="w-3 h-3 bg-[#00FFA3] rounded-full animate-pulse"></div>
@@ -147,7 +147,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
           </div>
 
           {/* Security info */}
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+          <div className="relative glass rounded-lg p-4">
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 text-[#00FFA3] mt-0.5 flex-shrink-0" />
               <div>

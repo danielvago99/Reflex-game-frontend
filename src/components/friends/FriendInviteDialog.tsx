@@ -310,7 +310,7 @@ export function FriendInviteDialog({
             <div className="relative">
               <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/30 to-[#7C3AED]/30 blur-sm rounded-xl"></div>
               
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
+              <div className="relative glass rounded-xl overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                 
                 <div className="flex items-center gap-3 px-4 py-3">

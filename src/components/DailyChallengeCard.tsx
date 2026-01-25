@@ -354,7 +354,7 @@ export function DailyChallengeCard({
       </div>
 
       {/* How it Works */}
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+      <div className="glass rounded-xl p-4">
         <h3 className="text-white font-semibold text-sm mb-3">How It Works</h3>
         <div className="space-y-2.5">
           <div className="flex items-start gap-2.5">

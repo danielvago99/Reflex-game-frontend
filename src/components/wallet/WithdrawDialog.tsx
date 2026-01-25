@@ -56,7 +56,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
         {/* Custom Close Button - More Visible */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 glass rounded-lg p-2 transition-all duration-300 hover:bg-white/10 hover:scale-105 group"
           aria-label="Close dialog"
         >
           <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
@@ -78,7 +78,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
           {/* Current Balance */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm rounded-lg"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+            <div className="relative glass rounded-lg p-4">
               <p className="text-sm text-gray-400 mb-1">Available Balance</p>
               <p className="text-2xl text-[#00FFA3]">{currentBalance.toFixed(6)} SOL</p>
             </div>
@@ -150,7 +150,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
           {numAmount > 0 && (
             <div className="relative">
               <div className="absolute -inset-px bg-gradient-to-br from-white/10 to-white/5 blur-sm rounded-lg"></div>
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4 space-y-2 text-sm">
+              <div className="relative glass rounded-lg p-4 space-y-2 text-sm">
                 <div className="flex justify-between text-gray-300">
                   <span>Amount</span>
                   <span className="text-white">{numAmount.toFixed(6)} SOL</span>

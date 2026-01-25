@@ -44,7 +44,7 @@ export function WalletAlert({ children, variant = 'info', title }: WalletAlertPr
   return (
     <div className="relative">
       <div className={`absolute -inset-px bg-gradient-to-br ${style.colors} blur-sm rounded-lg`}></div>
-      <div className={`relative bg-white/5 backdrop-blur-lg border ${style.border} rounded-lg p-4`}>
+      <div className={`relative glass ${style.border} rounded-lg p-4`}>
         <div className="flex gap-3">
           <Icon className={`w-6 h-6 ${style.iconColor} flex-shrink-0 mt-0.5`} />
           <div className="flex-1">

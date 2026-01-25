@@ -113,7 +113,7 @@ export function AvatarSelector({ currentAvatar, onSelect, onClose }: AvatarSelec
             </div>
 
             {/* Info text */}
-            <div className="mt-6 p-4 bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl">
+            <div className="mt-6 p-4 glass rounded-xl">
               <p className="text-sm text-gray-300 text-center">
                 Your avatar will be displayed across the platform
               </p>

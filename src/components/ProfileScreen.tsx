@@ -91,7 +91,7 @@ export function ProfileScreen({
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all"
+            className="glass rounded-xl p-3 transition-all hover:bg-white/10 hover:scale-105"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
@@ -99,7 +99,7 @@ export function ProfileScreen({
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="glass-strong rounded-2xl p-6 mb-6 shadow-xl">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-50"></div>
@@ -141,7 +141,7 @@ export function ProfileScreen({
         </div>
 
         {/* Performance Stats */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="glass-strong rounded-2xl p-6 mb-6 shadow-xl">
           <h3 className="text-lg text-white mb-4">Performance Metrics</h3>
           
           <div className="space-y-4">
@@ -206,18 +206,18 @@ export function ProfileScreen({
         </div>
 
         {/* Match History */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl">
+        <div className="glass-strong rounded-2xl p-6 shadow-xl">
           <h3 className="text-lg text-white mb-4">Recent Match History</h3>
           
           <div className="space-y-3">
             {matchHistoryLoading ? (
-              <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center text-sm text-gray-400">
+              <div className="glass rounded-xl p-6 text-center text-sm text-gray-400">
                 Loading match history...
               </div>
             ) : formattedHistory.length === 0 ? (
               // Empty State
-              <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-8 text-center">
-                <div className="mx-auto mb-4 p-4 bg-white/5 rounded-full border border-white/10 w-16 h-16 flex items-center justify-center">
+              <div className="glass rounded-xl p-8 text-center">
+                <div className="mx-auto mb-4 p-4 glass rounded-full w-16 h-16 flex items-center justify-center">
                   <Trophy className="w-8 h-8 text-gray-400" />
                 </div>
                 <h4 className="text-white mb-2">No Matches Yet</h4>
@@ -230,7 +230,7 @@ export function ProfileScreen({
               formattedHistory.map((match) => (
                 <div
                   key={match.id}
-                  className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all"
+                  className="glass rounded-xl p-4 hover:bg-white/10 transition-all"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">

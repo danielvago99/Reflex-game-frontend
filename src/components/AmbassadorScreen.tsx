@@ -104,7 +104,7 @@ export function AmbassadorScreen({
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 p-3 rounded-xl transition-all"
+            className="glass rounded-xl p-3 transition-all hover:bg-white/10 hover:scale-105"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
@@ -118,7 +118,7 @@ export function AmbassadorScreen({
         <div className="relative mb-6">
           <div className="absolute -inset-1 bg-gradient-to-r from-[#7C3AED]/20 to-[#00FFA3]/20 blur-sm" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
+          <div className="relative glass-strong shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
             <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
             
@@ -192,7 +192,7 @@ export function AmbassadorScreen({
             <div key={i} className="relative group">
               <div className="absolute -inset-px bg-gradient-to-br from-white/10 to-white/5 blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}></div>
               
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 hover:border-white/20 shadow-lg overflow-hidden transition-all" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}>
+              <div className="relative glass shadow-lg overflow-hidden transition-all" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}>
                 <div className="absolute top-0 left-0 w-2 h-px" style={{ backgroundColor: stat.color }}></div>
                 
                 <div className="p-3 text-center">
@@ -305,7 +305,7 @@ export function AmbassadorScreen({
         <div className="relative mb-6">
           <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
 
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
+          <div className="relative glass-strong shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
             <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
 
             <div className="p-5">
@@ -506,7 +506,7 @@ export function AmbassadorScreen({
         <div className="relative">
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 to-[#06B6D4]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+          <div className="relative glass-strong shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
             <div className="absolute top-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-[#00FFA3]/50 to-transparent"></div>
             
             {/* Corner indicators */}

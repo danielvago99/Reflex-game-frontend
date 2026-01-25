@@ -23,7 +23,7 @@ export function WalletButton({
   
   const variants = {
     primary: "bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] shadow-xl",
-    secondary: "bg-white/5 backdrop-blur-lg border-2 border-white/10 hover:border-[#00FFA3]/50 hover:bg-white/10 text-white",
+    secondary: "glass text-white hover:bg-white/10 hover:scale-105",
     danger: "bg-gradient-to-r from-red-500 to-red-600 hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] text-white shadow-xl"
   };
 

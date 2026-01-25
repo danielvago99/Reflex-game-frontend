@@ -230,7 +230,7 @@ export function GameResultModal({
             )}
 
             {/* Score */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
+            <div className="glass rounded-2xl p-4 mb-5">
               <div className="text-center mb-3">
                 <p className="text-sm text-gray-400 mb-2">Final Score</p>
                 <div className="flex items-center justify-center gap-4">
@@ -262,7 +262,7 @@ export function GameResultModal({
             </div>
 
             {/* Stats */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
+            <div className="glass rounded-2xl p-4 mb-5">
               <h3 className="text-sm text-gray-400 mb-3">Your Statistics</h3>
 
               <div className="flex items-center justify-between">
@@ -291,7 +291,7 @@ export function GameResultModal({
               <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                 <button
                   onClick={handleShare}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full glass rounded-xl py-2.5 sm:py-3.5 px-4 sm:px-6 transition-all duration-300 flex items-center justify-center gap-2.5 hover:bg-white/10 hover:scale-105 text-white"
                 >
                   <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Share Result</span>
@@ -299,7 +299,7 @@ export function GameResultModal({
 
                 <button
                   onClick={onBackToMenu}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="w-full glass rounded-xl py-2.5 sm:py-3.5 px-4 sm:px-6 transition-all duration-300 flex items-center justify-center gap-2.5 hover:bg-white/10 hover:scale-105 text-white"
                 >
                   <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>Back to Lobby</span>

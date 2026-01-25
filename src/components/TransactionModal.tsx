@@ -159,7 +159,7 @@ export function TransactionModal({
           {(state === 'review' || state === 'success' || state === 'error') && (
             <button
               onClick={() => onOpenChange(false)}
-              className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 rounded-lg transition-all z-10"
+              className="absolute top-4 right-4 p-2 glass rounded-lg transition-all hover:bg-white/10 hover:scale-105 z-10"
             >
               <X className="w-5 h-5 text-white" />
             </button>
@@ -179,7 +179,7 @@ export function TransactionModal({
               {/* Transaction Details */}
               <div className="space-y-3 mb-6">
                 {/* Stake Amount */}
-                <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+                <div className="glass rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-400">Stake Amount</span>
                     <span className="text-white">◎ {stakeAmount.toFixed(3)}</span>
@@ -187,7 +187,7 @@ export function TransactionModal({
                 </div>
 
                 {/* Network Fee */}
-                <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+                <div className="glass rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-400">Estimated Network Fee</span>
                     <span className="text-white">◎ {estimatedFee.toFixed(6)}</span>
@@ -195,7 +195,7 @@ export function TransactionModal({
                 </div>
 
                 {/* Recipient */}
-                <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+                <div className="glass rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-400">Recipient</span>
                     <span className="text-white text-xs">{getRecipientAddress()}</span>
@@ -222,7 +222,7 @@ export function TransactionModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-lg transition-all"
+                  className="px-4 py-3 glass rounded-lg transition-all hover:bg-white/10 hover:scale-105 text-white"
                 >
                   Cancel
                 </button>
@@ -256,7 +256,7 @@ export function TransactionModal({
               <p className="text-sm text-gray-400 mb-4">Please confirm the transaction in your wallet</p>
 
               {/* Solana branding */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+              <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full">
                 <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
                 <span className="text-xs text-gray-400">Solana Network</span>
               </div>
@@ -308,7 +308,7 @@ export function TransactionModal({
 
               {/* Transaction Summary */}
               <div className="space-y-3 mb-6">
-                <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+                <div className="glass rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">Amount Staked</span>
                     <span className="text-[#00FFA3]">◎ {stakeAmount.toFixed(3)}</span>
@@ -347,7 +347,7 @@ export function TransactionModal({
                 href={`https://solscan.io/tx/${txId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#06B6D4]/50 text-[#06B6D4] rounded-lg transition-all mb-3"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2 glass rounded-lg transition-all hover:bg-white/10 hover:scale-105 text-[#06B6D4] mb-3"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-sm">View on Solscan</span>
@@ -397,7 +397,7 @@ export function TransactionModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-lg transition-all"
+                  className="px-4 py-3 glass rounded-lg transition-all hover:bg-white/10 hover:scale-105 text-white"
                 >
                   Cancel
                 </button>

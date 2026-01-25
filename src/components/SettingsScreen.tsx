@@ -72,7 +72,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="p-3 bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#00FFA3]/50 rounded-xl transition-all"
+            className="p-3 glass rounded-xl transition-all hover:bg-white/10 hover:scale-105"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
@@ -87,7 +87,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}></div>
             
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
+            <div className="relative glass-strong shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
               {/* Corner accents */}
               <div className="absolute top-0 left-0 w-4 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
               <div className="absolute top-0 left-0 w-px h-4 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
@@ -129,7 +129,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                       className="relative flex-1 group"
                     >
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
-                      <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 hover:border-[#00FFA3]/50 text-white p-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                      <div className="relative glass rounded-lg p-4 transition-all duration-300 flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white">
                         <Camera className="w-4 h-4 text-[#00FFA3]" />
                         <span className="text-sm">Change Avatar</span>
                       </div>
@@ -145,7 +145,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                     </label>
                     <div className="relative">
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur opacity-50 rounded-lg"></div>
-                      <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                      <div className="relative glass rounded-lg p-4">
                         <p className="text-white">{currentName}</p>
                       </div>
                     </div>
@@ -155,7 +155,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                       className="relative w-full group"
                     >
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
-                      <div className="relative bg-white/10 hover:bg-white/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/60 text-white px-4 py-3 rounded-lg transition-all">
+                      <div className="relative glass rounded-lg px-4 py-3 transition-all hover:bg-white/10 hover:scale-105 text-white">
                         <span className="text-sm">Change Name</span>
                       </div>
                     </button>
@@ -195,7 +195,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                         className="relative group"
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/20 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className="relative bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-3 rounded-lg transition-all">
+                        <div className="relative glass rounded-lg px-4 py-3 transition-all hover:bg-white/10 hover:scale-105 text-white">
                           <span className="text-sm">Cancel</span>
                         </div>
                       </button>
@@ -280,7 +280,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20">
+                <AlertDialogCancel className="glass rounded-xl px-4 py-2 transition-all hover:bg-white/10 hover:scale-105 text-white">
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction 
@@ -296,7 +296,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
           {/* App Info */}
           <div className="relative">
             <div className="absolute -inset-px bg-gradient-to-br from-white/5 to-white/5 blur-sm" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+            <div className="relative glass-strong overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
               {/* Corner indicators */}
               <div className="absolute top-0 left-1 w-1 h-1 border-t border-l border-white/20"></div>
               <div className="absolute bottom-0 right-1 w-1 h-1 border-b border-r border-white/20"></div>

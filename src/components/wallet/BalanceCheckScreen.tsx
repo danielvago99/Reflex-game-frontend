@@ -69,7 +69,7 @@ export function BalanceCheckScreen({ walletAddress, onContinue, onBack }: Balanc
 
               <div className="relative">
                 <div className="absolute -inset-px bg-gradient-to-br from-white/10 to-white/5 blur-sm rounded-lg"></div>
-                <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-6">
+                <div className="relative glass rounded-lg p-6">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-400 mb-1">Minimum for Gameplay</p>

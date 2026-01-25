@@ -25,11 +25,11 @@ export function AddressCopy({ address, showFull = false }: AddressCopyProps) {
   return (
     <div className="relative">
       <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm rounded-lg"></div>
-      <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4 flex items-center justify-between gap-3">
+      <div className="relative glass rounded-lg p-4 flex items-center justify-between gap-3">
         <code className="text-[#00FFA3] break-all">{displayAddress}</code>
         <button
           onClick={handleCopy}
-          className="flex-shrink-0 bg-white/5 hover:bg-[#00FFA3]/20 border border-white/10 hover:border-[#00FFA3] p-2 rounded-lg transition-all"
+          className="flex-shrink-0 glass rounded-lg p-2 transition-all hover:bg-white/10 hover:scale-105"
         >
           {copied ? (
             <Check className="w-5 h-5 text-[#00FFA3]" />

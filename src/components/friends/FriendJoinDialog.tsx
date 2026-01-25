@@ -149,7 +149,7 @@ export function FriendJoinDialog({ open, onOpenChange, onJoinSuccess }: FriendJo
                 <div className="relative">
                   <div className="absolute -inset-px bg-gradient-to-r from-[#06B6D4]/30 to-[#7C3AED]/30 blur-sm rounded-xl"></div>
                   
-                  <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden">
+                  <div className="relative glass rounded-xl overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
                     
                     <Input

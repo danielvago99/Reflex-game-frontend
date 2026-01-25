@@ -59,12 +59,12 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
             <h3 className="text-sm text-gray-400 uppercase tracking-widest">Your Solana Address</h3>
             
             {/* Address display */}
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+            <div className="relative glass rounded-xl p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <p className="text-white text-sm break-all font-mono">{walletAddress}</p>
                 <button
                   onClick={handleCopy}
-                  className="flex-shrink-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 rounded-lg transition-all"
+                  className="flex-shrink-0 p-2 glass rounded-lg transition-all hover:bg-white/10 hover:scale-105"
                 >
                   {copied ? <Check className="w-4 h-4 text-[#00FFA3]" /> : <Copy className="w-4 h-4 text-gray-400" />}
                 </button>
@@ -75,7 +75,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
             </div>
 
             {/* QR Code */}
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6">
+            <div className="relative glass rounded-xl p-6">
               <div className="flex flex-col items-center gap-3">
                 <div className="bg-white p-4 rounded-lg">
                   <QRCode value={walletAddress} size={180} />
@@ -91,7 +91,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
             
             <div className="grid gap-3">
               {/* Step 1 */}
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+              <div className="relative glass rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00FFA3]/20 border border-[#00FFA3]/30 flex items-center justify-center">
                     <span className="text-xs text-[#00FFA3]">1</span>
@@ -106,7 +106,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
               </div>
 
               {/* Step 2 */}
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+              <div className="relative glass rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00FFA3]/20 border border-[#00FFA3]/30 flex items-center justify-center">
                     <span className="text-xs text-[#00FFA3]">2</span>
@@ -121,7 +121,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
               </div>
 
               {/* Step 3 */}
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+              <div className="relative glass rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00FFA3]/20 border border-[#00FFA3]/30 flex items-center justify-center">
                     <span className="text-xs text-[#00FFA3]">3</span>
@@ -136,7 +136,7 @@ export function WalletReadyScreen({ walletAddress, onContinue }: WalletReadyScre
               </div>
 
               {/* Recommended amount */}
-              <div className="relative bg-white/5 backdrop-blur-lg border border-[#06B6D4]/20 rounded-lg p-4">
+              <div className="relative glass rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
                   <div>

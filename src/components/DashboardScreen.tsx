@@ -189,7 +189,7 @@ export function DashboardScreen({
                 {/* Inner glow border - static */}
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur opacity-50 rounded-xl"></div>
                 
-                <div className="relative bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
+                <div className="relative glass rounded-xl p-4 overflow-hidden">
                   {/* Animated background grid */}
                   <div className="absolute inset-0 opacity-10" style={{
                     backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%)',
@@ -237,7 +237,7 @@ export function DashboardScreen({
                         className="relative group/btn"
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className="relative bg-white/10 hover:bg-white/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
+                        <div className="relative glass rounded-lg px-3 py-2 transition-all flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white">
                           <ArrowDownToLine className="w-4 h-4 text-[#00FFA3]" />
                           <span className="text-sm">Deposit</span>
                         </div>
@@ -250,7 +250,7 @@ export function DashboardScreen({
                         className="relative group/btn"
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-[#06B6D4]/50 to-[#7C3AED]/50 blur opacity-0 group-hover/btn:opacity-100 transition-opacity rounded-lg"></div>
-                        <div className="relative bg-white/10 hover:bg-white/20 border border-[#06B6D4]/30 hover:border-[#06B6D4]/60 text-white px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-2">
+                        <div className="relative glass rounded-lg px-3 py-2 transition-all flex items-center justify-center gap-2 hover:bg-white/10 hover:scale-105 text-white">
                           <ArrowUpFromLine className="w-4 h-4 text-[#06B6D4]" />
                           <span className="text-sm">Withdraw</span>
                         </div>
@@ -317,18 +317,18 @@ export function DashboardScreen({
             </div>
           </button>
 
-          <button
-            onClick={() => onNavigate('profile')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
-          >
+        <button
+          onClick={() => onNavigate('profile')}
+          className="w-full glass rounded-xl p-4 transition-all duration-300 flex items-center justify-center gap-3 hover:bg-white/10 hover:scale-105 text-white"
+        >
             <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
             <span>My Stats</span>
           </button>
 
-          <button
-            onClick={() => onNavigate('settings')}
-            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
-          >
+        <button
+          onClick={() => onNavigate('settings')}
+          className="w-full glass rounded-xl p-4 transition-all duration-300 flex items-center justify-center gap-3 hover:bg-white/10 hover:scale-105 text-white"
+        >
             <Settings className="w-6 h-6 text-gray-300" />
             <span>Settings</span>
           </button>
@@ -339,7 +339,7 @@ export function DashboardScreen({
           {/* Multi-layer border effect */}
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 via-[#06B6D4]/10 to-[#7C3AED]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+          <div className="relative glass-strong shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
             {/* Top decorative line */}
             <div className="absolute top-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-[#00FFA3]/50 to-transparent"></div>
             
@@ -359,20 +359,20 @@ export function DashboardScreen({
               
               <div className="space-y-2">
                 {matchesLoading ? (
-                  <div className="bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                  <div className="glass rounded-xl p-6 text-center">
                     <p className="text-sm text-gray-400">Loading recent matches...</p>
                   </div>
                 ) : formattedMatches.length === 0 ? (
                   // Empty State - Motivational
                   <div className="relative">
-                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-8 text-center">
+                    <div className="relative glass rounded-lg p-8 text-center">
                       {/* Decorative elements */}
                       <div className="absolute top-2 left-2 w-16 h-16 border-t-2 border-l-2 border-[#00FFA3]/20 rounded-tl-lg"></div>
                       <div className="absolute bottom-2 right-2 w-16 h-16 border-b-2 border-r-2 border-[#06B6D4]/20 rounded-br-lg"></div>
 
                       <div className="relative">
                         {/* Icon */}
-                        <div className="mx-auto mb-4 p-4 bg-white/5 rounded-full border border-white/10 w-16 h-16 flex items-center justify-center">
+                        <div className="mx-auto mb-4 p-4 glass rounded-full w-16 h-16 flex items-center justify-center">
                           <Gamepad2 className="w-8 h-8 text-gray-400" />
                         </div>
 

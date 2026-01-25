@@ -50,7 +50,7 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
               ].map((feature, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-all"
+                  className="flex items-center gap-3 glass rounded-lg p-3 transition-all hover:bg-white/10 hover:scale-105"
                 >
                   <feature.icon className="w-5 h-5 text-[#00FFA3]" />
                   <span className="text-sm text-gray-300">{feature.text}</span>
