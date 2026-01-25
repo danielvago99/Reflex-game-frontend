@@ -43,7 +43,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         
         {/* Description - Futuristic Panel */}
         <div className="relative mb-8 max-w-sm mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/40 via-[#06B6D4]/40 to-[#7C3AED]/40 blur-md" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/30 via-[#06B6D4]/30 to-[#7C3AED]/30 blur-sm" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
           
           <div className="relative backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
             {/* Top accent line */}
