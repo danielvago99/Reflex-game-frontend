@@ -30,8 +30,8 @@ export function FuturisticBackground() {
     }
 
     const particles: Particle[] = [];
-    const particleCount = 80;
-    const colors = ['#38E8FF', '#7C3AED', '#FF4FD8'];
+    const particleCount = 90;
+    const colors = ['#7C3AED', '#A855F7', '#E879F9', '#C084FC'];
 
     for (let i = 0; i < particleCount; i++) {
       particles.push({
@@ -106,12 +106,20 @@ export function FuturisticBackground() {
 
   return (
     <>
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0A0F1C] via-[#0C0B22] to-[#120B2A]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0A0B18] via-[#140C2B] to-[#1C0B2F]" />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 20% 20%, rgba(168,85,247,0.22), transparent 45%), radial-gradient(circle at 80% 25%, rgba(124,58,237,0.2), transparent 50%), radial-gradient(circle at 50% 85%, rgba(232,121,249,0.16), transparent 55%)'
+        }}
+      />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#38E8FF] opacity-[0.08] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-[#7C3AED] opacity-[0.08] rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FF4FD8] opacity-[0.06] rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#A855F7] opacity-[0.1] rounded-full blur-[140px]" />
+        <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-[#7C3AED] opacity-[0.1] rounded-full blur-[140px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-[#E879F9] opacity-[0.08] rounded-full blur-[120px]" />
       </div>
 
       <canvas
@@ -121,18 +129,26 @@ export function FuturisticBackground() {
       />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#38E8FF]/30 to-transparent" />
-        <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#FF4FD8]/20 to-transparent" />
-        <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED]/20 to-transparent" />
-        <div className="absolute bottom-[30%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#7C3AED]/30 to-transparent" />
+        <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#A855F7]/35 to-transparent" />
+        <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#E879F9]/25 to-transparent" />
+        <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED]/25 to-transparent" />
+        <div className="absolute bottom-[30%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#7C3AED]/35 to-transparent" />
       </div>
 
       <div className="absolute inset-0 pointer-events-none p-4">
-        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-[#38E8FF]/40" />
-        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-[#FF4FD8]/40" />
-        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-[#7C3AED]/40" />
-        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-[#38E8FF]/40" />
+        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-[#A855F7]/45" />
+        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-[#E879F9]/45" />
+        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-[#7C3AED]/45" />
+        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-[#C084FC]/45" />
       </div>
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at center, rgba(10,12,24,0.2) 0%, rgba(5,6,16,0.75) 72%, rgba(5,6,16,0.9) 100%)'
+        }}
+      />
 
       <div
         className="absolute inset-0 opacity-[0.015] mix-blend-overlay pointer-events-none"
