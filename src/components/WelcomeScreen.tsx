@@ -41,43 +41,27 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         </h1>
         <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">The Fastest Way to Earn on Solana</p>
         
-        {/* Description - Glass Futuristic Panel */}
-<div className="relative mb-8 max-w-sm mx-auto">
-
-  {/* Glow aura */}
-  <div
-    className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/25 via-[#06B6D4]/25 to-[#7C3AED]/25 blur-md opacity-70"
-    style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}
-  />
-
-  {/* Glass card */}
-  <div
-    className="relative overflow-hidden border border-white/20 bg-white/5 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
-    style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}
-  >
-
-    {/* Top light reflection */}
-    <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent" />
-
-    {/* Subtle inner border glow */}
-    <div className="pointer-events-none absolute inset-0 rounded-none ring-1 ring-inset ring-white/10" />
-
-    {/* Accent lines */}
-    <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-    <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-
-    {/* Corner tech details */}
-    <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-white/40" />
-    <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-cyan-300/60" />
-
-    <div className="relative p-6">
-      <p className="text-white/80 text-center leading-relaxed tracking-wide">
-        Challenge players worldwide in real-time reflex duels.  
-        Win SOL, climb ranks, and build your streak.
-      </p>
-    </div>
-  </div>
-</div>
+        {/* Description - Futuristic Panel */}
+        <div className="relative mb-8 max-w-sm mx-auto">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm opacity-30" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
+          
+          <div className="relative bg-white/5 backdrop-blur-md border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
+            {/* Top accent line */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
+            <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
+            
+            {/* Corner indicators */}
+            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
+            <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
+            
+            <div className="p-6">
+              <p className="text-gray-300 text-center leading-relaxed">
+                Challenge players worldwide in real-time reflex duels.
+                Win SOL, climb ranks, and build your streak.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Game features mini preview */}
         <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
