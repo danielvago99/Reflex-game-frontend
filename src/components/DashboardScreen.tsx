@@ -146,9 +146,7 @@ export function DashboardScreen({
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header with Avatar and Balance */}
         <div className="relative mb-4 xs:mb-6">
-          {/* Outer glow - static, no animation */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] via-[#7C3AED] to-[#06B6D4] opacity-40 blur-xl rounded-2xl"></div>
-          
+         
           <div className="relative backdrop-blur-sm border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
            
             <div className="relative p-5">
