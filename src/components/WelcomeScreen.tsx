@@ -42,7 +42,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">The Fastest Way to Earn on Solana</p>
         
         {/* Description - Futuristic Panel */}
-        <div className="relative mb-8 max-w-sm mx-auto">
+        <div className="relative glass-panel mb-8 max-w-sm mx-auto">
           <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-sm" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
           
           <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
@@ -64,7 +64,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         </div>
 
         {/* Game features mini preview */}
-        <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
+        <div className="grid grid-cols-3 glass-panel gap-3 mb-8 w-full max-w-sm mx-auto">
           <div className="bg-white/5 backdrop-blur-lg border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Target className="w-6 h-6 text-[#00FFA3]" strokeWidth={2} />
             <span className="text-xs text-gray-400">Quick Reflexes</span>
