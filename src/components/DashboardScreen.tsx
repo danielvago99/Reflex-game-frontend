@@ -149,19 +149,8 @@ export function DashboardScreen({
           {/* Outer glow - static, no animation */}
           <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3] via-[#7C3AED] to-[#06B6D4] opacity-40 blur-xl rounded-2xl"></div>
           
-          <div className="relative bg-gradient-to-br from-[#0B0F1A] via-[#1a0f2e] to-[#0B0F1A] border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
-            {/* Static background effects - no animation */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#00FFA3] rounded-full blur-3xl opacity-30"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#7C3AED] rounded-full blur-3xl opacity-30"></div>
-              <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-[#06B6D4] rounded-full blur-3xl opacity-20"></div>
-            </div>
-
-            {/* Grid pattern overlay */}
-            <div className="absolute inset-0 opacity-5" style={{
-              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)'
-            }}></div>
-            
+          <div className="relative backdrop-blur-sm border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
+           
             <div className="relative p-5">
               {/* User Info */}
               <div className="flex items-center gap-4 mb-4">
