@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+import { GlassPanel } from './ui/GlassPanel';
+
 export function FuturisticBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -112,6 +114,18 @@ export function FuturisticBackground() {
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#38E8FF] opacity-[0.08] rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-[#7C3AED] opacity-[0.08] rounded-full blur-[120px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FF4FD8] opacity-[0.06] rounded-full blur-[100px]" />
+      </div>
+
+      <div className="absolute inset-0 pointer-events-none">
+        <GlassPanel className="absolute left-[8%] top-[18%] w-64 opacity-80" noBorder>
+          <div className="h-20 w-full" />
+        </GlassPanel>
+        <GlassPanel className="absolute right-[10%] top-[30%] w-72 opacity-70" noBorder>
+          <div className="h-24 w-full" />
+        </GlassPanel>
+        <GlassPanel className="absolute left-[18%] bottom-[18%] w-60 opacity-75" noBorder>
+          <div className="h-16 w-full" />
+        </GlassPanel>
       </div>
 
       <canvas
