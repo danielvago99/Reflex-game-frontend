@@ -39,7 +39,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         <h1 className="text-4xl xs:text-5xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEX
         </h1>
-        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">The Fastest Way to Earn on Solana</p>
+        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Earn More by Reacting Faster on Solana</p>
         
         {/* Description - Futuristic Panel */}
         <div className="relative mb-8 max-w-sm mx-auto">
@@ -56,8 +56,7 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
             
             <div className="p-6">
               <p className="text-gray-300 text-center leading-relaxed">
-                Challenge players worldwide in real-time reflex duels.
-                Win SOL, climb ranks, and build your streak.
+                Compete worldwide or challenge friends in real-time reflex battles to win SOL. Test your speed and climb the global leaderboard in this gaming experience.
               </p>
             </div>
           </div>
