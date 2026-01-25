@@ -1,15 +1,17 @@
 export function FuturisticBackground({ animated = true }: { animated?: boolean }) {
   return (
     <>
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.28),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(0,255,163,0.2),_transparent_60%),radial-gradient(circle_at_center,_rgba(6,182,212,0.15),_transparent_65%)]" />
+
       {/* Static grid pattern - no animation needed */}
       <div 
-        className="absolute inset-0 opacity-10 pointer-events-none"
+        className="absolute inset-0 opacity-15 pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(0, 255, 163, 0.15) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 163, 0.15) 1px, transparent 1px)
+            linear-gradient(rgba(124, 58, 237, 0.25) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(6, 182, 212, 0.2) 1px, transparent 1px)
           `,
-          backgroundSize: '40px 40px'
+          backgroundSize: '48px 48px'
         }}
       />
 
@@ -61,18 +63,18 @@ export function FuturisticBackground({ animated = true }: { animated?: boolean }
 
       {/* Minimal accent lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[15%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3]/30 to-transparent" />
-        <div className="absolute bottom-[15%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4]/30 to-transparent" />
-        <div className="absolute top-0 left-[20%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED]/20 to-transparent" />
-        <div className="absolute top-0 right-[20%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#00FFA3]/20 to-transparent" />
+        <div className="absolute top-[12%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#7C3AED]/40 to-transparent" />
+        <div className="absolute bottom-[18%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4]/35 to-transparent" />
+        <div className="absolute top-0 left-[18%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#00FFA3]/30 to-transparent" />
+        <div className="absolute top-0 right-[18%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED]/25 to-transparent" />
       </div>
 
       {/* Corner decorations */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-4 left-4 w-12 h-12 border-t border-l border-[#00FFA3]/40" />
-        <div className="absolute top-4 right-4 w-12 h-12 border-t border-r border-[#06B6D4]/40" />
-        <div className="absolute bottom-4 left-4 w-12 h-12 border-b border-l border-[#7C3AED]/40" />
-        <div className="absolute bottom-4 right-4 w-12 h-12 border-b border-r border-[#00FFA3]/40" />
+        <div className="absolute top-4 left-4 w-14 h-14 border-t border-l border-[#00FFA3]/40" />
+        <div className="absolute top-4 right-4 w-14 h-14 border-t border-r border-[#06B6D4]/40" />
+        <div className="absolute bottom-4 left-4 w-14 h-14 border-b border-l border-[#7C3AED]/40" />
+        <div className="absolute bottom-4 right-4 w-14 h-14 border-b border-r border-[#00FFA3]/40" />
       </div>
 
       {/* Minimal particle grid - CSS only */}
