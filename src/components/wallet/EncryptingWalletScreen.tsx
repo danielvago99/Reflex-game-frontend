@@ -54,6 +54,7 @@ export function EncryptingWalletScreen({ onComplete }: EncryptingWalletScreenPro
         <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-[#7C3AED] opacity-20 rounded-full blur-[120px] animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/2 w-96 h-96 bg-[#00FFA3] opacity-20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
+      <div className="absolute inset-0 pointer-events-none bg-white/5 backdrop-blur-2xl"></div>
 
       {/* Floating hex particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

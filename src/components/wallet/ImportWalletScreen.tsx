@@ -63,6 +63,7 @@ export function ImportWalletScreen({ onImportSeed, onImportKeystore, onBack }: I
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#7C3AED] opacity-10 rounded-full blur-[120px]"></div>
       </div>
+      <div className="absolute inset-0 pointer-events-none bg-white/5 backdrop-blur-2xl"></div>
 
       <div className="relative z-10 max-w-md w-full mx-auto flex flex-col min-h-[calc(100vh-1.75rem)] md:min-h-[75vh] py-5 md:py-6 gap-4 md:gap-5">
         {/* Header */}

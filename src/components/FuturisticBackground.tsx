@@ -114,6 +114,8 @@ export function FuturisticBackground() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FF4FD8] opacity-[0.06] rounded-full blur-[100px]" />
       </div>
 
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-2xl" />
+
       <canvas
         ref={canvasRef}
         className="absolute inset-0 pointer-events-none"

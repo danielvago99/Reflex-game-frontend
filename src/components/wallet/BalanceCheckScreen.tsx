@@ -37,6 +37,7 @@ export function BalanceCheckScreen({ walletAddress, onContinue, onBack }: Balanc
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 w-96 h-96 bg-[#06B6D4] opacity-10 rounded-full blur-[120px]"></div>
       </div>
+      <div className="absolute inset-0 pointer-events-none bg-white/5 backdrop-blur-2xl"></div>
 
       <div className="relative z-10 max-w-md mx-auto flex flex-col min-h-screen py-8">
         {/* Header */}
