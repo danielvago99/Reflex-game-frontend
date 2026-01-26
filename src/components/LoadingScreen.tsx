@@ -34,43 +34,8 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
   return (
     <div className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
-      {/* Static background effects - NO ANIMATION */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(rgba(0, 255, 163, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 255, 163, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
-
-        {/* Hexagonal Pattern */}
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `radial-gradient(circle at 25px 25px, rgba(124, 58, 237, 0.3) 2px, transparent 0)`,
-          backgroundSize: '50px 50px'
-        }}></div>
-
-        {/* Noise Texture */}
-        <div className="absolute inset-0 opacity-[0.015] mix-blend-overlay" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E")`
-        }}></div>
-
-        {/* Static Circuit Lines */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-[20%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent opacity-30"></div>
-          <div className="absolute top-0 left-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#06B6D4] to-transparent opacity-20"></div>
-          <div className="absolute top-0 right-[15%] w-[1px] h-full bg-gradient-to-b from-transparent via-[#7C3AED] to-transparent opacity-20"></div>
-          <div className="absolute bottom-[25%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent opacity-30"></div>
-          
-        </div>
-
-        {/* Static glowing orbs */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#00FFA3] opacity-20 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#7C3AED] opacity-20 rounded-full blur-[100px]"></div>
-        <div className="absolute top-1/2 left-1/2 w-56 h-56 bg-[#06B6D4] opacity-15 rounded-full blur-[100px]"></div>
+      <div className="absolute inset-0">
+        <FuturisticBackground />
       </div>
 
       {/* Main content */}
