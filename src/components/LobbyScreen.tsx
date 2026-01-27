@@ -890,31 +890,58 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         opponentName={opponentName}
       />
 
-      {friendIntroOpen && pendingMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0B0F1A]/90 p-6 shadow-2xl">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-xl"></div>
-            <div className="relative space-y-4 text-center">
-              <h2 className="text-2xl font-semibold text-white">Friend Match Ready</h2>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left">
-                <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
-                <p className="truncate text-lg font-semibold text-white">{pendingMatch.opponentName ?? 'Unknown Opponent'}</p>
-                <p className="mt-3 text-xs uppercase tracking-wider text-gray-400">Stake</p>
-                <p className="text-lg font-semibold text-[#00FFA3]">◎ {pendingMatch.stake.toFixed(3)} SOL</p>
-              </div>
-              <p className="text-sm text-gray-400">
-                Review the details and continue to confirm your stake.
-              </p>
-              <button
-                onClick={handleFriendContinue}
-                className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)]"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
+{friendIntroOpen && pendingMatch && (
+  // 1. Outer Overlay (same as in design)
+  <div className="fixed inset-0 bg-black/30 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="relative max-w-md w-full">
+      
+      {/* 2. Background Glow Effect */}
+      <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-50"></div>
+
+      {/* 3. Main Card Container with Chamfered Corners (ClipPath) */}
+      <div
+        className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden flex flex-col items-center text-center p-8"
+        style={{
+          clipPath:
+            'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+        }}
+      >
+        {/* 4. Corner Decorations (Gradient Lines) */}
+        <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
+        <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+        <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+
+        {/* 5. Inner Content (Friend Match Data) */}
+        <h2 className="text-2xl text-white font-bold mb-6">Friend Match Ready</h2>
+
+        {/* Details Box (Opponent and Stake) */}
+        <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-left mb-6">
+          <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
+          <p className="truncate text-lg font-semibold text-white mb-3">
+            {pendingMatch.opponentName ?? 'Unknown Opponent'}
+          </p>
+          
+          <p className="text-xs uppercase tracking-wider text-gray-400">Stake</p>
+          <p className="text-lg font-semibold text-[#00FFA3]">
+            ◎ {pendingMatch.stake.toFixed(3)} SOL
+          </p>
         </div>
-      )}
+
+        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+          Review the details and continue to confirm your stake.
+        </p>
+
+        <button
+          onClick={handleFriendContinue}
+          className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)] active:scale-95"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {waitingForStakeConfirmation && pendingMatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
