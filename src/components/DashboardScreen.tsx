@@ -281,7 +281,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('ambassador')}
-            className="w-full bg-white/10 backdrop-blur-[3px] border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/5 backdrop-blur-sm border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Gift className="w-6 h-6 text-[#7C3AED]" />
             <span>Ambassador Dashboard</span>
@@ -289,7 +289,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('rewards')}
-            className="relative w-full overflow-hidden p-4 rounded-xl transition-all duration-300 group"
+            className="relative w-full backdrop-blur-sm overflow-hidden p-4 rounded-xl transition-all duration-300 group"
           >
             {/* Animated gradient background */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 transition-all duration-300 group-hover:from-[#7C3AED]/30 group-hover:via-[#00FFA3]/30 group-hover:to-[#06B6D4]/30"></div>
@@ -306,7 +306,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('profile')}
-            className="w-full bg-white/10 backdrop-blur-[3px] border border-[#06B6D4]/30 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/10 backdrop-blur-sm border border-[#06B6D4]/30 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
             <span>My Stats</span>
@@ -314,7 +314,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('settings')}
-            className="w-full bg-white/10 backdrop-blur-[3px] border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Settings className="w-6 h-6 text-gray-300" />
             <span>Settings</span>
