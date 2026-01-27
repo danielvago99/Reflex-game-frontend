@@ -463,6 +463,41 @@ const clearSessionAssignments = (sessionId: string, state?: SessionState) => {
   }
 };
 
+const isPreGameSession = (state?: SessionState) => Boolean(state && !state.hasStarted && !state.isFinished);
+
+const collectSessionSockets = (sessionId: string, state?: SessionState) => {
+  const sockets = new Set<WebSocket>();
+  const sessionSet = sessionSockets.get(sessionId);
+  if (sessionSet) {
+    for (const sessionSocket of sessionSet) {
+      sockets.add(sessionSocket);
+    }
+  }
+
+  const assignments = sessionAssignments.get(sessionId);
+  const potentialUsers = [assignments?.p1, assignments?.p2, state?.userId];
+  for (const userId of potentialUsers) {
+    if (!userId) continue;
+    const activeSocket = activeUsers.get(userId);
+    if (activeSocket) {
+      sockets.add(activeSocket);
+    }
+  }
+
+  return sockets;
+};
+
+const emitMatchCancelled = (sessionId: string, state: SessionState | undefined, reason: string, message: string) => {
+  const sockets = collectSessionSockets(sessionId, state);
+  for (const sessionSocket of sockets) {
+    sendMessage(sessionSocket, 'match:cancelled', {
+      sessionId,
+      reason,
+      message,
+    });
+  }
+};
+
 const cleanupAbortedSession = async (sessionId: string, reason: string) => {
   const sessionState = sessionStates.get(sessionId);
   if (!sessionState || sessionState.isFinished) {
@@ -474,6 +509,7 @@ const cleanupAbortedSession = async (sessionId: string, reason: string) => {
   clearSessionAssignments(sessionId, sessionState);
   sessionAssignments.delete(sessionId);
   sessionSockets.delete(sessionId);
+  sessionStates.delete(sessionId);
   finalizedSessions.delete(sessionId);
 
   try {
@@ -488,6 +524,16 @@ const cleanupAbortedSession = async (sessionId: string, reason: string) => {
   }
 
   logger.info({ sessionId, reason }, 'Aborted session cleaned up');
+};
+
+const failFastCancelSession = async (sessionId: string, reason: string, message: string) => {
+  const sessionState = sessionStates.get(sessionId);
+  if (!sessionState || sessionState.isFinished) {
+    return;
+  }
+
+  emitMatchCancelled(sessionId, sessionState, reason, message);
+  await cleanupAbortedSession(sessionId, reason);
 };
 
 const clearInvalidSession = async (
@@ -525,6 +571,11 @@ const validateRestorableSession = async (userId: string, sessionId: string) => {
       logger.warn({ error, sessionId }, 'Failed to validate session state in Redis');
       await clearInvalidSession(userId, sessionId, 'session validation failed');
     }
+    return null;
+  }
+
+  if (!state.hasStarted) {
+    await cleanupAbortedSession(sessionId, 'session not started; fail-fast cleanup');
     return null;
   }
 
@@ -1301,49 +1352,63 @@ export function createWsServer(server: Server) {
   matchmakingEvents.on('bot_match', (data) => {
     const { userId, stake } = data as { userId: string; stake: number };
     const socket = activeUsers.get(userId);
-
     const sessionId = crypto.randomUUID();
-    const sessionState: SessionState = {
-      sessionId,
-      round: 1,
-      scores: { p1: 0, p2: 0 },
-      matchType: 'ranked',
-      isBotOpponent: true,
-      stakeAmount: stake,
-      roundResolved: false,
-      reactions: {},
-      history: [],
-      userId,
-      username: userNames.get(userId),
-      botReactionTime: 600,
-      p1Staked: false,
-      p2Staked: true,
-      p1Ready: false,
-      p2Ready: true,
-    };
 
-    sessionStates.set(sessionId, sessionState);
-    sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
-    sessionSockets.set(sessionId, new Set());
-    userActiveSessions.set(userId, sessionId);
-
-    const sockets = sessionSockets.get(sessionId);
-
-    if (socket) {
-      sessions.set(socket, { sessionId, userId });
-      sockets?.add(socket);
-
-      sendMessage(socket, 'match_found', {
+    try {
+      const sessionState: SessionState = {
         sessionId,
-        opponentId: 'bot_opponent',
-        opponentName: 'Training Bot',
-        stake,
-        isBot: true,
-        matchType: 'bot',
-      });
-    }
+        round: 1,
+        scores: { p1: 0, p2: 0 },
+        matchType: 'ranked',
+        isBotOpponent: true,
+        stakeAmount: stake,
+        roundResolved: false,
+        reactions: {},
+        history: [],
+        userId,
+        username: userNames.get(userId),
+        botReactionTime: 600,
+        p1Staked: false,
+        p2Staked: true,
+        p1Ready: false,
+        p2Ready: true,
+      };
 
-    logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
+      sessionStates.set(sessionId, sessionState);
+      sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
+      sessionSockets.set(sessionId, new Set());
+      userActiveSessions.set(userId, sessionId);
+
+      const sockets = sessionSockets.get(sessionId);
+
+      if (socket) {
+        sessions.set(socket, { sessionId, userId });
+        sockets?.add(socket);
+
+        sendMessage(socket, 'match_found', {
+          sessionId,
+          opponentId: 'bot_opponent',
+          opponentName: 'Training Bot',
+          stake,
+          isBot: true,
+          matchType: 'bot',
+        });
+      }
+
+      logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
+    } catch (error) {
+      logger.error({ error, userId, sessionId }, 'Failed to create bot match session');
+      if (sessionStates.has(sessionId)) {
+        void failFastCancelSession(sessionId, 'bot creation failed', 'Match cancelled due to bot setup error.');
+      } else if (socket) {
+        sendMessage(socket, 'match:cancelled', {
+          sessionId,
+          reason: 'bot creation failed',
+          message: 'Match cancelled due to bot setup error.',
+        });
+      }
+      clearUserActiveSession(userId);
+    }
   });
 
   wss.on('connection', async (socket: WebSocket, request) => {
@@ -1735,11 +1800,37 @@ export function createWsServer(server: Server) {
               const activeSessionId = userActiveSessions.get(userId);
               const activeState = activeSessionId ? sessionStates.get(activeSessionId) : undefined;
 
-              if (activeSessionId && activeState && !activeState.hasStarted && !activeState.isFinished) {
-                await cleanupAbortedSession(activeSessionId, 'match cancelled before start');
+              if (activeSessionId && activeState && isPreGameSession(activeState)) {
+                await failFastCancelSession(
+                  activeSessionId,
+                  'match cancelled before start',
+                  'Match cancelled before the game started.',
+                );
               } else if (activeSessionId && (!activeState || activeState.isFinished)) {
                 clearUserActiveSession(userId);
               }
+            }
+            break;
+          }
+          case 'match:stake_failed': {
+            const { userId } = sessionRef;
+            const sessionId =
+              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : userId
+                ? userActiveSessions.get(userId)
+                : undefined;
+            const reason =
+              typeof message.payload?.reason === 'string' ? message.payload.reason : 'stake transaction failed';
+
+            if (sessionId) {
+              const sessionState = sessionStates.get(sessionId);
+              if (sessionState && isPreGameSession(sessionState)) {
+                await failFastCancelSession(sessionId, reason, 'Match cancelled due to stake failure.');
+                break;
+              }
+            }
+
+            if (userId) {
+              clearUserActiveSession(userId);
             }
             break;
           }
@@ -1908,21 +1999,18 @@ export function createWsServer(server: Server) {
         const sockets = sessionSockets.get(sessionRef.sessionId);
         sockets?.delete(socket);
 
-        if (sessionState?.matchType === 'friend' && !sessionState.isFinished && !sessionState.hasStarted) {
-          sessionState.isFinished = true;
-          clearTimers(sessionState);
-          clearSessionAssignments(sessionRef.sessionId, sessionState);
-          sessionAssignments.delete(sessionRef.sessionId);
-          sessionStates.delete(sessionRef.sessionId);
-          sessionSockets.delete(sessionRef.sessionId);
-
-          if (sessionState.roomCode) {
-            void redisClient.del(getRoomCodeKey(sessionState.roomCode));
+        if (sessionState && isPreGameSession(sessionState)) {
+          if (sessionState.matchType === 'friend') {
+            broadcastToSession(sessionRef.sessionId, 'friend:room_closed', {
+              message: 'Room closed because a player disconnected.',
+            });
           }
-          void redisClient.del(getSessionKey(sessionState.sessionId));
-          broadcastToSession(sessionRef.sessionId, 'friend:room_closed', {
-            message: 'Room closed because a player disconnected.',
-          });
+
+          void failFastCancelSession(
+            sessionRef.sessionId,
+            'player disconnected before start',
+            'Match cancelled because a player disconnected before the game started.',
+          );
           sessions.delete(socket);
           return;
         }

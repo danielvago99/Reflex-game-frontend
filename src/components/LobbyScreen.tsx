@@ -140,10 +140,27 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setMatchStatus('idle');
     });
 
+    const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
+      const payload = message?.payload ?? {};
+      const toastMessage = payload.message ?? 'Match cancelled.';
+      setMatchStatus('idle');
+      setPendingMatch(null);
+      pendingMatchRef.current = null;
+      setOpponentName('');
+      setShowTransactionModal(false);
+      setWaitingForStakeConfirmation(false);
+      setFriendIntroOpen(false);
+      setFriendRoom(null);
+      toast.info(toastMessage, {
+        description: 'You have been returned to the lobby.',
+      });
+    });
+
     return () => {
       unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeEnterArena();
+      unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
         window.clearTimeout(matchFoundTimeoutRef.current);
         matchFoundTimeoutRef.current = null;
@@ -265,11 +282,16 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       }
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
-      if (error.code === 4001) {
-        alert('Transaction rejected by user');
-      } else {
-        alert(`Transaction failed: ${error.message}`);
+      const reason = error?.code === 4001 ? 'transaction rejected' : 'transaction failed';
+      if (pendingMatchRef.current) {
+        send('match:stake_failed', {
+          sessionId: pendingMatchRef.current.sessionId,
+          reason,
+        });
       }
+      toast.error('Transaction failed', {
+        description: 'Match cancelled due to transaction failure.',
+      });
     }
   };
 
@@ -295,6 +317,24 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     setShowTransactionModal(false);
     if (pendingMatch.matchType === 'friend') {
       setWaitingForStakeConfirmation(true);
+    }
+  };
+
+  const handleTransactionCancelled = () => {
+    if (pendingMatchRef.current) {
+      send('match:stake_failed', {
+        sessionId: pendingMatchRef.current.sessionId,
+        reason: 'transaction cancelled by user',
+      });
+    }
+  };
+
+  const handleTransactionFailure = (message: string) => {
+    if (pendingMatchRef.current) {
+      send('match:stake_failed', {
+        sessionId: pendingMatchRef.current.sessionId,
+        reason: message,
+      });
     }
   };
 
@@ -912,6 +952,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         open={showTransactionModal}
         onOpenChange={setShowTransactionModal}
         onConfirm={handleTransactionConfirm}
+        onCancel={handleTransactionCancelled}
+        onFailure={handleTransactionFailure}
         stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
         isFreeStake={useFreeStakeMode}
       />
