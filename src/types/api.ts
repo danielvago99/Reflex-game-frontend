@@ -246,6 +246,8 @@ export type WSMessageType =
   | 'player:click'
   | 'match:find'
   | 'match:cancel'
+  | 'match:cancelled'
+  | 'match:stake_failed'
   | 'match:searching'
   | 'match_found'
   | 'match:reset'

@@ -14,6 +14,8 @@ interface TransactionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  onCancel?: () => void;
+  onFailure?: (message: string) => void;
   stakeAmount: number;
   isFreeStake?: boolean;
   transactionType?: 'stake' | 'claim' | 'withdrawal';
@@ -24,6 +26,8 @@ export function TransactionModal({
   open,
   onOpenChange,
   onConfirm,
+  onCancel,
+  onFailure,
   stakeAmount,
   isFreeStake = false,
   transactionType = 'stake',
@@ -93,13 +97,16 @@ export function TransactionModal({
             duration: 3000,
           });
         } else {
-          setErrorMessage('Transaction failed. Insufficient funds or network error.');
+          const failureMessage = 'Transaction failed. Insufficient funds or network error.';
+          setErrorMessage(failureMessage);
           setState('error');
           toast.dismiss(loadingToastId);
           toast.error('Transaction failed', {
             description: 'Please try again',
             duration: 4000,
           });
+          onFailure?.(failureMessage);
+          onOpenChange(false);
         }
       }, 2000);
     }, 1500);
@@ -139,6 +146,11 @@ export function TransactionModal({
     return 'DAO Treasury...def';
   };
 
+  const handleClose = () => {
+    onCancel?.();
+    onOpenChange(false);
+  };
+
   if (!open) return null;
 
   return (
@@ -158,7 +170,7 @@ export function TransactionModal({
           {/* Close button - hide during signing/broadcasting */}
           {(state === 'review' || state === 'success' || state === 'error') && (
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
               className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 rounded-lg transition-all z-10"
             >
               <X className="w-5 h-5 text-white" />
@@ -221,7 +233,7 @@ export function TransactionModal({
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => onOpenChange(false)}
+                  onClick={handleClose}
                   className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-lg transition-all"
                 >
                   Cancel
