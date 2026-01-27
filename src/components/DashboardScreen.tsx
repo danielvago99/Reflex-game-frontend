@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
 import { getAvatarData } from './AvatarSelector';
-import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
@@ -141,8 +140,6 @@ export function DashboardScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      <FuturisticBackground />
-      
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header with Avatar and Balance */}
         <div className="relative mb-4 xs:mb-6">

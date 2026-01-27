@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 import { copyToClipboard } from '../utils/clipboard';
-import { FuturisticBackground } from './FuturisticBackground';
 
 interface AmbassadorScreenProps {
   onNavigate: (screen: string) => void;
@@ -96,9 +95,6 @@ export function AmbassadorScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
-      {/* Background effects */}
-      <FuturisticBackground />
-
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingScreen } from './components/LoadingScreen';
+import { FuturisticBackground } from './components/FuturisticBackground';
 import { AppProviders } from './app/providers/AppProviders';
 import { RouteGuard } from './app/routes/RouteGuard';
 import { Toaster } from './components/ui/sonner';
@@ -29,42 +30,50 @@ const DailyChallengeRoute = lazy(() => import('./features/auth/routes/DailyChall
 export default function App() {
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
-  if (showLoadingScreen) {
-    return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />;
-  }
-
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <AppProviders>
-        <Suspense fallback={<LoadingScreen onComplete={() => undefined} isStatic />}>
-          <Routes>
-            <Route path="/" element={<WelcomeRoute />} />
-            <Route path="/wallet/create" element={<CreateWalletRoute />} />
-            <Route path="/wallet/set-password" element={<SetPasswordRoute />} />
-            <Route path="/wallet/seed-display" element={<SeedDisplayRoute />} />
-            <Route path="/wallet/seed-verify" element={<SeedVerifyRoute />} />
-            <Route path="/wallet/encrypting" element={<EncryptingWalletRoute />} />
-            <Route path="/wallet/ready" element={<WalletReadyRoute />} />
-            <Route path="/wallet/balance" element={<BalanceCheckRoute />} />
-            <Route path="/wallet/import" element={<ImportWalletRoute />} />
-            <Route path="/wallet/unlock" element={<UnlockWalletRoute />} />
-            <Route path="/ref/:code" element={<ReferralHandler />} />
-            <Route element={<RouteGuard />}>
-              <Route path="/dashboard" element={<DashboardRoute />} />
-              <Route path="/lobby" element={<LobbyRoute />} />
-              <Route path="/arena" element={<ArenaRoute />} />
-              <Route path="/profile" element={<ProfileRoute />} />
-              <Route path="/ambassador" element={<AmbassadorRoute />} />
-              <Route path="/settings" element={<SettingsRoute />} />
-              <Route path="/rewards" element={<RewardsRoute />} />
-              <Route path="/daily-challenge" element={<DailyChallengeRoute />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-        <Toaster />
-      </AppProviders>
-    </BrowserRouter>
+    <div className="h-screen-dvh bg-[#0B0F1A] relative overflow-hidden">
+      <div className="absolute inset-0">
+        <FuturisticBackground />
+      </div>
+
+      <div className="relative z-10 h-full">
+        {showLoadingScreen ? (
+          <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />
+        ) : (
+          <BrowserRouter>
+            <ScrollToTop />
+            <AppProviders>
+              <Suspense fallback={<LoadingScreen onComplete={() => undefined} isStatic />}>
+                <Routes>
+                  <Route path="/" element={<WelcomeRoute />} />
+                  <Route path="/wallet/create" element={<CreateWalletRoute />} />
+                  <Route path="/wallet/set-password" element={<SetPasswordRoute />} />
+                  <Route path="/wallet/seed-display" element={<SeedDisplayRoute />} />
+                  <Route path="/wallet/seed-verify" element={<SeedVerifyRoute />} />
+                  <Route path="/wallet/encrypting" element={<EncryptingWalletRoute />} />
+                  <Route path="/wallet/ready" element={<WalletReadyRoute />} />
+                  <Route path="/wallet/balance" element={<BalanceCheckRoute />} />
+                  <Route path="/wallet/import" element={<ImportWalletRoute />} />
+                  <Route path="/wallet/unlock" element={<UnlockWalletRoute />} />
+                  <Route path="/ref/:code" element={<ReferralHandler />} />
+                  <Route element={<RouteGuard />}>
+                    <Route path="/dashboard" element={<DashboardRoute />} />
+                    <Route path="/lobby" element={<LobbyRoute />} />
+                    <Route path="/arena" element={<ArenaRoute />} />
+                    <Route path="/profile" element={<ProfileRoute />} />
+                    <Route path="/ambassador" element={<AmbassadorRoute />} />
+                    <Route path="/settings" element={<SettingsRoute />} />
+                    <Route path="/rewards" element={<RewardsRoute />} />
+                    <Route path="/daily-challenge" element={<DailyChallengeRoute />} />
+                  </Route>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+              <Toaster />
+            </AppProviders>
+          </BrowserRouter>
+        )}
+      </div>
+    </div>
   );
 }

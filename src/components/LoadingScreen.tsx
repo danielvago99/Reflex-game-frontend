@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Zap } from 'lucide-react';
-import { FuturisticBackground } from './FuturisticBackground';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -34,10 +33,6 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
   return (
     <div className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0">
-        <FuturisticBackground />
-      </div>
-
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center gap-8">
         {/* Reflex Icon with animations */}

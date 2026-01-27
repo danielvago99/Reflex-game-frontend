@@ -1,5 +1,4 @@
 import { Zap, Target, Timer, Trophy, Wallet, Key } from 'lucide-react';
-import { FuturisticBackground } from './FuturisticBackground';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -22,9 +21,6 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
 
   return (
     <div className="h-screen-dvh bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      
-      <FuturisticBackground />
-
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center max-w-md w-full">
         {/* Logo */}

@@ -2,7 +2,6 @@ import { ArrowLeft, TrendingUp, Trophy, Clock, Coins, Award } from 'lucide-react
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useMemo } from 'react';
 import { getAvatarData } from './AvatarSelector';
-import { FuturisticBackground } from './FuturisticBackground';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
 
@@ -83,9 +82,6 @@ export function ProfileScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
-      {/* Background effects */}
-      <FuturisticBackground />
-
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">

@@ -1,6 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
 import { DailyChallengeCard } from './DailyChallengeCard';
-import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 
 interface DailyChallengeScreenProps {
@@ -16,9 +15,6 @@ export function DailyChallengeScreen({ onBack }: DailyChallengeScreenProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
-      {/* Background effects */}
-      <FuturisticBackground />
-
       <div className="relative z-10 max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">

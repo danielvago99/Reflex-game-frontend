@@ -2,7 +2,6 @@ import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-r
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, findAvatarIdByUrl, getAvatarData } from './AvatarSelector';
-import { FuturisticBackground } from './FuturisticBackground';
 import { LoadingOverlay } from './ui/LoadingOverlay';
 
 interface SettingsScreenProps {
@@ -65,8 +64,6 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
-      <FuturisticBackground />
-
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">

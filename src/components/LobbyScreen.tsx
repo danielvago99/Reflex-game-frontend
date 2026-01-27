@@ -6,7 +6,6 @@ import { FriendJoinDialog } from './friends/FriendJoinDialog';
 import { TransactionModal } from './TransactionModal';
 import { getFreeStakes, useFreeStake, FreeStake } from '../utils/reflexPoints';
 import { DailyChallengeCard } from './DailyChallengeCard';
-import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -321,8 +320,6 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      <FuturisticBackground />
-      
       <div className="relative z-10 max-w-md mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 xs:gap-4 mb-4 xs:mb-6">
