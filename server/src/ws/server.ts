@@ -35,6 +35,8 @@ interface SessionState extends RoundTimers {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1RoundReady: boolean;
+  p2RoundReady: boolean;
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -65,6 +67,8 @@ interface RedisSessionState {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1RoundReady: boolean;
+  p2RoundReady: boolean;
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
@@ -131,6 +135,8 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
   p2Ready: state.p2Ready,
+  p1RoundReady: state.p1RoundReady,
+  p2RoundReady: state.p2RoundReady,
   target: state.target,
   targetShownAt: state.targetShownAt,
   botReactionTime: state.botReactionTime,
@@ -407,6 +413,8 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.p2Staked = false;
   state.p1Ready = false;
   state.p2Ready = false;
+  state.p1RoundReady = false;
+  state.p2RoundReady = false;
   state.history = [];
   state.roundResolved = false;
   state.target = undefined;
@@ -1132,6 +1140,8 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     sessionState.botReactionTime = undefined;
     sessionState.target = undefined;
     sessionState.reactions = {};
+    sessionState.p1RoundReady = false;
+    sessionState.p2RoundReady = false;
     clearTimers(sessionState);
   }
 
@@ -1152,8 +1162,24 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
       sessionState.isBotOpponent = false;
     }
   }
+  const slot = getSlotForUser(sessionState, sessionRef.userId);
+  if (slot === 'p1') {
+    sessionState.p1RoundReady = true;
+  } else {
+    sessionState.p2RoundReady = true;
+  }
+
+  if (isBotOpponent(sessionState)) {
+    sessionState.p2RoundReady = true;
+  }
+
   if (sessionState.showTimeout || sessionState.targetShownAt) {
     logger.info({ sessionId, round: sessionState.round }, 'Round already prepared; skipping duplicate ready');
+    return;
+  }
+
+  if (!sessionState.p1RoundReady || !sessionState.p2RoundReady) {
+    void persistSessionState(sessionState);
     return;
   }
 
@@ -1309,6 +1335,8 @@ export function createWsServer(server: Server) {
       p2Staked: false,
       p1Ready: false,
       p2Ready: false,
+      p1RoundReady: false,
+      p2RoundReady: false,
     };
 
     sessionStates.set(sessionId, baseState);
@@ -1370,6 +1398,8 @@ export function createWsServer(server: Server) {
         p2Staked: true,
         p1Ready: false,
         p2Ready: true,
+        p1RoundReady: false,
+        p2RoundReady: true,
       };
 
       sessionStates.set(sessionId, sessionState);
@@ -1509,6 +1539,8 @@ export function createWsServer(server: Server) {
         p2Staked: false,
         p1Ready: false,
         p2Ready: false,
+        p1RoundReady: false,
+        p2RoundReady: false,
         roundResolved: false,
         reactions: {},
         history: [],
@@ -1595,6 +1627,8 @@ export function createWsServer(server: Server) {
               p2Staked: false,
               p1Ready: false,
               p2Ready: false,
+              p1RoundReady: false,
+              p2RoundReady: false,
             };
 
             sessionStates.set(sessionId, sessionState);
@@ -1880,6 +1914,8 @@ export function createWsServer(server: Server) {
               p2Staked: false,
               p1Ready: false,
               p2Ready: false,
+              p1RoundReady: false,
+              p2RoundReady: false,
               roundResolved: false,
               reactions: {},
               history: [],
