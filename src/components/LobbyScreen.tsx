@@ -349,7 +349,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
         {/* Tabs for Quick Play vs Friends */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4 xs:mb-6">
-          <TabsList className="bg-white/5 backdrop-blur-lg border border-white/10 w-full grid grid-cols-2 p-1">
+          <TabsList className="bg-white/5 backdrop-blur-sm border border-white/10 w-full grid grid-cols-2 p-1">
             <TabsTrigger 
               value="quickplay"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#00FFA3] data-[state=active]:to-[#06B6D4] data-[state=active]:text-[#0B0F1A] data-[state=active]:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-gray-400 hover:text-white transition-all duration-300"
@@ -378,7 +378,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                 {/* Outer glow */}
                 <div className={`absolute -inset-1 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur-md transition-opacity duration-300 ${selectedMode === 'bot' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}></div>
                 
-                <div className={`relative backdrop-blur-sm border-2 transition-all overflow-hidden ${selectedMode === 'bot' ? 'bg-[#00FFA3]/10 border-[#00FFA3]' : 'bg-white/5 border-[#00FFA3]/30 group-hover:border-[#00FFA3]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
+                <div className={`relative backdrop-blur-[4px] border-2 transition-all overflow-hidden ${selectedMode === 'bot' ? 'bg-[#00FFA3]/10 border-[#00FFA3]' : 'bg-white/5 border-[#00FFA3]/30 group-hover:border-[#00FFA3]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
                   {/* Top accent */}
                   <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                   
@@ -420,7 +420,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                 {/* Outer glow */}
                 <div className={`absolute -inset-1 bg-gradient-to-br from-[#7C3AED]/30 to-[#06B6D4]/30 blur-md transition-opacity duration-300 ${selectedMode === 'ranked' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}></div>
                 
-                <div className={`relative backdrop-blur-sm border-2 transition-all overflow-hidden ${selectedMode === 'ranked' ? 'bg-[#7C3AED]/10 border-[#7C3AED]' : 'bg-white/5 border-[#7C3AED]/30 group-hover:border-[#7C3AED]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
+                <div className={`relative backdrop-blur-[4px] border-2 transition-all overflow-hidden ${selectedMode === 'ranked' ? 'bg-[#7C3AED]/10 border-[#7C3AED]' : 'bg-white/5 border-[#7C3AED]/30 group-hover:border-[#7C3AED]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
                   {/* Top accent */}
                   <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
                   
