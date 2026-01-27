@@ -1149,7 +1149,9 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
     sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
   }
   if (sessionState.matchType) {
-    logger.info({ sessionId }, 'Ignoring client matchType payload because session is already set');
+    if (payload?.matchType) {
+      logger.info({ sessionId }, 'Ignoring client matchType payload because session is already set');
+    }
   } else {
     const validTypes = ['ranked', 'friend', 'bot'];
     const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
