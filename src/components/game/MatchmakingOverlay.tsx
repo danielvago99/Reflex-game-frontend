@@ -31,12 +31,12 @@ export function MatchmakingOverlay({
   if (status === 'idle') return null;
 
   return (
-    <div className="fixed inset-0 bg-white/10 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-white/10 backdrop-blur-lg z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="relative max-w-md w-full">
         <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-50"></div>
 
         <div
-          className="relative bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] border-2 border-white/20 shadow-2xl overflow-hidden min-h-[320px] flex flex-col items-center justify-center text-center p-8"
+          className="relative bg-white/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[320px] flex flex-col items-center justify-center text-center p-8"
           style={{
             clipPath:
               'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
