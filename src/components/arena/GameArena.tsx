@@ -491,14 +491,30 @@ export function GameArena({
       )}
 
       {waitingForOpponent && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/60 px-8 py-6 text-center shadow-xl">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent"></div>
-            <div>
-              <p className="text-lg font-semibold text-white">Waiting for opponent to get ready...</p>
-              <p className="text-sm text-gray-400">
-                {opponent.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
-              </p>
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative max-w-md w-full">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-50"></div>
+            <div
+              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[220px] flex flex-col items-center justify-center text-center p-8"
+              style={{
+                clipPath:
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+              }}
+            >
+              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
+              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-400/80 border-t-transparent"></div>
+                <div>
+                  <p className="text-xl font-semibold text-white">Waiting for opponent to get ready...</p>
+                  <p className="text-sm text-gray-300 mt-1">
+                    {opponent.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
