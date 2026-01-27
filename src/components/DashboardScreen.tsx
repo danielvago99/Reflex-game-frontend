@@ -314,7 +314,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('settings')}
-            className="w-full bg-white/10 backdrop-blur-[3px] border border-gray-300/30 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/10 backdrop-blur-[3px] border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Settings className="w-6 h-6 text-gray-300" />
             <span>Settings</span>

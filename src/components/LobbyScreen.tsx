@@ -378,7 +378,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                 {/* Outer glow */}
                 <div className={`absolute -inset-1 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur-md transition-opacity duration-300 ${selectedMode === 'bot' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}></div>
                 
-                <div className={`relative backdrop-blur-lg border-2 transition-all overflow-hidden ${selectedMode === 'bot' ? 'bg-[#00FFA3]/10 border-[#00FFA3]' : 'bg-white/5 border-[#00FFA3]/30 group-hover:border-[#00FFA3]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
+                <div className={`relative backdrop-blur-sm border-2 transition-all overflow-hidden ${selectedMode === 'bot' ? 'bg-[#00FFA3]/10 border-[#00FFA3]' : 'bg-white/5 border-[#00FFA3]/30 group-hover:border-[#00FFA3]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
                   {/* Top accent */}
                   <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                   
@@ -420,7 +420,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                 {/* Outer glow */}
                 <div className={`absolute -inset-1 bg-gradient-to-br from-[#7C3AED]/30 to-[#06B6D4]/30 blur-md transition-opacity duration-300 ${selectedMode === 'ranked' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}></div>
                 
-                <div className={`relative backdrop-blur-lg border-2 transition-all overflow-hidden ${selectedMode === 'ranked' ? 'bg-[#7C3AED]/10 border-[#7C3AED]' : 'bg-white/5 border-[#7C3AED]/30 group-hover:border-[#7C3AED]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
+                <div className={`relative backdrop-blur-sm border-2 transition-all overflow-hidden ${selectedMode === 'ranked' ? 'bg-[#7C3AED]/10 border-[#7C3AED]' : 'bg-white/5 border-[#7C3AED]/30 group-hover:border-[#7C3AED]'}`} style={{ clipPath: 'polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)' }}>
                   {/* Top accent */}
                   <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
                   
@@ -462,7 +462,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
             <div className="relative mb-6">
               <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}></div>
               
-              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
+              <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
                 {/* Decorative lines */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
                 <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
