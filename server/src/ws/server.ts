@@ -1179,7 +1179,6 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
   }
 
   if (!sessionState.p1RoundReady || !sessionState.p2RoundReady) {
-    void persistSessionState(sessionState);
     return;
   }
 
@@ -2008,8 +2007,6 @@ export function createWsServer(server: Server) {
               logger.info('>>> PLAYERS READY - STARTING COUNTDOWN <<<');
               startRoundSequence(sessionState);
             }
-
-            void persistSessionState(sessionState);
             break;
           }
           case 'ping':
