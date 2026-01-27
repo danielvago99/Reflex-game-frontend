@@ -463,6 +463,33 @@ const clearSessionAssignments = (sessionId: string, state?: SessionState) => {
   }
 };
 
+const cleanupAbortedSession = async (sessionId: string, reason: string) => {
+  const sessionState = sessionStates.get(sessionId);
+  if (!sessionState || sessionState.isFinished) {
+    return;
+  }
+
+  sessionState.isFinished = true;
+  clearTimers(sessionState);
+  clearSessionAssignments(sessionId, sessionState);
+  sessionAssignments.delete(sessionId);
+  sessionSockets.delete(sessionId);
+  finalizedSessions.delete(sessionId);
+
+  try {
+    if (sessionState.matchType !== 'bot') {
+      await redisClient.del(getSessionKey(sessionId));
+    }
+    if (sessionState.matchType === 'friend' && sessionState.roomCode) {
+      await redisClient.del(getRoomCodeKey(sessionState.roomCode));
+    }
+  } catch (error) {
+    logger.warn({ error, sessionId }, 'Failed to cleanup Redis for aborted session');
+  }
+
+  logger.info({ sessionId, reason }, 'Aborted session cleaned up');
+};
+
 const clearInvalidSession = async (
   userId: string,
   sessionId: string,
@@ -1697,6 +1724,25 @@ export function createWsServer(server: Server) {
               })();
             }
             break;
+          case 'match:cancel': {
+            const { userId } = sessionRef;
+            const stakeValue = Number(message.payload?.stake);
+            if (userId && Number.isFinite(stakeValue)) {
+              await matchmakingService.removeFromQueue(userId, stakeValue);
+            }
+
+            if (userId) {
+              const activeSessionId = userActiveSessions.get(userId);
+              const activeState = activeSessionId ? sessionStates.get(activeSessionId) : undefined;
+
+              if (activeSessionId && activeState && !activeState.hasStarted && !activeState.isFinished) {
+                await cleanupAbortedSession(activeSessionId, 'match cancelled before start');
+              } else if (activeSessionId && (!activeState || activeState.isFinished)) {
+                clearUserActiveSession(userId);
+              }
+            }
+            break;
+          }
           case 'match:stake_confirmed': {
             const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : undefined;
             if (!sessionId) return;
