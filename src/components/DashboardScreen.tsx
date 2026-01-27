@@ -209,7 +209,7 @@ export function DashboardScreen({
                     </div>
 
                     <div className="mb-3">
-                      <p className="text-3xl text-[#00FFA3] font-bold drop-shadow-[0_0_10px_rgba(0,255,163,0.6)]">
+                      <p className="text-3xl text-[#00FFA3] font-bold">
                         {isLoading ? '—' : walletBalance.toFixed(4)}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
