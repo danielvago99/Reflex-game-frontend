@@ -44,7 +44,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
         <div className="relative" style={{ perspective: '1000px' }}>
           {/* Outer rotating ring */}
           <div className="absolute inset-0 -m-8">
-            <div className="w-full h-full border-2 border-[#00FFA3]/20 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
+            <div className="w-full h-full border-2 border-[#7C3AED]/20 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
           </div>
           
           {/* Middle pulsing glow */}
@@ -59,10 +59,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
               animation: 'rotate3d 4s ease-in-out infinite',
               transformStyle: 'preserve-3d'
             }}
-          >
-            {/* Glow effect behind */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
-            
+          >         
             {/* Main gradient container - matching Welcome page */}
             <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#7C3AED] p-6 rounded-3xl shadow-2xl">
               <Zap 
