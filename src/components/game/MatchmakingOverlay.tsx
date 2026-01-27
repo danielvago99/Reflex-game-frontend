@@ -84,13 +84,13 @@ export function MatchmakingOverlay({
           {status === 'found' && (
             <div className="animate-in zoom-in duration-300 w-full flex flex-col items-center">
               <div className="relative inline-flex items-center justify-center mb-8">
-                <div className="absolute w-28 h-28 bg-[#00FFA3]/10 rounded-full animate-pulse"></div>
-                <div className="relative w-24 h-24 bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-full border-2 border-[#00FFA3] flex items-center justify-center shadow-[0_0_30px_rgba(0,255,163,0.3)]">
-                  <Swords className="w-12 h-12 text-[#00FFA3]" />
+                <div className="absolute w-20 h-20 bg-[#00FFA3]/10 rounded-full animate-pulse"></div>
+                <div className="relative w-10 h-10 bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-full border-2 border-[#00FFA3] flex items-center justify-center shadow-[0_0_30px_rgba(0,255,163,0.3)]">
+                  <Swords className="w-10 h-10 text-[#00FFA3]" />
                 </div>
               </div>
 
-              <h2 className="text-3xl text-white font-bold mb-2 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(0,255,163,0.5)]">
+              <h2 className="text-2xl text-white font-bold mb-2 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(0,255,163,0.5)]">
                 Match Found!
               </h2>
 
