@@ -147,7 +147,7 @@ export function DashboardScreen({
         {/* Header with Avatar and Balance */}
         <div className="relative mb-4 xs:mb-6">
          
-          <div className="relative backdrop-blur-[2px] border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
+          <div className="relative backdrop-blur-[3px] border-2 border-[#00FFA3]/50 rounded-2xl overflow-hidden">
            
             <div className="relative p-5">
               {/* User Info */}
@@ -176,7 +176,7 @@ export function DashboardScreen({
                 {/* Inner glow border - static */}
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 blur opacity-50 rounded-xl"></div>
                 
-                <div className="relative bg-white/5 backdrop-blur-[2px] border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
+                <div className="relative backdrop-blur-[3px] border border-[#00FFA3]/30 rounded-xl p-4 overflow-hidden">
                   {/* Animated background grid */}
                   <div className="absolute inset-0 opacity-10" style={{
                     backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(0,255,163,0.3) 25%, rgba(0,255,163,0.3) 26%, transparent 27%, transparent 74%, rgba(0,255,163,0.3) 75%, rgba(0,255,163,0.3) 76%, transparent 77%)',
