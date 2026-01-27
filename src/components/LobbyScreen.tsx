@@ -464,32 +464,32 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
               
               <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' }}>
                 {/* Decorative lines */}
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
                 <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
                 
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white uppercase tracking-wider text-sm">Entry Stake</h3>
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-[#00FFA3] rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full animate-pulse"></div>
                       <span className="text-xs text-gray-400">Locked</span>
                     </div>
                   </div>
                   
                   {/* Stake display */}
                   <div className="relative mb-4">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/10 to-[#06B6D4]/10" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}></div>
+                    <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/30 to-[#06B6D4]/10" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}></div>
                     <div className="relative bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm p-5" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-gray-300 text-sm">Stake Amount</span>
-                        <span className="text-2xl text-[#00FFA3] drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]">
+                        <span className="text-2xl text-[#7C3AED] drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]">
                           {selectedStake} SOL
                         </span>
                       </div>
                       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-2"></div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-200">Winner takes</span>
-                        <span className="text-[#00FFA3] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">{(parseFloat(selectedStake) * 1.7).toFixed(2)} SOL</span>
+                        <span className="text-[#7C3AED] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">{(parseFloat(selectedStake) * 1.7).toFixed(2)} SOL</span>
                       </div>
                       <div className="flex items-center justify-between text-sm mt-1">
                         <span className="text-gray-200">Staking fee</span>
