@@ -1092,7 +1092,6 @@ const scheduleTargetShow = (sessionId: string, state: SessionState) => {
   state.showTimeout = setTimeout(() => {
     state.targetShownAt = Date.now();
     state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
-    void persistSessionState(state);
 
     const socketsCount = broadcastToSession(sessionId, 'round:show_target', {
       round: state.round,
@@ -1174,7 +1173,6 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
   );
 
   scheduleTargetShow(sessionId, sessionState);
-  await persistSessionState(sessionState);
 };
 
 const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
