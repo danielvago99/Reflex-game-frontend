@@ -478,7 +478,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                   
                   {/* Stake display */}
                   <div className="relative mb-4">
-                    <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/30 to-[#06B6D4]/30" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}></div>
+                    <div className="absolute -inset-px bg-gradient-to-r from-[#7C3AED]/10 to-[#06B6D4]/10" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}></div>
                     <div className="relative bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm p-5" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-gray-300 text-sm">Stake Amount</span>

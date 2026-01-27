@@ -281,7 +281,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('ambassador')}
-            className="w-full bg-white/5 backdrop-blur-sm border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/10 backdrop-blur-sm border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Gift className="w-6 h-6 text-[#7C3AED]" />
             <span>Ambassador Dashboard</span>
@@ -326,7 +326,7 @@ export function DashboardScreen({
           {/* Multi-layer border effect */}
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 via-[#06B6D4]/10 to-[#7C3AED]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-[3px] border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+          <div className="relative bg-white/10 backdrop-blur-sm border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
             {/* Top decorative line */}
             <div className="absolute top-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-[#00FFA3]/50 to-transparent"></div>
             
@@ -384,7 +384,7 @@ export function DashboardScreen({
                   // Match List
                   formattedMatches.map((match, i) => (
                     <div key={match.id ?? i} className="relative group">
-                      <div className="flex items-center justify-between py-3 px-3 bg-white/5 backdrop-blur-sm border-l-2 transition-all hover:bg-white/10" style={{ borderColor: match.color }}>
+                      <div className="flex items-center justify-between py-3 px-3 bg-white/10 backdrop-blur-sm border-l-2 transition-all hover:bg-white/10" style={{ borderColor: match.color }}>
                         <div className="flex items-center gap-3">
                           <div className="relative">
                             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: match.color }}></div>
