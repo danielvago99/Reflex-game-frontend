@@ -892,25 +892,49 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
       {friendIntroOpen && pendingMatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0B0F1A]/90 p-6 shadow-2xl">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-xl"></div>
-            <div className="relative space-y-4 text-center">
-              <h2 className="text-2xl font-semibold text-white">Friend Match Ready</h2>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left">
-                <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
-                <p className="truncate text-lg font-semibold text-white">{pendingMatch.opponentName ?? 'Unknown Opponent'}</p>
-                <p className="mt-3 text-xs uppercase tracking-wider text-gray-400">Stake</p>
-                <p className="text-lg font-semibold text-[#00FFA3]">◎ {pendingMatch.stake.toFixed(3)} SOL</p>
+          <div className="relative w-full max-w-md">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-60"></div>
+            <div
+              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
+              style={{
+                clipPath:
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+              }}
+            >
+              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
+              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+
+              <div className="relative space-y-4 text-center">
+                <h2 className="text-2xl font-semibold text-white">Friend Match Ready</h2>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left">
+                  <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
+                  <p className="truncate text-lg font-semibold text-white">{pendingMatch.opponentName ?? 'Unknown Opponent'}</p>
+                  <p className="mt-4 text-xs uppercase tracking-wider text-gray-400">Stake</p>
+                  <p className="text-lg font-semibold text-[#00FFA3]">◎ {pendingMatch.stake.toFixed(3)} SOL</p>
+                  <div className="mt-4 flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-gray-400">Winner payout</p>
+                      <p className="text-base font-semibold text-white">
+                        ◎ {(pendingMatch.stake * 2).toFixed(3)} SOL
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-[#00FFA3]/40 bg-[#00FFA3]/10 px-2 py-1 text-xs font-semibold text-[#00FFA3]">
+                      2x
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400">
+                  Review the details and continue to confirm your stake.
+                </p>
+                <button
+                  onClick={handleFriendContinue}
+                  className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)]"
+                >
+                  Continue
+                </button>
               </div>
-              <p className="text-sm text-gray-400">
-                Review the details and continue to confirm your stake.
-              </p>
-              <button
-                onClick={handleFriendContinue}
-                className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)]"
-              >
-                Continue
-              </button>
             </div>
           </div>
         </div>
@@ -918,15 +942,28 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
       {waitingForStakeConfirmation && pendingMatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0B0F1A]/90 p-6 shadow-2xl text-center">
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 blur-xl"></div>
-            <div className="relative space-y-4">
-              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#7C3AED] border-t-transparent"></div>
-              <div>
-                <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
-                <p className="text-sm text-gray-400">
-                  {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {pendingMatch.stake.toFixed(3)} SOL.
-                </p>
+          <div className="relative w-full max-w-md">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 blur-2xl opacity-60"></div>
+            <div
+              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
+              style={{
+                clipPath:
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+              }}
+            >
+              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
+              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+
+              <div className="relative space-y-4">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#7C3AED] border-t-transparent"></div>
+                <div>
+                  <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
+                  <p className="text-sm text-gray-400">
+                    {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {pendingMatch.stake.toFixed(3)} SOL.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
