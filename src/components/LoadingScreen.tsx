@@ -42,11 +42,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
       <div className="relative z-10 flex flex-col items-center gap-8">
         {/* Reflex Icon with animations */}
         <div className="relative" style={{ perspective: '1000px' }}>
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 -m-8">
-            <div className="w-full h-full border-2 border-[#06B6D4]/20 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
-          </div>
-          
+                   
           {/* Middle pulsing glow */}
           <div className="absolute inset-0 -m-4">
             <div className="w-full h-full bg-gradient-to-r from-[#06B6D4]/10 to-[#7C3AED]/10 rounded-full blur-xl animate-pulse"></div>
