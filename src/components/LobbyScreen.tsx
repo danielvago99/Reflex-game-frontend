@@ -277,7 +277,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         stake: matchDetails.stake,
         matchType: matchDetails.matchType,
       });
-      if (matchDetails.matchType === 'friend') {
+      if (matchDetails.matchType !== 'bot') {
         setWaitingForStakeConfirmation(true);
       }
     } catch (error: any) {
@@ -315,7 +315,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     });
     
     setShowTransactionModal(false);
-    if (pendingMatch.matchType === 'friend') {
+    if (pendingMatch.matchType !== 'bot') {
       setWaitingForStakeConfirmation(true);
     }
   };
