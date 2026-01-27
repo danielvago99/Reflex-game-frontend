@@ -300,7 +300,7 @@ const closeFriendRoom = async (
     if (requestedByUserId && assignments?.p2 === requestedByUserId) {
       assignments.p2 = undefined;
       sessionAssignments.set(sessionId, assignments);
-      userActiveSessions.delete(requestedByUserId);
+      clearUserActiveSession(requestedByUserId);
       if (options?.socket) {
         const sockets = sessionSockets.get(sessionId);
         sockets?.delete(options.socket);
@@ -315,9 +315,7 @@ const closeFriendRoom = async (
   sessionState.isFinished = true;
   clearTimers(sessionState);
 
-  if (assignments?.p1) userActiveSessions.delete(assignments.p1);
-  if (assignments?.p2) userActiveSessions.delete(assignments.p2);
-  if (sessionState.userId) userActiveSessions.delete(sessionState.userId);
+  clearSessionAssignments(sessionId, sessionState);
 
   const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
   const socketsCount = sockets.size;
@@ -339,7 +337,7 @@ const closeFriendRoom = async (
   for (const sessionSocket of sockets) {
     const sessionRef = sessions.get(sessionSocket);
     if (sessionRef?.userId) {
-      userActiveSessions.delete(sessionRef.userId);
+      clearUserActiveSession(sessionRef.userId);
     }
     sessions.delete(sessionSocket);
     sessionSocket.close();
@@ -447,18 +445,86 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
 const finalizedSessions = new Set<string>();
 const userActiveSessions = new Map<string, string>();
 
-const finalizeGame = async (state: SessionState, forfeit: boolean) => {
-  const assignments = sessionAssignments.get(state.sessionId);
+const clearUserActiveSession = (userId?: string) => {
+  if (!userId) return;
+  userActiveSessions.delete(userId);
+};
+
+const clearSessionAssignments = (sessionId: string, state?: SessionState) => {
+  const assignments = sessionAssignments.get(sessionId);
   if (assignments?.p1) {
-    userActiveSessions.delete(assignments.p1);
+    clearUserActiveSession(assignments.p1);
   }
   if (assignments?.p2) {
-    userActiveSessions.delete(assignments.p2);
+    clearUserActiveSession(assignments.p2);
   }
-  if (state.userId) {
-    userActiveSessions.delete(state.userId);
+  if (state?.userId) {
+    clearUserActiveSession(state.userId);
+  }
+};
+
+const clearInvalidSession = async (
+  userId: string,
+  sessionId: string,
+  reason: string,
+  state?: SessionState
+) => {
+  logger.warn({ userId, sessionId, reason }, 'Invalid session found, clearing...');
+  clearUserActiveSession(userId);
+  if (state) {
+    state.isFinished = true;
+  }
+  try {
+    await redisClient.del(getSessionKey(sessionId));
+    if (state?.matchType === 'friend' && state.roomCode) {
+      await redisClient.del(getRoomCodeKey(state.roomCode));
+    }
+  } catch (error) {
+    logger.warn({ error, sessionId }, 'Failed to cleanup Redis for invalid session');
+  }
+};
+
+const validateRestorableSession = async (userId: string, sessionId: string) => {
+  const state = sessionStates.get(sessionId);
+  if (!state || state.isFinished) {
+    try {
+      const redisSnapshot = await redisClient.get(getSessionKey(sessionId));
+      if (redisSnapshot) {
+        await clearInvalidSession(userId, sessionId, 'session not in memory but exists in Redis');
+      } else {
+        await clearInvalidSession(userId, sessionId, 'session not found in memory/Redis');
+      }
+    } catch (error) {
+      logger.warn({ error, sessionId }, 'Failed to validate session state in Redis');
+      await clearInvalidSession(userId, sessionId, 'session validation failed');
+    }
+    return null;
   }
 
+  const assignments = sessionAssignments.get(sessionId);
+  const hasBotOpponent = isBotOpponent(state);
+
+  const isUserAssigned = assignments?.p1 === userId || assignments?.p2 === userId || state.userId === userId;
+  if (!hasBotOpponent) {
+    const hasBothPlayers = Boolean(assignments?.p1 && assignments?.p2);
+    const opponentId = assignments?.p1 === userId ? assignments?.p2 : assignments?.p1;
+    const opponentValid = Boolean(opponentId) && opponentId !== userId && opponentId !== 'bot_opponent';
+    if (!hasBothPlayers || !isUserAssigned || !opponentValid) {
+      await clearInvalidSession(userId, sessionId, 'missing or invalid player assignments', state);
+      return null;
+    }
+  } else if (!isUserAssigned) {
+    await clearInvalidSession(userId, sessionId, 'user not assigned to bot session', state);
+    return null;
+  }
+
+  return { state, assignments, hasBotOpponent };
+};
+
+const finalizeGame = async (state: SessionState, forfeit: boolean) => {
+  clearSessionAssignments(state.sessionId, state);
+
+  const assignments = sessionAssignments.get(state.sessionId);
   const sharedState = sessionStates.get(state.sessionId) ?? state;
   if (!sessionStates.has(state.sessionId)) {
     sessionStates.set(state.sessionId, sharedState);
@@ -1306,19 +1372,18 @@ export function createWsServer(server: Server) {
 
     let sessionState: SessionState | undefined;
     if (userId) {
-          const activeSessionId = userActiveSessions.get(userId);
-          if (activeSessionId) {
-            const existingState = sessionStates.get(activeSessionId);
-            if (existingState && !existingState.isFinished) {
-              sessions.set(socket, { sessionId: activeSessionId, userId });
-              sessionState = existingState;
+      const activeSessionId = userActiveSessions.get(userId);
+      if (activeSessionId) {
+        const restoreResult = await validateRestorableSession(userId, activeSessionId);
+        if (restoreResult) {
+          const { state: existingState, assignments, hasBotOpponent } = restoreResult;
+          sessions.set(socket, { sessionId: activeSessionId, userId });
+          sessionState = existingState;
 
-              const sockets = sessionSockets.get(activeSessionId) ?? new Set<WebSocket>();
-              sockets.add(socket);
-              sessionSockets.set(activeSessionId, sockets);
+          const sockets = sessionSockets.get(activeSessionId) ?? new Set<WebSocket>();
+          sockets.add(socket);
+          sessionSockets.set(activeSessionId, sockets);
 
-          const assignments = sessionAssignments.get(activeSessionId);
-          const hasBotOpponent = isBotOpponent(existingState);
           const opponentId = hasBotOpponent
             ? 'bot_opponent'
             : assignments?.p1 === userId
@@ -1336,8 +1401,6 @@ export function createWsServer(server: Server) {
             matchType: existingState.matchType ?? (hasBotOpponent ? 'bot' : 'ranked'),
             roomCode: existingState.roomCode,
           });
-        } else {
-          userActiveSessions.delete(userId);
         }
       }
     }
@@ -1402,7 +1465,7 @@ export function createWsServer(server: Server) {
                 });
                 break;
               }
-              userActiveSessions.delete(userId);
+              clearUserActiveSession(userId);
             }
 
             const sessionId = crypto.randomUUID();
@@ -1575,11 +1638,11 @@ export function createWsServer(server: Server) {
               // CRITICAL FIX: Check if user is already in an active session (Sticky Session)
               if (userActiveSessions.has(userId)) {
                 const activeSessionId = userActiveSessions.get(userId)!;
-                const existingState = sessionStates.get(activeSessionId);
-                const hasBotOpponent = existingState ? isBotOpponent(existingState) : false;
+                const restoreResult = await validateRestorableSession(userId, activeSessionId);
 
                 // If the session exists and isn't finished, put them back in it immediately
-                if (existingState && !existingState.isFinished) {
+                if (restoreResult) {
+                  const { state: existingState, assignments, hasBotOpponent } = restoreResult;
                   logger.info(
                     { userId, sessionId: activeSessionId },
                     'User tried to search but has active session. Restoring...',
@@ -1591,7 +1654,11 @@ export function createWsServer(server: Server) {
                   if (roomSockets) roomSockets.add(socket);
 
                   // Resend match info
-                  const opponentId = hasBotOpponent ? 'bot_opponent' : 'opponent';
+                  const opponentId = hasBotOpponent
+                    ? 'bot_opponent'
+                    : assignments?.p1 === userId
+                      ? assignments?.p2
+                      : assignments?.p1;
                   // Need to define stake/isBot from state
                   const isBot = hasBotOpponent;
                   const stake = existingState.stakeAmount || 0;
@@ -1610,9 +1677,6 @@ export function createWsServer(server: Server) {
                     }),
                   );
                   return; // STOP HERE! Do not add to queue.
-                } else {
-                  // Stale session, clean it up
-                  userActiveSessions.delete(userId);
                 }
               }
 
@@ -1801,9 +1865,7 @@ export function createWsServer(server: Server) {
         if (sessionState?.matchType === 'friend' && !sessionState.isFinished && !sessionState.hasStarted) {
           sessionState.isFinished = true;
           clearTimers(sessionState);
-          const assignments = sessionAssignments.get(sessionRef.sessionId);
-          if (assignments?.p1) userActiveSessions.delete(assignments.p1);
-          if (assignments?.p2) userActiveSessions.delete(assignments.p2);
+          clearSessionAssignments(sessionRef.sessionId, sessionState);
           sessionAssignments.delete(sessionRef.sessionId);
           sessionStates.delete(sessionRef.sessionId);
           sessionSockets.delete(sessionRef.sessionId);
@@ -1846,6 +1908,8 @@ export function createWsServer(server: Server) {
           if (isPaidMatch) {
             void finalizeGame(sessionState, true);
           } else {
+            sessionState.isFinished = true;
+            clearSessionAssignments(sessionState.sessionId, sessionState);
             if (sessionState.matchType !== 'bot') {
               void redisClient.del(getSessionKey(sessionState.sessionId));
             }
