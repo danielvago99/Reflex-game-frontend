@@ -281,7 +281,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('ambassador')}
-            className="w-full bg-white/5 backdrop-blur-[2px] border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/5 backdrop-blur-[3px] border border-[#7C3AED]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Gift className="w-6 h-6 text-[#7C3AED]" />
             <span>Ambassador Dashboard</span>
@@ -306,7 +306,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('profile')}
-            className="w-full bg-white/5 backdrop-blur-[2px] border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/5 backdrop-blur-[3px] border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
             <span>My Stats</span>
@@ -314,7 +314,7 @@ export function DashboardScreen({
 
           <button
             onClick={() => onNavigate('settings')}
-            className="w-full bg-white/5 backdrop-blur-[2px] border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full bg-white/5 backdrop-blur-[3px] border border-white/10 hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] text-white p-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3"
           >
             <Settings className="w-6 h-6 text-gray-300" />
             <span>Settings</span>
@@ -326,7 +326,7 @@ export function DashboardScreen({
           {/* Multi-layer border effect */}
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 via-[#06B6D4]/10 to-[#7C3AED]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
           
-          <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
+          <div className="relative bg-white/5 backdrop-blur-[3px] border border-white/10 shadow-lg overflow-hidden" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}>
             {/* Top decorative line */}
             <div className="absolute top-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-[#00FFA3]/50 to-transparent"></div>
             
