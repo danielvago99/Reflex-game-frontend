@@ -891,11 +891,11 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       />
 
       {friendIntroOpen && pendingMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-4">
           <div className="relative w-full max-w-md">
             <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-60"></div>
             <div
-              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
+              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
               style={{
                 clipPath:
                   'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
@@ -917,12 +917,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                     <div>
                       <p className="text-[10px] uppercase tracking-wider text-gray-400">Winner payout</p>
                       <p className="text-base font-semibold text-white">
-                        ◎ {(pendingMatch.stake * 2).toFixed(3)} SOL
+                        ◎ {(pendingMatch.stake * 2 * 0.85).toFixed(3)} SOL
                       </p>
                     </div>
-                    <span className="rounded-full border border-[#00FFA3]/40 bg-[#00FFA3]/10 px-2 py-1 text-xs font-semibold text-[#00FFA3]">
-                      2x
-                    </span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">
@@ -941,11 +938,11 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       )}
 
       {waitingForStakeConfirmation && pendingMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-4">
           <div className="relative w-full max-w-md">
             <div className="absolute -inset-4 bg-gradient-to-br from-[#7C3AED]/20 via-[#00FFA3]/20 to-[#06B6D4]/20 blur-2xl opacity-60"></div>
             <div
-              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
+              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6 text-center"
               style={{
                 clipPath:
                   'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
