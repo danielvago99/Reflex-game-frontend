@@ -36,7 +36,7 @@ export function MatchmakingOverlay({
         <div className="absolute -inset-4 bg-gradient-to-br from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-2xl opacity-50"></div>
 
         <div
-          className="relative bg-white/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[320px] flex flex-col items-center justify-center text-center p-8"
+          className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[320px] flex flex-col items-center justify-center text-center p-8"
           style={{
             clipPath:
               'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
