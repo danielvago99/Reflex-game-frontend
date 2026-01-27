@@ -328,7 +328,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         <div className="flex items-center gap-3 xs:gap-4 mb-4 xs:mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-2.5 xs:p-3 rounded-xl transition-all"
+            className="bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/10 p-2.5 xs:p-3 rounded-xl transition-all"
           >
             <ArrowLeft className="w-4 h-4 xs:w-5 xs:h-5 text-white" />
           </button>
@@ -471,7 +471,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-white uppercase tracking-wider text-sm">Entry Stake</h3>
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-gray-200 rounded-full animate-pulse"></div>
                       <span className="text-xs text-gray-400">Locked</span>
                     </div>
                   </div>
@@ -482,14 +482,14 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                     <div className="relative bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm p-5" style={{ clipPath: 'polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-gray-300 text-sm">Stake Amount</span>
-                        <span className="text-2xl text-[#7C3AED] drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]">
+                        <span className="text-2xl text-gray-200 drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]">
                           {selectedStake} SOL
                         </span>
                       </div>
                       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-2"></div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-200">Winner takes</span>
-                        <span className="text-[#7C3AED] drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">{(parseFloat(selectedStake) * 1.7).toFixed(2)} SOL</span>
+                        <span className="text-gray-200 drop-shadow-[0_0_6px_rgba(0,255,163,0.4)]">{(parseFloat(selectedStake) * 1.7).toFixed(2)} SOL</span>
                       </div>
                       <div className="flex items-center justify-between text-sm mt-1">
                         <span className="text-gray-200">Staking fee</span>

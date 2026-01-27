@@ -239,7 +239,7 @@ export function DailyChallengeCard({
               </div>
 
               <div className="text-right">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 mb-1.5">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10 mb-1.5">
                   <Clock className="w-3.5 h-3.5 text-[#00FFA3]" />
                   <span className="text-xs text-white">{timeLeftLabel}</span>
                 </div>
@@ -253,7 +253,7 @@ export function DailyChallengeCard({
             </div>
 
             {/* Progress Section */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10 mb-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/10 mb-3">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h3 className="text-white text-sm font-semibold mb-0.5">Today's Progress</h3>
@@ -289,7 +289,7 @@ export function DailyChallengeCard({
               {/* Daily Reward */}
               <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-[#00FFA3]/50 to-[#06B6D4]/50 blur opacity-75 rounded-lg"></div>
-                <div className="relative bg-white/5 backdrop-blur-sm border border-[#00FFA3]/30 rounded-lg p-2.5">
+                <div className="relative bg-white/10 backdrop-blur-sm border border-[#00FFA3]/30 rounded-lg p-2.5">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="p-1.5 bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg">
                       <Zap className="w-3.5 h-3.5 text-[#00FFA3]" />
@@ -306,7 +306,7 @@ export function DailyChallengeCard({
               {/* Weekly Streak Bonus */}
               <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-br from-[#FFD93D]/50 to-[#FF6B6B]/50 blur opacity-75 rounded-lg"></div>
-                <div className="relative bg-white/5 backdrop-blur-sm border border-[#FFD93D]/30 rounded-lg p-2.5">
+                <div className="relative bg-white/10 backdrop-blur-sm border border-[#FFD93D]/30 rounded-lg p-2.5">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="p-1.5 bg-gradient-to-br from-[#FFD93D]/20 to-[#FF6B6B]/20 rounded-lg">
                       <Flame className="w-3.5 h-3.5 text-[#FF6B6B]" />
@@ -354,7 +354,7 @@ export function DailyChallengeCard({
       </div>
 
       {/* How it Works */}
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+      <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl p-4">
         <h3 className="text-white font-semibold text-sm mb-3">How It Works</h3>
         <div className="space-y-2.5">
           <div className="flex items-start gap-2.5">

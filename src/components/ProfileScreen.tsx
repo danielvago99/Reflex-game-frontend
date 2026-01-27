@@ -91,7 +91,7 @@ export function ProfileScreen({
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => onNavigate('dashboard')}
-            className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all"
+            className="bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/10 p-3 rounded-xl transition-all"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
@@ -99,7 +99,7 @@ export function ProfileScreen({
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <div className="absolute -inset-1 bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] blur-lg opacity-50"></div>
@@ -141,7 +141,7 @@ export function ProfileScreen({
         </div>
 
         {/* Performance Stats */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-6 shadow-xl">
           <h3 className="text-lg text-white mb-4">Performance Metrics</h3>
           
           <div className="space-y-4">
@@ -206,7 +206,7 @@ export function ProfileScreen({
         </div>
 
         {/* Match History */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-xl">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl">
           <h3 className="text-lg text-white mb-4">Recent Match History</h3>
           
           <div className="space-y-3">
