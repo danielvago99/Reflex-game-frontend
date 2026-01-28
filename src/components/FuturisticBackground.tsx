@@ -1,9 +1,16 @@
 import { useEffect, useRef } from 'react';
 
+let cleanupTimer: number | null = null;
+
 export function FuturisticBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (cleanupTimer) {
+      window.clearTimeout(cleanupTimer);
+      cleanupTimer = null;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -100,7 +107,10 @@ export function FuturisticBackground() {
 
     return () => {
       window.removeEventListener('resize', setCanvasSize);
-      cancelAnimationFrame(animationFrameId);
+      cleanupTimer = window.setTimeout(() => {
+        cancelAnimationFrame(animationFrameId);
+        cleanupTimer = null;
+      }, 800);
     };
   }, []);
 
