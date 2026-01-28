@@ -23,15 +23,26 @@ export function ScrollToTop() {
       document.body.scrollTop = 0;
       document.documentElement.scrollTop = 0;
 
-      const mainContent =
-        document.querySelector('main') || document.getElementById('main-content');
-      if (mainContent) {
-        mainContent.scrollTo({
+      const scrollTargets = [
+        document.getElementById('page-root'),
+        document.getElementById('main-content'),
+        document.getElementById('root'),
+        document.querySelector('main'),
+      ];
+
+      scrollTargets.forEach((target) => {
+        if (!target) {
+          return;
+        }
+
+        target.scrollTo({
           top: 0,
           left: 0,
           behavior: scrollBehavior,
         });
-      }
+
+        target.scrollIntoView({ block: 'start', behavior: scrollBehavior });
+      });
 
       frameCount += 1;
       if (frameCount < maxFrames) {
