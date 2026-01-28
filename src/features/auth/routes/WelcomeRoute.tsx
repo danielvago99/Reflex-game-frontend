@@ -4,6 +4,7 @@ import { ScreenPaths, screenToPath, type AppScreen } from '../../../shared/types
 import { useWallet } from '../../wallet/context/WalletProvider';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
+import { connectToExternalWallet } from '../../../utils/externalWallet';
 
 const isScreen = (value: string): value is AppScreen => value in ScreenPaths;
 
@@ -18,20 +19,11 @@ export default function WelcomeRoute() {
     }
   };
 
-  const handleWalletConnect = async (
-    address: string,
-    provider: string,
-    signMessage?: (message: string) => Promise<Uint8Array>
-  ) => {
-    connectExternalWallet(address, provider);
-
-    if (!signMessage) {
-      toast.error('Unable to authenticate: wallet provider cannot sign messages.');
-      return;
-    }
-
+  const handleWalletConnect = async () => {
     try {
-      await loginWithExternalWallet({ address, signMessage });
+      const connection = await connectToExternalWallet();
+      connectExternalWallet(connection.address, connection.provider);
+      await loginWithExternalWallet({ address: connection.address, signMessage: connection.signMessage });
       navigate('/dashboard');
     } catch (error) {
       console.error('External wallet login failed', error);
