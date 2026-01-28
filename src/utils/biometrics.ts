@@ -19,6 +19,14 @@ export async function isBiometricAvailable(): Promise<boolean> {
     return false;
   }
 
+  if (!window.isSecureContext) {
+    return false;
+  }
+
+  if (!navigator.credentials) {
+    return false;
+  }
+
   if (!('isUserVerifyingPlatformAuthenticatorAvailable' in PublicKeyCredential)) {
     return false;
   }
@@ -51,7 +59,8 @@ export async function registerBiometricCredential(walletId: string): Promise<str
     pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
     authenticatorSelection: {
       authenticatorAttachment: 'platform',
-      userVerification: 'preferred'
+      userVerification: 'required',
+      residentKey: 'preferred'
     },
     timeout: 60_000,
     attestation: 'none'
@@ -74,7 +83,7 @@ export async function verifyBiometricCredential(walletId: string, credentialId: 
   const requestOptions: PublicKeyCredentialRequestOptions = {
     challenge,
     timeout: 60_000,
-    userVerification: 'preferred',
+    userVerification: 'required',
     allowCredentials: [
       {
         id: fromBase64Url(credentialId),

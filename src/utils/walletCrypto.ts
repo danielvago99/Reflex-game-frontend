@@ -15,10 +15,13 @@ export const ARGON2_PARALLELISM = 1;
 export const ARGON2_HASH_LENGTH = 32; // bytes
 
 const DB_NAME = 'reflex_wallet_secure';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const WALLET_STORE = 'wallet';
 const ATTEMPT_STORE = 'attempts';
+const BIOMETRIC_STORE = 'biometric';
 const ACTIVE_KEY = 'active_wallet';
+const BIOMETRIC_KEY = 'biometric_key';
+const BIOMETRIC_PAYLOAD = 'biometric_payload';
 const MAX_UNLOCK_ATTEMPTS = 5;
 
 type WalletStorage = {
@@ -40,6 +43,11 @@ export interface EncryptedWalletRecord {
   biometricCredentialId?: string;
 }
 
+type BiometricPayload = {
+  ciphertext: string;
+  iv: string;
+};
+
 async function getDb() {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
@@ -49,9 +57,15 @@ async function getDb() {
       if (!db.objectStoreNames.contains(ATTEMPT_STORE)) {
         db.createObjectStore(ATTEMPT_STORE);
       }
+      if (!db.objectStoreNames.contains(BIOMETRIC_STORE)) {
+        db.createObjectStore(BIOMETRIC_STORE);
+      }
 
       if (oldVersion < 2) {
         // Placeholder to keep migration hook; actual migration handled at runtime
+      }
+      if (oldVersion < 3 && !db.objectStoreNames.contains(BIOMETRIC_STORE)) {
+        db.createObjectStore(BIOMETRIC_STORE);
       }
     }
   });
@@ -69,8 +83,13 @@ async function createStorage(): Promise<WalletStorage> {
     console.warn('IndexedDB unavailable, falling back to in-memory wallet store', error);
     const walletStore = new Map<string, unknown>();
     const attemptStore = new Map<string, unknown>();
+    const biometricStore = new Map<string, unknown>();
 
-    const resolveStore = (store: string) => (store === WALLET_STORE ? walletStore : attemptStore);
+    const resolveStore = (store: string) => {
+      if (store === WALLET_STORE) return walletStore;
+      if (store === ATTEMPT_STORE) return attemptStore;
+      return biometricStore;
+    };
 
     return {
       get: async <T>(store, key) => resolveStore(store).get(key) as T | undefined,
@@ -299,4 +318,59 @@ export async function resetUnlockAttempts(): Promise<void> {
 
 export function isUnlockBlocked(attempts: number): boolean {
   return attempts >= MAX_UNLOCK_ATTEMPTS;
+}
+
+export async function storeBiometricUnlockSecret(password: string): Promise<void> {
+  const cryptoApi = getWebCrypto();
+  const storage = await getStorage();
+  let key = await storage.get<CryptoKey>(BIOMETRIC_STORE, BIOMETRIC_KEY);
+
+  if (!key) {
+    key = await cryptoApi.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    await storage.put(BIOMETRIC_STORE, key, BIOMETRIC_KEY);
+  }
+
+  const iv = cryptoApi.getRandomValues(new Uint8Array(12));
+  const ciphertext = await cryptoApi.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(password));
+  const payload: BiometricPayload = {
+    ciphertext: toBase64(ciphertext),
+    iv: toBase64(iv)
+  };
+
+  await storage.put(BIOMETRIC_STORE, payload, BIOMETRIC_PAYLOAD);
+}
+
+export async function hasBiometricUnlockSecret(): Promise<boolean> {
+  const storage = await getStorage();
+  const payload = await storage.get<BiometricPayload>(BIOMETRIC_STORE, BIOMETRIC_PAYLOAD);
+  return Boolean(payload?.ciphertext && payload?.iv);
+}
+
+export async function getBiometricUnlockSecret(): Promise<string | null> {
+  const cryptoApi = getWebCrypto();
+  const storage = await getStorage();
+  const key = await storage.get<CryptoKey>(BIOMETRIC_STORE, BIOMETRIC_KEY);
+  const payload = await storage.get<BiometricPayload>(BIOMETRIC_STORE, BIOMETRIC_PAYLOAD);
+
+  if (!key || !payload?.ciphertext || !payload?.iv) {
+    return null;
+  }
+
+  try {
+    const decrypted = await cryptoApi.subtle.decrypt(
+      { name: 'AES-GCM', iv: fromBase64(payload.iv) },
+      key,
+      fromBase64(payload.ciphertext)
+    );
+    return decoder.decode(decrypted);
+  } catch (error) {
+    console.error('Failed to decrypt biometric unlock secret', error);
+    return null;
+  }
+}
+
+export async function clearBiometricUnlockSecret(): Promise<void> {
+  const storage = await getStorage();
+  await storage.delete(BIOMETRIC_STORE, BIOMETRIC_KEY);
+  await storage.delete(BIOMETRIC_STORE, BIOMETRIC_PAYLOAD);
 }
