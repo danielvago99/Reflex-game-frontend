@@ -954,7 +954,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
               <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
 
               <div className="relative space-y-4">
-                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-[#7C3AED]"></div>
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-white/30 border-t-[#7C3AED] border-r-[#00FFA3] shadow-[0_0_18px_rgba(124,58,237,0.6)]"></div>
                 <div>
                   <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
                   <p className="text-sm text-gray-400">
