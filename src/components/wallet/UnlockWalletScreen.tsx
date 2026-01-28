@@ -1,4 +1,4 @@
-import { Lock, ArrowRight, FileJson, Key, XCircle, Shield, Eye, EyeOff } from 'lucide-react';
+import { Lock, ArrowRight, Key, XCircle, Shield, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { WalletButton } from './WalletButton';
@@ -149,7 +149,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
                       <div className="flex-1">
                         <h4 className="text-white mb-1">Password Locked</h4>
                         <p className="text-sm text-red-300 leading-relaxed">
-                          Too many failed attempts. Please use your seed phrase or JSON backup file to recover your wallet.
+                          Too many failed attempts. Please use your seed phrase to recover your wallet.
                         </p>
                       </div>
                     </div>
@@ -243,25 +243,18 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
                 <div className="flex-1">
                   <h4 className="text-white mb-1 text-sm">Forgot Password?</h4>
                   <p className="text-[11px] md:text-xs text-gray-400 leading-relaxed">
-                    Recover your wallet using your seed phrase or JSON backup file
+                    Recover your wallet using your seed phrase
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 md:gap-3">
+              <div className="grid grid-cols-1 gap-2.5 md:gap-3">
                 <button
                   onClick={onRecoveryMethod}
                   className="bg-[#06B6D4]/10 hover:bg-[#06B6D4]/20 border border-[#06B6D4]/30 hover:border-[#06B6D4]/50 text-[#06B6D4] px-3.5 py-2.5 rounded-lg transition-all flex flex-col items-center justify-center gap-2"
                 >
                   <Key className="w-5 h-5" />
                   <span className="text-[11px] md:text-xs">Seed Phrase</span>
-                </button>
-                <button
-                  onClick={onRecoveryMethod}
-                  className="bg-[#00FFA3]/10 hover:bg-[#00FFA3]/20 border border-[#00FFA3]/30 hover:border-[#00FFA3]/50 text-[#00FFA3] px-3.5 py-2.5 rounded-lg transition-all flex flex-col items-center justify-center gap-2"
-                >
-                  <FileJson className="w-5 h-5" />
-                  <span className="text-[11px] md:text-xs">JSON File</span>
                 </button>
               </div>
             </div>

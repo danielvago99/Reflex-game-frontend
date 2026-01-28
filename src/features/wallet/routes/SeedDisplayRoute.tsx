@@ -5,7 +5,7 @@ import { useWallet } from '../context/WalletProvider';
 
 export default function SeedDisplayRoute() {
   const navigate = useNavigate();
-  const { getSeed, address } = useWallet();
+  const { getSeed } = useWallet();
   const seed = getSeed();
 
   useEffect(() => {
@@ -17,7 +17,6 @@ export default function SeedDisplayRoute() {
   return (
     <SeedDisplayScreen
       seedPhrase={seed}
-      walletAddress={address}
       onContinue={() => navigate('/wallet/seed-verify')}
       onBack={() => navigate('/wallet/set-password')}
     />

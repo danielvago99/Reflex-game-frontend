@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Copy, Download, ArrowRight, AlertTriangle, Shield, Lock } from 'lucide-react';
+import { Eye, EyeOff, Copy, ArrowRight, AlertTriangle, Shield, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
@@ -9,10 +9,9 @@ interface SeedDisplayScreenProps {
   seedPhrase: string[];
   onContinue: () => void;
   onBack: () => void;
-  walletAddress?: string;
 }
 
-export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddress }: SeedDisplayScreenProps) {
+export function SeedDisplayScreen({ seedPhrase, onContinue, onBack }: SeedDisplayScreenProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,32 +26,6 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const handleDownload = () => {
-    // Create wallet data object
-    const walletData = {
-      wallet_type: 'Solana',
-      wallet_address: walletAddress || 'Not available',
-      seed_phrase: seedPhrase.join(' '),
-      created_at: new Date().toISOString(),
-      network: 'mainnet-beta',
-      warning: 'KEEP THIS FILE SECURE! Anyone with access to this file can control your wallet and funds.',
-    };
-
-    // Convert to JSON and create blob
-    const jsonString = JSON.stringify(walletData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    // Create download link
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `solana-wallet-${walletAddress?.slice(0, 8) || 'backup'}.json`;
-    a.click();
-    
-    // Cleanup
-    URL.revokeObjectURL(url);
   };
 
   const canContinue = isRevealed && saved;
@@ -134,20 +107,13 @@ export function SeedDisplayScreen({ seedPhrase, onContinue, onBack, walletAddres
                     </div>
 
                     {/* Actions */}
-                    <div className="grid grid-cols-2 gap-2.5 md:gap-3 mt-auto">
+                    <div className="grid grid-cols-1 gap-2.5 md:gap-3 mt-auto">
                       <button
                         onClick={handleCopy}
                         className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
-                      </button>
-                      <button
-                        onClick={handleDownload}
-                        className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00FFA3]/50 text-white p-3 rounded-lg transition-all flex items-center justify-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="text-sm">Download</span>
                       </button>
                     </div>
                   </div>
