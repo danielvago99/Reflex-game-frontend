@@ -319,7 +319,6 @@ When locked, users can:
    - Don't store in cloud services
 
 3. **Account Security**:
-   - Enable biometric unlock if available
    - Download JSON backup
    - Test recovery before depositing large amounts
 
