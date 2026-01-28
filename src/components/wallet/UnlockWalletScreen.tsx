@@ -4,7 +4,13 @@ import { toast } from 'sonner';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { WalletInput } from './WalletInput';
-import { getEncryptedWallet, getUnlockAttempts, isUnlockBlocked } from '../../utils/walletCrypto';
+import {
+  getBiometricUnlockSecret,
+  getEncryptedWallet,
+  getUnlockAttempts,
+  hasBiometricUnlockSecret,
+  isUnlockBlocked
+} from '../../utils/walletCrypto';
 import { useWallet } from '../../features/wallet/context/WalletProvider';
 import { biometricsUtils } from '../../utils/biometrics';
 
@@ -24,6 +30,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
   const [biometricCredentialId, setBiometricCredentialId] = useState<string | null>(null);
   const [walletId, setWalletId] = useState<string | null>(null);
   const [biometricVerified, setBiometricVerified] = useState(false);
+  const [biometricReady, setBiometricReady] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -35,9 +42,10 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
     getUnlockAttempts().then(setFailedAttempts).catch(() => setFailedAttempts(0));
     (async () => {
       try {
-        const [available, record] = await Promise.all([
+        const [available, record, hasSecret] = await Promise.all([
           biometricsUtils.isBiometricAvailable(),
-          getEncryptedWallet()
+          getEncryptedWallet(),
+          hasBiometricUnlockSecret()
         ]);
         if (record?.publicKey) {
           setWalletId(record.publicKey);
@@ -45,24 +53,27 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
         if (available && record?.biometricEnabled && record.biometricCredentialId) {
           setBiometricCredentialId(record.biometricCredentialId);
           setBiometricAvailable(true);
+          setBiometricReady(hasSecret);
         } else {
           setBiometricAvailable(false);
+          setBiometricReady(false);
         }
       } catch (error) {
         console.error('Unable to check biometric support', error);
         setBiometricAvailable(false);
+        setBiometricReady(false);
       }
     })();
   }, []);
 
   const handleBiometricUnlock = async () => {
-    if (!password) {
-      setErrorMessage('Enter your password to complete biometric unlock');
+    if (!biometricAvailable || !biometricCredentialId || !walletId) {
+      setErrorMessage('Biometric unlock is not available on this device.');
       return;
     }
 
-    if (!biometricAvailable || !biometricCredentialId || !walletId) {
-      setErrorMessage('Biometric unlock is not available on this device.');
+    if (!biometricReady) {
+      setErrorMessage('Biometric unlock needs to be re-enabled in settings.');
       return;
     }
 
@@ -77,7 +88,14 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
         return;
       }
 
-      const { publicKey } = await unlock(password);
+      const storedPassword = await getBiometricUnlockSecret();
+      if (!storedPassword) {
+        setUnlocking(false);
+        setErrorMessage('Biometric unlock is not available. Please unlock using your password.');
+        return;
+      }
+
+      const { publicKey } = await unlock(storedPassword);
       setBiometricVerified(true);
       if (typeof window !== 'undefined') {
         localStorage.setItem('reflex_has_unlocked_wallet', 'true');
@@ -193,7 +211,7 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
 
         <div className="flex-1 space-y-4">
           {/* Biometric unlock option */}
-          {biometricAvailable && !biometricVerified && !isPasswordLocked && (
+          {biometricAvailable && !biometricVerified && (
             <div className="relative">
               <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/30 to-[#00FFA3]/30 blur-sm rounded-xl"></div>
               <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-5">
@@ -203,16 +221,21 @@ export function UnlockWalletScreen({ onUnlocked, onBack, onRecoveryMethod }: Unl
                   </div>
                   <h3 className="text-white mb-2 text-base">Quick Unlock</h3>
                   <p className="text-sm text-gray-400 mb-3">
-                    Use biometric authentication for faster access
+                    Use biometric authentication to unlock instantly
                   </p>
                   <button
                     onClick={handleBiometricUnlock}
-                    disabled={unlocking}
+                    disabled={unlocking || !biometricReady}
                     className="w-full bg-gradient-to-r from-[#7C3AED] to-[#00FFA3] hover:from-[#6B2FD6] hover:to-[#00D989] text-white px-5 py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <Fingerprint className="w-5 h-5" />
                     <span>{unlocking ? 'Authenticating...' : 'Unlock with Biometrics'}</span>
                   </button>
+                  {!biometricReady && (
+                    <p className="text-xs text-orange-300 mt-2">
+                      Biometric unlock needs to be re-enabled in settings.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

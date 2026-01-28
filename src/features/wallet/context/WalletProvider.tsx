@@ -4,12 +4,14 @@ import {
   encryptSeedPhrase,
   decryptSeedPhrase,
   generateSeedPhrase,
+  clearBiometricUnlockSecret,
   getEncryptedWallet,
   getUnlockAttempts,
   hasWallet,
   incrementUnlockAttempts,
   isUnlockBlocked,
   resetUnlockAttempts,
+  storeBiometricUnlockSecret,
   storeEncryptedWallet,
   updateWalletRecord,
   validateSeedPhrase,
@@ -92,14 +94,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const available = await biometricsUtils.isBiometricAvailable();
         if (available) {
           const credentialId = await biometricsUtils.registerBiometricCredential(record.publicKey);
+          await storeBiometricUnlockSecret(password);
           record = await updateWalletRecord({ biometricCredentialId: credentialId, biometricEnabled: true });
         } else {
+          await clearBiometricUnlockSecret();
           record = await updateWalletRecord({ biometricEnabled: false, biometricCredentialId: undefined });
         }
       } catch (error) {
         console.error('Biometric registration failed', error);
+        await clearBiometricUnlockSecret();
         record = await updateWalletRecord({ biometricEnabled: false, biometricCredentialId: undefined });
       }
+    } else {
+      await clearBiometricUnlockSecret();
     }
 
     await resetUnlockAttempts();

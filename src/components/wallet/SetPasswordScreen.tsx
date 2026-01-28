@@ -1,10 +1,11 @@
 import { Lock, ArrowRight, Fingerprint } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletInput } from './WalletInput';
 import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
 import { getPasswordStrength } from '../../utils/walletCrypto';
+import { biometricsUtils } from '../../utils/biometrics';
 
 interface SetPasswordScreenProps {
   onContinue: (password: string, biometric: boolean) => void;
@@ -16,8 +17,30 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
   const [confirmPassword, setConfirmPassword] = useState('');
   const [understand, setUnderstand] = useState(false);
   const [biometric, setBiometric] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [errors, setErrors] = useState({ password: '', confirm: '' });
   const passwordStrength = password ? getPasswordStrength(password) : null;
+
+  useEffect(() => {
+    let mounted = true;
+    biometricsUtils.isBiometricAvailable().then((available) => {
+      if (mounted) {
+        setBiometricAvailable(available);
+        if (!available) {
+          setBiometric(false);
+        }
+      }
+    }).catch(() => {
+      if (mounted) {
+        setBiometricAvailable(false);
+        setBiometric(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const validatePassword = () => {
     const newErrors = { password: '', confirm: '' };
@@ -178,12 +201,15 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
                 <Fingerprint className="w-5 h-5 text-[#00FFA3]" />
                 <div>
                   <p className="text-white text-sm">Enable Biometric Unlock</p>
-                  <p className="text-xs text-gray-400">Use fingerprint or face ID</p>
+                  <p className="text-xs text-gray-400">
+                    {biometricAvailable ? 'Use fingerprint or face ID' : 'Requires a secure device with biometrics'}
+                  </p>
                 </div>
               </div>
               <Switch 
                 checked={biometric}
                 onCheckedChange={setBiometric}
+                disabled={!biometricAvailable}
               />
             </div>
           </div>
