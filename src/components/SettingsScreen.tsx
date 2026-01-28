@@ -1,9 +1,11 @@
-import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Shield, AlertTriangle, Camera, Fingerprint } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { AvatarSelector, findAvatarIdByUrl, getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { LoadingOverlay } from './ui/LoadingOverlay';
+import { Switch } from './ui/switch';
+import { biometricsUtils } from '../utils/biometrics';
 
 interface SettingsScreenProps {
   currentName: string;
@@ -20,6 +22,8 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Loading');
+  const [biometricEnabled, setBiometricEnabled] = useState(() => localStorage.getItem('biometricUnlockEnabled') === 'true');
+  const [biometricAvailable, setBiometricAvailable] = useState(true);
   const [selectedAvatar, setSelectedAvatar] = useState(() => {
     return findAvatarIdByUrl(avatarUrl) || localStorage.getItem('userAvatar') || 'gradient-1';
   });
@@ -37,6 +41,29 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
       localStorage.setItem('userAvatar', matchedAvatar);
     }
   }, [avatarUrl]);
+
+  useEffect(() => {
+    let mounted = true;
+    biometricsUtils.isBiometricAvailable().then((available) => {
+      if (mounted) {
+        setBiometricAvailable(available);
+        if (!available) {
+          setBiometricEnabled(false);
+          localStorage.setItem('biometricUnlockEnabled', 'false');
+        }
+      }
+    }).catch(() => {
+      if (mounted) {
+        setBiometricAvailable(false);
+        setBiometricEnabled(false);
+        localStorage.setItem('biometricUnlockEnabled', 'false');
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSaveName = () => {
     if (newName.trim() && newName !== currentName) {
@@ -61,6 +88,11 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
     setTimeout(() => {
       setIsLoading(false);
     }, 1200);
+  };
+
+  const handleBiometricToggle = (enabled: boolean) => {
+    setBiometricEnabled(enabled);
+    localStorage.setItem('biometricUnlockEnabled', String(enabled));
   };
 
   return (
@@ -202,6 +234,49 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Security Settings */}
+          <div className="relative">
+            <div className="absolute -inset-px bg-gradient-to-br from-[#7C3AED]/20 to-[#06B6D4]/20 blur-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}></div>
+
+            <div className="relative bg-white/10 backdrop-blur-sm border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%)' }}>
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-4 h-px bg-gradient-to-r from-[#7C3AED] to-transparent"></div>
+              <div className="absolute top-0 left-0 w-px h-4 bg-gradient-to-b from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-4 h-px bg-gradient-to-l from-[#06B6D4] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-px h-4 bg-gradient-to-t from-[#06B6D4] to-transparent"></div>
+
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-[#7C3AED]/20 rounded-lg border border-[#7C3AED]/30">
+                    <Fingerprint className="w-5 h-5 text-[#7C3AED]" />
+                  </div>
+                  <div>
+                    <h2 className="text-white">Security Settings</h2>
+                    <p className="text-xs text-gray-400">Keep quick access protected</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start justify-between gap-4 rounded-lg bg-black/30 border border-white/10 p-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-white">Biometric Unlock</p>
+                    <p className="text-xs text-gray-400">
+                      Use Face ID / Touch ID to unlock your wallet faster.
+                    </p>
+                    {!biometricAvailable && (
+                      <p className="text-xs text-red-400">Biometrics not available on this device.</p>
+                    )}
+                  </div>
+                  <Switch
+                    checked={biometricEnabled}
+                    onCheckedChange={handleBiometricToggle}
+                    disabled={!biometricAvailable}
+                    className="data-[state=checked]:bg-[#7C3AED] data-[state=unchecked]:bg-white/20"
+                  />
+                </div>
               </div>
             </div>
           </div>
