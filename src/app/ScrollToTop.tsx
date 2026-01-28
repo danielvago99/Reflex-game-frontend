@@ -10,10 +10,9 @@ export function ScrollToTop() {
     }
 
     const scrollBehavior = 'instant' as ScrollBehavior;
-    const maxFrames = 30;
     const maxDurationMs = 1200;
-    let frameCount = 0;
-    let rafId: number | null = null;
+    const intervalMs = 10;
+    let intervalId: number | null = null;
     const startTime = window.performance.now();
 
     const getScrollTargets = () => {
@@ -49,18 +48,20 @@ export function ScrollToTop() {
       document.documentElement.scrollTop = 0;
 
       getScrollTargets().forEach(forceTargetToTop);
-
-      frameCount += 1;
-      if (frameCount < maxFrames && window.performance.now() - startTime < maxDurationMs) {
-        rafId = window.requestAnimationFrame(scrollToTop);
-      }
     };
 
     scrollToTop();
+    intervalId = window.setInterval(() => {
+      scrollToTop();
+      if (window.performance.now() - startTime >= maxDurationMs && intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    }, intervalMs);
 
     return () => {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
       }
     };
   }, [pathname]);
