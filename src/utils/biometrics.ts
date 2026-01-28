@@ -39,6 +39,18 @@ export async function isBiometricAvailable(): Promise<boolean> {
   }
 }
 
+export async function isBiometricSupported(): Promise<boolean> {
+  if (typeof window === 'undefined' || typeof PublicKeyCredential === 'undefined') {
+    return false;
+  }
+
+  if (!navigator.credentials) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function registerBiometricCredential(walletId: string): Promise<string> {
   if (!(await isBiometricAvailable())) {
     throw new Error('Biometric authentication is not available on this device');
@@ -125,6 +137,7 @@ export async function verifyBiometricCredential(walletId: string, credentialId: 
 
 export const biometricsUtils = {
   isBiometricAvailable,
+  isBiometricSupported,
   registerBiometricCredential,
   verifyBiometricCredential
 };

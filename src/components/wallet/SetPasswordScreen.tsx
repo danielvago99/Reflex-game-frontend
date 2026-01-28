@@ -23,7 +23,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
 
   useEffect(() => {
     let mounted = true;
-    biometricsUtils.isBiometricAvailable().then((available) => {
+    biometricsUtils.isBiometricSupported().then((available) => {
       if (mounted) {
         setBiometricAvailable(available);
         if (!available) {

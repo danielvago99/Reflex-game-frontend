@@ -44,7 +44,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
 
   useEffect(() => {
     let mounted = true;
-    biometricsUtils.isBiometricAvailable().then((available) => {
+    biometricsUtils.isBiometricSupported().then((available) => {
       if (mounted) {
         setBiometricAvailable(available);
         if (!available) {
