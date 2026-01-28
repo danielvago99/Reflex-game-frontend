@@ -1,13 +1,12 @@
-import { Lock, ArrowRight, Fingerprint } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { WalletButton } from './WalletButton';
 import { WalletInput } from './WalletInput';
 import { Checkbox } from '../ui/checkbox';
-import { Switch } from '../ui/switch';
 import { getPasswordStrength } from '../../utils/walletCrypto';
 
 interface SetPasswordScreenProps {
-  onContinue: (password: string, biometric: boolean) => void;
+  onContinue: (password: string) => void;
   onBack: () => void;
 }
 
@@ -15,7 +14,6 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [understand, setUnderstand] = useState(false);
-  const [biometric, setBiometric] = useState(false);
   const [errors, setErrors] = useState({ password: '', confirm: '' });
   const passwordStrength = password ? getPasswordStrength(password) : null;
 
@@ -36,7 +34,7 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
 
   const handleContinue = () => {
     if (validatePassword() && understand) {
-      onContinue(password, biometric);
+      onContinue(password);
     }
   };
 
@@ -170,21 +168,6 @@ export function SetPasswordScreen({ onContinue, onBack }: SetPasswordScreenProps
               <label className="text-sm text-gray-300 leading-relaxed flex-1 cursor-pointer" onClick={() => setUnderstand(!understand)}>
                 I understand that I need my <span className="text-[#00FFA3]">seed phrase</span> to recover my wallet if I forget this password or lose access to this device.
               </label>
-            </div>
-
-            {/* Biometric option */}
-            <div className="flex items-center justify-between bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <Fingerprint className="w-5 h-5 text-[#00FFA3]" />
-                <div>
-                  <p className="text-white text-sm">Enable Biometric Unlock</p>
-                  <p className="text-xs text-gray-400">Use fingerprint or face ID</p>
-                </div>
-              </div>
-              <Switch 
-                checked={biometric}
-                onCheckedChange={setBiometric}
-              />
             </div>
           </div>
         </div>

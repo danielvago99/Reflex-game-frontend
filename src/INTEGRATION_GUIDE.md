@@ -317,7 +317,7 @@ const { balance, loading, refresh } = useWalletBalance(
 ### Unlock Wallet Flow:
 
 ```
-1. User enters password or uses biometric
+1. User enters password
    ↓
 2. Frontend decrypts local seed OR
    Backend verifies password + returns encrypted seed

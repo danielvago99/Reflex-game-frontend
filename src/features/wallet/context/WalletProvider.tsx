@@ -11,25 +11,22 @@ import {
   isUnlockBlocked,
   resetUnlockAttempts,
   storeEncryptedWallet,
-  updateWalletRecord,
   validateSeedPhrase,
   signMessageWithSeedPhrase,
   type EncryptedWalletRecord
 } from '../../../utils/walletCrypto';
-import { biometricsUtils } from '../../../utils/biometrics';
 
 interface WalletContextValue {
   address: string;
   provider?: string;
-  biometric: boolean;
   hasStoredWallet: boolean;
   generateSeed: () => string[];
   getSeed: () => string[];
-  setPassword: (password: string, biometric: boolean) => void;
-  getVaultStatus: () => { hasSeed: boolean; hasPassword: boolean; biometricEnabled: boolean };
+  setPassword: (password: string) => void;
+  getVaultStatus: () => { hasSeed: boolean; hasPassword: boolean };
   encryptAndStore: () => Promise<EncryptedWalletRecord>;
   unlock: (password: string) => Promise<{ seed: string[]; publicKey: string }>;
-  importFromSeed: (seedPhrase: string[], password: string, biometric?: boolean) => Promise<EncryptedWalletRecord>;
+  importFromSeed: (seedPhrase: string[], password: string) => Promise<EncryptedWalletRecord>;
   importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<{ seed: string[]; publicKey: string }>;
   connectExternalWallet: (address: string, provider: string) => void;
   signMessage: (message: string | Uint8Array) => Promise<Uint8Array>;
@@ -38,11 +35,10 @@ interface WalletContextValue {
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
-const createEmptyVault = () => ({ seed: [] as string[], password: '', biometric: false });
+const createEmptyVault = () => ({ seed: [] as string[], password: '' });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState('');
-  const [biometric, setBiometric] = useState(false);
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [hasStoredWalletState, setHasStoredWallet] = useState(false);
   const vaultRef = useRef(createEmptyVault());
@@ -63,50 +59,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const getSeed = () => [...vaultRef.current.seed];
 
-  const setPassword = (password: string, biometricEnabled: boolean) => {
+  const setPassword = (password: string) => {
     vaultRef.current.password = password;
-    vaultRef.current.biometric = biometricEnabled;
   };
 
   const getVaultStatus = () => ({
     hasSeed: vaultRef.current.seed.length > 0,
-    hasPassword: Boolean(vaultRef.current.password),
-    biometricEnabled: vaultRef.current.biometric
+    hasPassword: Boolean(vaultRef.current.password)
   });
 
-  const persistVaultToStorage = async (seedPhrase: string[], password: string, biometricEnabled: boolean) => {
+  const persistVaultToStorage = async (seedPhrase: string[], password: string) => {
     const encrypted = await encryptSeedPhrase(seedPhrase, password);
     const keypair = await deriveSolanaKeypair(seedPhrase);
-    let record: EncryptedWalletRecord = {
+    const record: EncryptedWalletRecord = {
       ...encrypted,
       publicKey: keypair.publicKey.toBase58(),
       createdAt: encrypted.createdAt,
-      version: '2.0',
-      biometricEnabled: biometricEnabled || undefined
+      version: '2.0'
     };
 
     await storeEncryptedWallet(record);
 
-    if (biometricEnabled) {
-      try {
-        const available = await biometricsUtils.isBiometricAvailable();
-        if (available) {
-          const credentialId = await biometricsUtils.registerBiometricCredential(record.publicKey);
-          record = await updateWalletRecord({ biometricCredentialId: credentialId, biometricEnabled: true });
-        } else {
-          record = await updateWalletRecord({ biometricEnabled: false, biometricCredentialId: undefined });
-        }
-      } catch (error) {
-        console.error('Biometric registration failed', error);
-        record = await updateWalletRecord({ biometricEnabled: false, biometricCredentialId: undefined });
-      }
-    }
-
     await resetUnlockAttempts();
     setAddress(record.publicKey);
-    setBiometric(Boolean(record.biometricEnabled && record.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = { seed: seedPhrase, password: '', biometric: biometricEnabled };
+    vaultRef.current = { seed: seedPhrase, password: '' };
     return record;
   };
 
@@ -125,7 +102,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       throw new Error('Cannot encrypt wallet: password was not set');
     }
 
-    return persistVaultToStorage(vaultRef.current.seed, vaultRef.current.password, vaultRef.current.biometric);
+    return persistVaultToStorage(vaultRef.current.seed, vaultRef.current.password);
   };
 
   const unlock = async (password: string) => {
@@ -146,7 +123,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const keypair = await deriveSolanaKeypair(seed);
       const publicKey = record.publicKey || keypair.publicKey.toBase58();
       setAddress(publicKey);
-      setBiometric(Boolean(record.biometricEnabled && record.biometricCredentialId));
       return { seed, publicKey };
     } catch (error) {
       const next = await incrementUnlockAttempts();
@@ -157,15 +133,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const importFromSeed = async (seedPhrase: string[], password: string, biometricEnabled = false) => {
+  const importFromSeed = async (seedPhrase: string[], password: string) => {
     if (!validateSeedPhrase(seedPhrase)) {
       throw new Error('Invalid seed phrase');
     }
 
     vaultRef.current.seed = seedPhrase;
     vaultRef.current.password = password;
-    vaultRef.current.biometric = biometricEnabled;
-    return persistVaultToStorage(seedPhrase, password, biometricEnabled);
+    return persistVaultToStorage(seedPhrase, password);
   };
 
   const importFromKeystore = async (record: EncryptedWalletRecord, password: string) => {
@@ -187,9 +162,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await storeEncryptedWallet(normalized);
     await resetUnlockAttempts();
     setAddress(publicKey);
-    setBiometric(Boolean(normalized.biometricEnabled && normalized.biometricCredentialId));
     setHasStoredWallet(true);
-    vaultRef.current = { seed, password: '', biometric: Boolean(normalized.biometricEnabled) };
+    vaultRef.current = { seed, password: '' };
     return { seed, publicKey };
   };
 
@@ -209,7 +183,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setAddress('');
     setProvider(undefined);
-    setBiometric(false);
     vaultRef.current = createEmptyVault();
   };
 
@@ -217,7 +190,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     () => ({
       address,
       provider,
-      biometric,
       hasStoredWallet: hasStoredWalletState,
       generateSeed,
       getSeed,
@@ -231,7 +203,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       signMessage,
       logout
     }),
-    [address, biometric, hasStoredWalletState, provider]
+    [address, hasStoredWalletState, provider]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

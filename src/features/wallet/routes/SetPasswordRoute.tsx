@@ -15,8 +15,8 @@ export default function SetPasswordRoute() {
 
   return (
     <SetPasswordScreen
-      onContinue={(password, biometric) => {
-        setPassword(password, biometric);
+      onContinue={(password) => {
+        setPassword(password);
         navigate('/wallet/seed-display');
       }}
       onBack={() => navigate('/wallet/create')}

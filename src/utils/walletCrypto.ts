@@ -36,8 +36,6 @@ export interface EncryptedWalletRecord {
   publicKey: string;
   createdAt: number;
   version: '2.0';
-  biometricEnabled?: boolean;
-  biometricCredentialId?: string;
 }
 
 async function getDb() {
@@ -261,23 +259,6 @@ export async function deleteWallet(): Promise<void> {
   const storage = await getStorage();
   await storage.delete(WALLET_STORE, ACTIVE_KEY);
   await storage.delete(ATTEMPT_STORE, ACTIVE_KEY);
-}
-
-export async function updateWalletRecord(update: Partial<EncryptedWalletRecord>): Promise<EncryptedWalletRecord> {
-  const current = await getEncryptedWallet();
-  if (!current) {
-    throw new Error('No wallet found');
-  }
-
-  const merged: EncryptedWalletRecord = {
-    ...current,
-    ...update,
-    createdAt: current.createdAt || Date.now(),
-    version: '2.0'
-  };
-
-  await storeEncryptedWallet(merged);
-  return merged;
 }
 
 export async function getUnlockAttempts(): Promise<number> {
