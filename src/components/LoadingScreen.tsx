@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
 
@@ -9,6 +9,7 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenProps) {
   const [progress, setProgress] = useState(isStatic ? 100 : 0);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (isStatic) {
@@ -19,15 +20,20 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
     // Animate progress bar - 3 second duration
     const interval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          // Wait a moment before transitioning
-          setTimeout(() => onComplete(), 500);
+        const next = prev + 1.33;
+
+        if (next >= 100) {
+          if (!completedRef.current) {
+            completedRef.current = true;
+            clearInterval(interval);
+            onComplete();
+          }
           return 100;
         }
-        return prev + 1.33; // ~75 intervals for 3 seconds (100/75 = 1.33)
+
+        return next;
       });
-    }, 40); // 40ms * 75 intervals = 3000ms (3 seconds)
+    }, 40);
 
     return () => clearInterval(interval);
   }, [isStatic, onComplete]);
