@@ -303,7 +303,7 @@ export function SettingsScreen({ currentName, avatarUrl, onNavigate, onUpdateNam
               
               <div className="p-4">
                 <div className="text-center space-y-2">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Reflex Game</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Reflexmatch.io</p>
                   <p className="text-xs text-gray-500">Version 1.0.0 • Web3 Gaming</p>
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <div className="w-1.5 h-1.5 bg-[#00FFA3] rounded-full"></div>

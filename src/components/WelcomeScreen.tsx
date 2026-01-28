@@ -36,8 +36,8 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         </div>
 
         {/* Title */}
-        <h1 className="text-4xl xs:text-5xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
-          REFLEX
+        <h1 className="text-3xl xs:text-4xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
+          REFLEXMATCH.io
         </h1>
         <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Earn More by Reacting Faster on Solana</p>
         

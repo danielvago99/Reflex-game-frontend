@@ -83,8 +83,8 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
 
         {/* Reflex text */}
         <div className="text-center space-y-3">
-          <h1 className="text-3xl text-white tracking-wider drop-shadow-[0_0_20px_rgba(0,255,163,0.5)]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            REFLEX
+          <h1 className="text-3xl xs:text-4xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            REFLEXMATCH.io
           </h1>
         </div>
 
