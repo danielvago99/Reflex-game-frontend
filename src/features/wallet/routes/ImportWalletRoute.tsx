@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 export default function ImportWalletRoute() {
   const navigate = useNavigate();
-  const { importFromSeed, importFromKeystore } = useWallet();
+  const { importFromSeed } = useWallet();
   const { loginWithInAppWallet } = useAuth();
 
   return (
@@ -18,16 +18,6 @@ export default function ImportWalletRoute() {
           navigate('/dashboard');
         } catch (error) {
           console.error('Failed to import wallet from seed', error);
-          toast.error(error instanceof Error ? error.message : 'Unable to import wallet');
-        }
-      }}
-      onImportKeystore={async (record, password) => {
-        try {
-          const { publicKey } = await importFromKeystore(record, password);
-          await loginWithInAppWallet(publicKey);
-          navigate('/dashboard');
-        } catch (error) {
-          console.error('Failed to import wallet from keystore', error);
           toast.error(error instanceof Error ? error.message : 'Unable to import wallet');
         }
       }}
