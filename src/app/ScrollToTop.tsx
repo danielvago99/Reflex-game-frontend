@@ -10,9 +10,34 @@ export function ScrollToTop() {
     }
 
     const scrollBehavior = 'instant' as ScrollBehavior;
-    const maxFrames = 6;
+    const maxFrames = 30;
+    const maxDurationMs = 1200;
     let frameCount = 0;
     let rafId: number | null = null;
+    const startTime = window.performance.now();
+
+    const getScrollTargets = () => {
+      const targets = [
+        document.getElementById('page-root'),
+        document.getElementById('main-content'),
+        document.getElementById('root'),
+        document.querySelector('main'),
+        ...Array.from(document.querySelectorAll<HTMLElement>('.overflow-y-auto')),
+        ...Array.from(document.querySelectorAll<HTMLElement>('[data-slot="scroll-area-viewport"]')),
+      ];
+
+      return Array.from(new Set(targets.filter(Boolean))) as HTMLElement[];
+    };
+
+    const forceTargetToTop = (target: HTMLElement) => {
+      target.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: scrollBehavior,
+      });
+      target.scrollTop = 0;
+      target.scrollIntoView({ block: 'start', behavior: scrollBehavior });
+    };
 
     const scrollToTop = () => {
       window.scrollTo({
@@ -23,29 +48,10 @@ export function ScrollToTop() {
       document.body.scrollTop = 0;
       document.documentElement.scrollTop = 0;
 
-      const scrollTargets = [
-        document.getElementById('page-root'),
-        document.getElementById('main-content'),
-        document.getElementById('root'),
-        document.querySelector('main'),
-      ];
-
-      scrollTargets.forEach((target) => {
-        if (!target) {
-          return;
-        }
-
-        target.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: scrollBehavior,
-        });
-
-        target.scrollIntoView({ block: 'start', behavior: scrollBehavior });
-      });
+      getScrollTargets().forEach(forceTargetToTop);
 
       frameCount += 1;
-      if (frameCount < maxFrames) {
+      if (frameCount < maxFrames && window.performance.now() - startTime < maxDurationMs) {
         rafId = window.requestAnimationFrame(scrollToTop);
       }
     };
