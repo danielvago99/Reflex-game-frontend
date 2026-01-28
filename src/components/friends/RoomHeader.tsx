@@ -53,26 +53,13 @@ export function RoomHeader({ roomCode, stakeAmount, className }: RoomHeaderProps
             </div>
             
             <div className="flex flex-col">
-              <h3 className="text-white font-bold tracking-wider text-sm sm:text-base">FRIEND</h3>
-              <p className="text-[10px] sm:text-xs text-gray-400">Custom match</p>
+              <h3 className="text-white font-bold tracking-wider text-sm sm:text-base">ROOM CODE</h3>
+              <p className="text-[10px] sm:text-xs text-gray-400">Friend match</p>
             </div>
           </div>
 
           {/* Right side - Stake + Room code + Copy */}
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3 overflow-hidden">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {typeof stakeAmount === 'number' && (
-                <span className="text-[10px] sm:text-xs font-semibold text-[#00FFA3] uppercase tracking-wider whitespace-nowrap">
-                  ◎ {stakeAmount.toFixed(3)} SOL
-                </span>
-              )}
-
-              {/* Label - Presunutý sem a zafarbený na fialovo */}
-              <span className="text-[10px] sm:text-xs font-bold text-[#7C3AED] uppercase tracking-wider whitespace-nowrap">
-                Room code
-              </span>
-            </div>
-
             <div className="flex w-full items-center gap-2 sm:w-auto">
               {/* Code Box */}
               <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#00FFA3]/20 min-w-0 flex-1 sm:flex-none">
