@@ -341,7 +341,8 @@ export function GameArena({
   };
 
   return (
-    <div 
+    <div
+      id="page-root"
       className="relative w-full min-h-screen bg-gradient-to-br from-[#0a0118] via-[#0f0524] to-[#1a0836] overflow-hidden transition-all duration-300 ease-out"
       style={{
         transition: 'all 0.3s ease-out'
