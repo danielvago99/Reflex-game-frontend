@@ -28,7 +28,7 @@ export async function isBiometricAvailable(): Promise<boolean> {
   }
 
   if (!('isUserVerifyingPlatformAuthenticatorAvailable' in PublicKeyCredential)) {
-    return false;
+    return true;
   }
 
   try {
