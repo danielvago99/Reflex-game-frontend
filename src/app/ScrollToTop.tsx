@@ -5,64 +5,40 @@ export function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    // 1. Zruš pamäť prehliadača
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
 
-    const scrollBehavior = 'instant' as ScrollBehavior;
-    const maxDurationMs = 1200;
-    const intervalMs = 10;
-    let intervalId: number | null = null;
-    const startTime = window.performance.now();
-
-    const getScrollTargets = () => {
-      const targets = [
-        document.getElementById('page-root'),
-        document.getElementById('main-content'),
-        document.getElementById('root'),
-        document.querySelector('main'),
-        ...Array.from(document.querySelectorAll<HTMLElement>('.overflow-y-auto')),
-        ...Array.from(document.querySelectorAll<HTMLElement>('[data-slot="scroll-area-viewport"]')),
-      ];
-
-      return Array.from(new Set(targets.filter(Boolean))) as HTMLElement[];
-    };
-
-    const forceTargetToTop = (target: HTMLElement) => {
-      target.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: scrollBehavior,
-      });
-      target.scrollTop = 0;
-      target.scrollIntoView({ block: 'start', behavior: scrollBehavior });
-    };
-
-    const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: scrollBehavior,
-      });
+    const resetScroll = () => {
+      // 2. Resetni hlavné okno
+      window.scrollTo(0, 0);
       document.body.scrollTop = 0;
       document.documentElement.scrollTop = 0;
 
-      getScrollTargets().forEach(forceTargetToTop);
+      // 3. Nájdi VŠETKY potenciálne scrollovateľné divy
+      // Toto pokryje tvoje ID, tvoje CSS triedy aj main tag
+      const targets = document.querySelectorAll(
+        '#page-root, #main-content, main, .overflow-y-auto, .h-screen-dvh, min-h-screen, [data-radix-scroll-area-viewport]'
+      );
+
+      targets.forEach((el) => {
+        // Natvrdo nastavíme 0, bez animácie
+        el.scrollTop = 0;
+      });
     };
 
-    scrollToTop();
-    intervalId = window.setInterval(() => {
-      scrollToTop();
-      if (window.performance.now() - startTime >= maxDurationMs && intervalId !== null) {
-        window.clearInterval(intervalId);
-        intervalId = null;
-      }
-    }, intervalMs);
+    // 4. Okamžitý reset
+    resetScroll();
+
+    // 5. Polling (kvôli Suspense/Loading)
+    // Kontrolujeme každých 10ms po dobu 500ms
+    const intervalId = setInterval(resetScroll, 10);
+    const timeoutId = setTimeout(() => clearInterval(intervalId), 500);
 
     return () => {
-      if (intervalId !== null) {
-        window.clearInterval(intervalId);
-      }
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
     };
   }, [pathname]);
 
