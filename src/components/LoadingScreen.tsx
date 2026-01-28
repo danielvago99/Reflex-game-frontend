@@ -39,7 +39,7 @@ export function LoadingScreen({ onComplete, isStatic = false }: LoadingScreenPro
   }, [isStatic, onComplete]);
 
   return (
-    <div className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
+    <div id="page-root" className="h-screen-dvh bg-[#0B0F1A] flex items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0">
         <FuturisticBackground />
       </div>

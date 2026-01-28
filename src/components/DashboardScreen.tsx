@@ -140,7 +140,7 @@ export function DashboardScreen({
   }, [rewardsData]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
+    <div id="page-root" className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-3 xs:p-4 sm:p-6 relative overflow-hidden">
       <FuturisticBackground />
       
       <div className="relative z-10 max-w-md mx-auto">

@@ -9,26 +9,54 @@ export function ScrollToTop() {
       window.history.scrollRestoration = 'manual';
     }
 
+    const scrollBehavior = 'instant' as ScrollBehavior;
+    const maxFrames = 6;
+    let frameCount = 0;
+    let rafId: number | null = null;
+
     const scrollToTop = () => {
-      window.scrollTo(0, 0);
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: scrollBehavior,
+      });
       document.body.scrollTop = 0;
       document.documentElement.scrollTop = 0;
 
-      const mainContent =
-        document.querySelector('main') || document.getElementById('main-content');
-      if (mainContent) {
-        mainContent.scrollTo({
+      const scrollTargets = [
+        document.getElementById('page-root'),
+        document.getElementById('main-content'),
+        document.getElementById('root'),
+        document.querySelector('main'),
+      ];
+
+      scrollTargets.forEach((target) => {
+        if (!target) {
+          return;
+        }
+
+        target.scrollTo({
           top: 0,
           left: 0,
-          behavior: 'auto',
+          behavior: scrollBehavior,
         });
+
+        target.scrollIntoView({ block: 'start', behavior: scrollBehavior });
+      });
+
+      frameCount += 1;
+      if (frameCount < maxFrames) {
+        rafId = window.requestAnimationFrame(scrollToTop);
       }
     };
 
     scrollToTop();
-    const timeoutId = window.setTimeout(scrollToTop, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, [pathname]);
 
   return null;
