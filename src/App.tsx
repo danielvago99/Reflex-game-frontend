@@ -7,7 +7,8 @@ import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './app/ScrollToTop';
 import { ReferralHandler } from './screens/ReferralHandler';
 
-const WelcomeRoute = lazy(() => import('./features/auth/routes/WelcomeRoute'));
+const welcomeRoutePromise = import('./features/auth/routes/WelcomeRoute');
+const WelcomeRoute = lazy(() => welcomeRoutePromise);
 const CreateWalletRoute = lazy(() => import('./features/wallet/routes/CreateWalletRoute'));
 const SetPasswordRoute = lazy(() => import('./features/wallet/routes/SetPasswordRoute'));
 const SeedDisplayRoute = lazy(() => import('./features/wallet/routes/SeedDisplayRoute'));
@@ -29,8 +30,14 @@ const DailyChallengeRoute = lazy(() => import('./features/auth/routes/DailyChall
 export default function App() {
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
+  const handleLoadingComplete = () => {
+    void welcomeRoutePromise.then(() => {
+      setShowLoadingScreen(false);
+    });
+  };
+
   if (showLoadingScreen) {
-    return <LoadingScreen onComplete={() => setShowLoadingScreen(false)} />;
+    return <LoadingScreen onComplete={handleLoadingComplete} />;
   }
 
   return (
