@@ -15,7 +15,7 @@ export function DailyChallengeScreen({ onBack }: DailyChallengeScreenProps) {
   const isCompleted = matchesPlayed >= matchesTarget;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
+    <div id="page-root" className="min-h-screen bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] p-6 relative overflow-hidden">
       {/* Background effects */}
       <FuturisticBackground />
 
