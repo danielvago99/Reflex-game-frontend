@@ -128,7 +128,7 @@ router.post('/login', async (req, res) => {
 
   const nonceKey = getNonceKey(address);
   await waitForRedisReady();
-  const expectedNonce = await redisClient.get(nonceKey);
+  const expectedNonce = await redisClient.get<string>(nonceKey);
 
   if (!expectedNonce) {
     return res.status(401).json({ error: 'Invalid or expired nonce' });
