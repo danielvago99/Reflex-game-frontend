@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
 import { Key, Target, Timer, Trophy, Wallet, X, Zap } from 'lucide-react';
@@ -17,8 +17,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'signing'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hasSignedRef = useRef(false);
-  const lastSignedKeyRef = useRef<string | null>(null);
+  const [shouldSign, setShouldSign] = useState(false);
 
   const walletName = wallet?.adapter.name ?? 'External Wallet';
   const isConnecting = connecting || status === 'connecting';
@@ -32,22 +31,19 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
   useEffect(() => {
     if (!connected || !publicKey) {
-      hasSignedRef.current = false;
-      lastSignedKeyRef.current = null;
+      setShouldSign(false);
+      return;
+    }
+
+    if (!shouldSign) {
       return;
     }
 
     const activeKey = publicKey.toBase58();
     connectExternalWallet(activeKey, walletName);
-
-    if (hasSignedRef.current && lastSignedKeyRef.current === activeKey) {
-      return;
-    }
-
-    hasSignedRef.current = true;
-    lastSignedKeyRef.current = activeKey;
     setStatus('signing');
     setErrorMessage(null);
+    setShouldSign(false);
 
     const runLogin = async () => {
       try {
@@ -66,12 +62,20 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         console.error('Solana login failed', error);
         setStatus('idle');
         setErrorMessage(error instanceof Error ? error.message : 'Failed to authenticate with wallet');
-        hasSignedRef.current = false;
       }
     };
 
     void runLogin();
-  }, [connected, connectExternalWallet, loginWithExternalWallet, onNavigate, publicKey, signMessage, walletName]);
+  }, [
+    connected,
+    connectExternalWallet,
+    loginWithExternalWallet,
+    onNavigate,
+    publicKey,
+    shouldSign,
+    signMessage,
+    walletName,
+  ]);
 
   const handleConnectWallet = () => {
     setErrorMessage(null);
@@ -82,6 +86,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
     try {
       setErrorMessage(null);
       setStatus('connecting');
+      setShouldSign(true);
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem('reflex_skip_loading', 'true');
       }
@@ -91,6 +96,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
     } catch (error) {
       console.error('Wallet connection failed', error);
       setStatus('idle');
+      setShouldSign(false);
       setErrorMessage(error instanceof Error ? error.message : 'Unable to connect wallet');
     }
   };
