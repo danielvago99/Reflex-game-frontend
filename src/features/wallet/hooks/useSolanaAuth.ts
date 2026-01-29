@@ -5,6 +5,7 @@ import nacl from 'tweetnacl';
 export interface SolanaAuthResult {
   publicKey: NonNullable<ReturnType<typeof useWallet>['publicKey']>;
   signature: Uint8Array;
+  message: string;
 }
 
 export function useSolanaAuth() {
@@ -19,15 +20,16 @@ export function useSolanaAuth() {
       throw new Error('Wallet does not support message signing.');
     }
 
-    const message = new TextEncoder().encode(`Login to Reflex Game: ${new Date().toISOString()}`);
-    const signature = await signMessage(message);
-    const isValid = nacl.sign.detached.verify(message, signature, publicKey.toBytes());
+    const message = `Login to Reflex Game: ${new Date().toISOString()}`;
+    const messageBytes = new TextEncoder().encode(message);
+    const signature = await signMessage(messageBytes);
+    const isValid = nacl.sign.detached.verify(messageBytes, signature, publicKey.toBytes());
 
     if (!isValid) {
       throw new Error('Signature verification failed.');
     }
 
-    return { publicKey, signature };
+    return { publicKey, signature, message };
   }, [connected, publicKey, signMessage]);
 
   return { login };
