@@ -43,7 +43,7 @@ const addressQuerySchema = z.object({
 const loginSchema = z.object({
   address: z.string().min(1),
   signature: z.string().min(1),
-  nonce: z.string().min(1),
+  message: z.string().min(1),
   referralCode: z.string().min(1).optional(),
 });
 
@@ -107,13 +107,7 @@ router.get('/nonce', async (req, res) => {
   await waitForRedisReady();
   await redisClient.set(nonceKey, nonce, { ex: 300}); // Expires in 5 minutes
 
-  const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
-
-  return res.json({
-    address,
-    nonce,
-    message,
-  });
+  return res.json({ nonce });
 });
 
 router.post('/login', async (req, res) => {
@@ -123,7 +117,7 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Invalid request body' });
   }
 
-  const { address, signature, nonce, referralCode } = parsed.data;
+  const { address, signature, message, referralCode } = parsed.data;
 
   try {
     // eslint-disable-next-line no-new
@@ -136,11 +130,14 @@ router.post('/login', async (req, res) => {
   await waitForRedisReady();
   const expectedNonce = await redisClient.get(nonceKey);
 
-  if (!expectedNonce || expectedNonce !== nonce) {
+  if (!expectedNonce) {
     return res.status(401).json({ error: 'Invalid or expired nonce' });
   }
 
-  const message = `Reflex Login\nAddress: ${address}\nNonce: ${nonce}`;
+  if (!message.includes(expectedNonce) || !message.includes(address)) {
+    return res.status(401).json({ error: 'Invalid message content' });
+  }
+
   const messageBytes = Buffer.from(message, 'utf8');
   const signatureBytes = new Uint8Array(Buffer.from(signature, 'base64'));
   const pubkey = new PublicKey(address);

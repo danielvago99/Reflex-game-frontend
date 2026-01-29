@@ -14,7 +14,7 @@ interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
   playerName?: string;
   walletAddress?: string;
-  balance?: number;
+  balance?: number | null;
   avatarUrl?: string;
   stats?: PlayerStats;
   isLoading?: boolean;
@@ -26,7 +26,7 @@ export function DashboardScreen({
   onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
-  balance = 0,
+  balance = null,
   avatarUrl,
   stats,
   isLoading,
@@ -210,7 +210,7 @@ export function DashboardScreen({
 
                     <div className="mb-3">
                       <p className="text-3xl text-[#00FFA3] font-bold">
-                        {isLoading ? '—' : walletBalance.toFixed(4)}
+                        {isLoading ? '—' : walletBalance == null ? '--' : walletBalance.toFixed(4)}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
                     </div>
@@ -416,7 +416,7 @@ export function DashboardScreen({
       <WithdrawDialog
         open={showWithdraw}
         onClose={() => setShowWithdraw(false)}
-        currentBalance={balance}
+        currentBalance={balance ?? 0}
       />
     </div>
   );

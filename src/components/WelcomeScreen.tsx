@@ -10,8 +10,6 @@ interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
 }
 
-const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
-
 export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
   const { wallets, select, connect, connected, connecting, publicKey, wallet } = useSolanaWallet();
   const { connectExternalWallet } = useAppWallet();
@@ -54,11 +52,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
     const runLogin = async () => {
       try {
         const result = await login();
-        const signatureBase64 = toBase64(result.signature);
         const payload = {
-          publicKey: result.publicKey.toBase58(),
-          signature: signatureBase64,
-          message: result.message,
+          publicKey: result.address,
           walletName,
         };
         sessionStorage.setItem('solana_auth', JSON.stringify(payload));
