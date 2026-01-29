@@ -28,10 +28,19 @@ const RewardsRoute = lazy(() => import('./features/auth/routes/RewardsRoute'));
 const DailyChallengeRoute = lazy(() => import('./features/auth/routes/DailyChallengeRoute'));
 
 export default function App() {
-  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(() => {
+    if (typeof sessionStorage === 'undefined') {
+      return true;
+    }
+
+    return sessionStorage.getItem('reflex_skip_loading') !== 'true';
+  });
 
   const handleLoadingComplete = () => {
     void welcomeRoutePromise.then(() => {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('reflex_skip_loading', 'true');
+      }
       setShowLoadingScreen(false);
     });
   };

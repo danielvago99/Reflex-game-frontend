@@ -82,6 +82,9 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
     try {
       setErrorMessage(null);
       setStatus('connecting');
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('reflex_skip_loading', 'true');
+      }
       select(walletToSelect);
       await connect();
       setStatus('idle');
