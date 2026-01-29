@@ -225,7 +225,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="absolute top-2 left-2 h-3 w-3 border-t border-l border-[#7C3AED]/50"></div>
               <div className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-[#00FFA3]/50"></div>
 
-              <div className="flex items-start justify-between px-6 pt-6">
+              <div className="flex items-start justify-between px-6 pt-8">
                 <div>
                   <h2 className="text-lg text-white">Connect your wallet</h2>
                   <p className="text-xs text-gray-400">Choose a Solana wallet to enter the arena.</p>
@@ -239,7 +239,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </button>
               </div>
 
-              <div className="space-y-3 px-6 py-5">
+              <div className="space-y-3 px-6 pb-6 pt-5">
                 {walletOptions.length === 0 ? (
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-400">
                     No compatible wallets detected. Install Phantom or Solflare to continue.
