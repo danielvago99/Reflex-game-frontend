@@ -1,20 +1,106 @@
-import { Zap, Target, Timer, Trophy, Wallet, Key } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { WalletReadyState } from '@solana/wallet-adapter-base';
+import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
+import { Key, Target, Timer, Trophy, Wallet, X, Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
+import { useSolanaAuth } from '../features/wallet/hooks/useSolanaAuth';
+import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
-  onWalletConnect?: () => void;
 }
 
-export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProps) {
-  const handleConnectWallet = () => {
-    if (onWalletConnect) {
-      onWalletConnect();
+const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+
+export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
+  const { wallets, select, connect, connected, connecting, publicKey, wallet } = useSolanaWallet();
+  const { connectExternalWallet } = useAppWallet();
+  const { login } = useSolanaAuth();
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'connecting' | 'signing'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasSignedRef = useRef(false);
+  const lastSignedKeyRef = useRef<string | null>(null);
+
+  const walletName = wallet?.adapter.name ?? 'External Wallet';
+  const isConnecting = connecting || status === 'connecting';
+  const isSigning = status === 'signing';
+
+  const walletOptions = useMemo(
+    () =>
+      wallets.filter(walletOption => walletOption.readyState !== WalletReadyState.Unsupported),
+    [wallets],
+  );
+
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      hasSignedRef.current = false;
+      lastSignedKeyRef.current = null;
       return;
     }
 
-    onNavigate('dashboard');
+    const activeKey = publicKey.toBase58();
+    connectExternalWallet(activeKey, walletName);
+
+    if (hasSignedRef.current && lastSignedKeyRef.current === activeKey) {
+      return;
+    }
+
+    hasSignedRef.current = true;
+    lastSignedKeyRef.current = activeKey;
+    setStatus('signing');
+    setErrorMessage(null);
+
+    const runLogin = async () => {
+      try {
+        const result = await login();
+        const signatureBase64 = toBase64(result.signature);
+        const payload = {
+          publicKey: result.publicKey.toBase58(),
+          signature: signatureBase64,
+          message: result.message,
+          walletName,
+        };
+        sessionStorage.setItem('solana_auth', JSON.stringify(payload));
+        setStatus('idle');
+        setIsWalletModalOpen(false);
+        onNavigate('dashboard');
+      } catch (error) {
+        console.error('Solana login failed', error);
+        setStatus('idle');
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to authenticate with wallet');
+        hasSignedRef.current = false;
+      }
+    };
+
+    void runLogin();
+  }, [connected, connectExternalWallet, login, onNavigate, publicKey, walletName]);
+
+  const handleConnectWallet = () => {
+    setErrorMessage(null);
+    setIsWalletModalOpen(true);
   };
+
+  const handleSelectWallet = async (walletToSelect: string) => {
+    try {
+      setErrorMessage(null);
+      setStatus('connecting');
+      select(walletToSelect);
+      await connect();
+      setStatus('idle');
+    } catch (error) {
+      console.error('Wallet connection failed', error);
+      setStatus('idle');
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to connect wallet');
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (isConnecting || isSigning) return;
+    setIsWalletModalOpen(false);
+  };
+
+  const statusLabel = isSigning ? 'Signing...' : isConnecting ? 'Connecting...' : undefined;
 
   return (
     <div id="page-root" className="h-screen-dvh bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
@@ -78,11 +164,22 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
         <div className="w-full space-y-3 max-w-xs mx-auto">
           <button
             onClick={handleConnectWallet}
+            disabled={isConnecting || isSigning}
             className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             <Wallet className="w-5 h-5" />
-            <span>Connect Wallet</span>
+            <span>{statusLabel ?? 'Connect Wallet'}</span>
           </button>
+
+          {statusLabel ? (
+            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
+          ) : null}
+
+          {errorMessage ? (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
+              {errorMessage}
+            </div>
+          ) : null}
           
           <button
             onClick={() => onNavigate('create-wallet')}
@@ -107,6 +204,82 @@ export function WelcomeScreen({ onNavigate, onWalletConnect }: WelcomeScreenProp
           <span>Powered by Community</span>
         </div>
       </div>
+
+      {isWalletModalOpen ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#05070d]/80 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-md border border-white/10 bg-[#0B0F1A]/95 shadow-[0_0_45px_rgba(0,255,163,0.2)] rounded-2xl overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
+
+            <div className="flex items-start justify-between px-6 pt-6">
+              <div>
+                <h2 className="text-lg text-white">Connect your wallet</h2>
+                <p className="text-xs text-gray-400">Choose a Solana wallet to enter the arena.</p>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                disabled={isConnecting || isSigning}
+                className="rounded-full border border-white/10 p-1 text-gray-400 transition hover:text-white disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 px-6 py-5">
+              {walletOptions.length === 0 ? (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-400">
+                  No compatible wallets detected. Install Phantom or Solflare to continue.
+                </div>
+              ) : (
+                walletOptions.map(walletOption => {
+                  const readyState = walletOption.readyState;
+                  const readyLabel =
+                    readyState === WalletReadyState.Installed
+                      ? 'Detected'
+                      : readyState === WalletReadyState.Loadable
+                      ? 'Loadable'
+                      : readyState === WalletReadyState.NotDetected
+                      ? 'Not Installed'
+                      : 'Unsupported';
+                  const isSelected = walletOption.adapter.name === wallet?.adapter.name;
+
+                  return (
+                    <button
+                      key={walletOption.adapter.name}
+                      onClick={() => handleSelectWallet(walletOption.adapter.name)}
+                      disabled={isConnecting || isSigning}
+                      className="group flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition hover:border-[#00FFA3]/50 hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                          {walletOption.adapter.icon ? (
+                            <img src={walletOption.adapter.icon} alt="" className="h-6 w-6" />
+                          ) : (
+                            <Wallet className="h-5 w-5 text-[#00FFA3]" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">{walletOption.adapter.name}</p>
+                          <p className="text-xs text-gray-400">{readyLabel}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-[#00FFA3]">
+                        {isSelected ? (isConnecting ? 'Connecting...' : 'Selected') : 'Connect'}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {errorMessage ? (
+              <div className="mx-6 mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.2)]">
+                {errorMessage}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

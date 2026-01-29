@@ -7,16 +7,19 @@ export function RouteGuard() {
   const { address } = useWallet();
   const { user, loading } = useAuth();
   const location = useLocation();
+  const storedAuth =
+    typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('solana_auth') : null;
+  const hasSolanaAuth = Boolean(storedAuth);
 
-  if (!address) {
+  if (!address && !hasSolanaAuth) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  if (loading) {
+  if (loading && !hasSolanaAuth) {
     return <LoadingScreen onComplete={() => undefined} isStatic />;
   }
 
-  if (!user) {
+  if (!user && !hasSolanaAuth) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 

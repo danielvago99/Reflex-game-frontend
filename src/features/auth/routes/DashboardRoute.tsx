@@ -14,6 +14,17 @@ export default function DashboardRoute() {
   const { address } = useWallet();
   const { user, loading } = useUserDashboard();
   const { matches, loading: matchesLoading } = useMatchHistory(5);
+  const storedAuth =
+    typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('solana_auth') : null;
+  let storedAddress: string | null = null;
+  if (storedAuth) {
+    try {
+      storedAddress = (JSON.parse(storedAuth) as { publicKey?: string }).publicKey ?? null;
+    } catch {
+      storedAddress = null;
+    }
+  }
+  const walletAddress = (user?.walletAddress ?? address) || storedAddress || '';
 
   const handleNavigate = (screen: string) => {
     if (isScreen(screen)) {
@@ -25,7 +36,7 @@ export default function DashboardRoute() {
     <DashboardScreen
       onNavigate={handleNavigate}
       playerName={user?.username ?? playerName}
-      walletAddress={user?.walletAddress ?? address}
+      walletAddress={walletAddress}
       avatarUrl={user?.avatar ?? undefined}
       stats={user?.stats ?? undefined}
       isLoading={loading}
