@@ -31,7 +31,9 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
   useEffect(() => {
     if (!connected || !publicKey) {
-      setShouldSign(false);
+      if (status === 'idle') {
+        setShouldSign(false);
+      }
       return;
     }
 
