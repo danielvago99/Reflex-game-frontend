@@ -3,19 +3,17 @@ import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
 import { Key, Target, Timer, Trophy, Wallet, X, Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
-import { useSolanaAuth } from '../features/wallet/hooks/useSolanaAuth';
 import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
+import { useAuth } from '../features/auth/hooks/useAuth';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
 }
 
-const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
-
 export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
-  const { wallets, select, connect, connected, connecting, publicKey, wallet } = useSolanaWallet();
+  const { wallets, select, connect, connected, connecting, publicKey, wallet, signMessage } = useSolanaWallet();
   const { connectExternalWallet } = useAppWallet();
-  const { login } = useSolanaAuth();
+  const { loginWithExternalWallet } = useAuth();
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [status, setStatus] = useState<'idle' | 'connecting' | 'signing'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,15 +51,14 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
     const runLogin = async () => {
       try {
-        const result = await login();
-        const signatureBase64 = toBase64(result.signature);
-        const payload = {
-          publicKey: result.publicKey.toBase58(),
-          signature: signatureBase64,
-          message: result.message,
-          walletName,
-        };
-        sessionStorage.setItem('solana_auth', JSON.stringify(payload));
+        if (!signMessage) {
+          throw new Error('Wallet does not support message signing.');
+        }
+
+        await loginWithExternalWallet({
+          address: activeKey,
+          signMessage: async (message: string) => signMessage(new TextEncoder().encode(message)),
+        });
         setStatus('idle');
         setIsWalletModalOpen(false);
         onNavigate('dashboard');
@@ -74,7 +71,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
     };
 
     void runLogin();
-  }, [connected, connectExternalWallet, login, onNavigate, publicKey, walletName]);
+  }, [connected, connectExternalWallet, loginWithExternalWallet, onNavigate, publicKey, signMessage, walletName]);
 
   const handleConnectWallet = () => {
     setErrorMessage(null);
