@@ -5,6 +5,7 @@ import { useWallet } from '../../wallet/context/WalletProvider';
 import { useUserDashboard } from '../hooks/useUserDashboard';
 import { screenToPath, ScreenPaths, type AppScreen } from '../../../shared/types/navigation';
 import { useMatchHistory } from '../../../hooks/useMatchHistory';
+import { useSolBalance } from '../../wallet/hooks/useSolBalance';
 
 const isScreen = (value: string): value is AppScreen => value in ScreenPaths;
 
@@ -14,6 +15,7 @@ export default function DashboardRoute() {
   const { address } = useWallet();
   const { user, loading } = useUserDashboard();
   const { matches, loading: matchesLoading } = useMatchHistory(5);
+  const solBalance = useSolBalance();
   const storedAuth =
     typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('solana_auth') : null;
   let storedAddress: string | null = null;
@@ -38,6 +40,7 @@ export default function DashboardRoute() {
       playerName={user?.username ?? playerName}
       walletAddress={walletAddress}
       avatarUrl={user?.avatar ?? undefined}
+      balance={solBalance ?? undefined}
       stats={user?.stats ?? undefined}
       isLoading={loading}
       recentMatches={matches}
