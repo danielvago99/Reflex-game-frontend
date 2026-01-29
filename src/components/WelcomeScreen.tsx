@@ -205,25 +205,19 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       {isWalletModalOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#05070d]/80 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-md">
-            <div
-              className="absolute -inset-1 bg-gradient-to-r from-[#7C3AED]/20 to-[#00FFA3]/20 blur-sm"
-              style={{
-                clipPath:
-                  'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)',
-              }}
-            ></div>
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#7C3AED]/20 via-[#06B6D4]/20 to-[#00FFA3]/20 blur-2xl opacity-60"></div>
 
             <div
-              className="relative border border-white/10 bg-white/10 backdrop-blur-sm shadow-xl overflow-hidden"
+              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden"
               style={{
                 clipPath:
-                  'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)',
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
               }}
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
-              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
-              <div className="absolute top-2 left-2 h-3 w-3 border-t border-l border-[#7C3AED]/50"></div>
-              <div className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-[#00FFA3]/50"></div>
+              <div className="absolute top-0 left-0 h-px w-8 bg-gradient-to-r from-[#00FFA3] to-transparent"></div>
+              <div className="absolute top-0 left-0 h-8 w-px bg-gradient-to-b from-[#00FFA3] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 h-px w-8 bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 h-8 w-px bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
 
               <div className="flex items-start justify-between px-6 pt-6">
                 <div>
