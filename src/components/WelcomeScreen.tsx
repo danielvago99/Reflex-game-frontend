@@ -214,7 +214,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             ></div>
 
             <div
-              className="relative border border-white/10 bg-white/10 backdrop-blur-sm shadow-xl overflow-hidden pb-8 pt-3"
+              className="relative border border-white/10 bg-white/10 backdrop-blur-sm shadow-xl overflow-hidden"
               style={{
                 clipPath:
                   'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)',
@@ -225,72 +225,74 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="absolute top-2 left-2 h-3 w-3 border-t border-l border-[#7C3AED]/50"></div>
               <div className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-[#00FFA3]/50"></div>
 
-              <div className="flex items-start justify-between px-6 pt-8">
-                <div>
-                  <h2 className="text-lg text-white">Connect your wallet</h2>
-                  <p className="text-xs text-gray-400">Choose a Solana wallet to enter the arena.</p>
-                </div>
-                <button
-                  onClick={handleCloseModal}
-                  disabled={isConnecting || isSigning}
-                  className="rounded-full border border-white/10 p-1 text-gray-400 transition hover:text-white disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3 px-6 pb-6 pt-5">
-                {walletOptions.length === 0 ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-400">
-                    No compatible wallets detected. Install Phantom or Solflare to continue.
+              <div className="pt-3 pb-8">
+                <div className="flex items-start justify-between px-6 pt-8">
+                  <div>
+                    <h2 className="text-lg text-white">Connect your wallet</h2>
+                    <p className="text-xs text-gray-400">Choose a Solana wallet to enter the arena.</p>
                   </div>
-                ) : (
-                  walletOptions.map(walletOption => {
-                    const readyState = walletOption.readyState;
-                    const readyLabel =
-                      readyState === WalletReadyState.Installed
-                        ? 'Detected'
-                        : readyState === WalletReadyState.Loadable
-                        ? 'Loadable'
-                        : readyState === WalletReadyState.NotDetected
-                        ? 'Not Installed'
-                        : 'Unsupported';
-                    const isSelected = walletOption.adapter.name === wallet?.adapter.name;
-
-                    return (
-                      <button
-                        key={walletOption.adapter.name}
-                        onClick={() => handleSelectWallet(walletOption.adapter.name)}
-                        disabled={isConnecting || isSigning}
-                        className="group flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition hover:border-[#00FFA3]/50 hover:bg-white/10 disabled:opacity-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                            {walletOption.adapter.icon ? (
-                              <img src={walletOption.adapter.icon} alt="" className="h-6 w-6" />
-                            ) : (
-                              <Wallet className="h-5 w-5 text-[#00FFA3]" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">{walletOption.adapter.name}</p>
-                            <p className="text-xs text-gray-400">{readyLabel}</p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-[#00FFA3]">
-                          {isSelected ? (isConnecting ? 'Connecting...' : 'Selected') : 'Connect'}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-
-              {errorMessage ? (
-                <div className="mx-6 mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.2)]">
-                  {errorMessage}
+                  <button
+                    onClick={handleCloseModal}
+                    disabled={isConnecting || isSigning}
+                    className="rounded-full border border-white/10 p-1 text-gray-400 transition hover:text-white disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-              ) : null}
+
+                <div className="space-y-3 px-6 pb-6 pt-5">
+                  {walletOptions.length === 0 ? (
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-400">
+                      No compatible wallets detected. Install Phantom or Solflare to continue.
+                    </div>
+                  ) : (
+                    walletOptions.map(walletOption => {
+                      const readyState = walletOption.readyState;
+                      const readyLabel =
+                        readyState === WalletReadyState.Installed
+                          ? 'Detected'
+                          : readyState === WalletReadyState.Loadable
+                          ? 'Loadable'
+                          : readyState === WalletReadyState.NotDetected
+                          ? 'Not Installed'
+                          : 'Unsupported';
+                      const isSelected = walletOption.adapter.name === wallet?.adapter.name;
+
+                      return (
+                        <button
+                          key={walletOption.adapter.name}
+                          onClick={() => handleSelectWallet(walletOption.adapter.name)}
+                          disabled={isConnecting || isSigning}
+                          className="group flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition hover:border-[#00FFA3]/50 hover:bg-white/10 disabled:opacity-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                              {walletOption.adapter.icon ? (
+                                <img src={walletOption.adapter.icon} alt="" className="h-6 w-6" />
+                              ) : (
+                                <Wallet className="h-5 w-5 text-[#00FFA3]" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{walletOption.adapter.name}</p>
+                              <p className="text-xs text-gray-400">{readyLabel}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-[#00FFA3]">
+                            {isSelected ? (isConnecting ? 'Connecting...' : 'Selected') : 'Connect'}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {errorMessage ? (
+                  <div className="mx-6 mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.2)]">
+                    {errorMessage}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
