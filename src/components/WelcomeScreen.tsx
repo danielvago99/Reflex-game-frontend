@@ -214,7 +214,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             ></div>
 
             <div
-              className="relative border border-white/10 bg-white/10 backdrop-blur-sm shadow-xl overflow-hidden"
+              className="relative border border-white/10 bg-white/10 backdrop-blur-sm shadow-xl overflow-hidden pb-5 pt-5"
               style={{
                 clipPath:
                   'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)',
