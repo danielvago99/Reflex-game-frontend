@@ -418,7 +418,12 @@ export function GameArena({
 
   const handleReadyUp = () => {
     setShowHowToPlay(false);
-    setWaitingForOpponent(true);
+    if (matchType === 'bot') {
+      setWaitingForOpponent(false);
+      setGameState('countdown');
+    } else {
+      setWaitingForOpponent(true);
+    }
 
     if (!isConnected) {
       toast.error('WebSocket disconnected', {
@@ -427,7 +432,7 @@ export function GameArena({
       return;
     }
 
-    send('game:player_ready', {});
+    send('game:player_ready', { matchType });
   };
 
   const handlePause = () => {
