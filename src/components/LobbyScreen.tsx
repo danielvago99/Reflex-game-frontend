@@ -147,6 +147,61 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setMatchStatus('idle');
     });
 
+    const unsubscribeGameStart = wsService.on('game:start', (message: any) => {
+      console.log('game:start received', message?.payload);
+      setWaitingForStakeConfirmation(false);
+      setFriendIntroOpen(false);
+      if (matchFoundTimeoutRef.current) {
+        window.clearTimeout(matchFoundTimeoutRef.current);
+        matchFoundTimeoutRef.current = null;
+      }
+      setShowTransactionModal(false);
+      setMatchStatus('idle');
+
+      const matchDetails = pendingMatchRef.current;
+      if (matchDetails) {
+        if (onStartMatch) {
+          onStartMatch(
+            matchDetails.matchType === 'ranked',
+            matchDetails.stake,
+            matchDetails.matchType,
+            matchDetails.opponentName
+          );
+        } else {
+          onNavigate('arena');
+        }
+        return;
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        const storedMatch = localStorage.getItem(ACTIVE_MATCH_KEY);
+        if (storedMatch) {
+          try {
+            const parsed = JSON.parse(storedMatch) as {
+              stake: number;
+              matchType: 'ranked' | 'friend' | 'bot';
+              opponentName?: string;
+            };
+            if (onStartMatch) {
+              onStartMatch(
+                parsed.matchType === 'ranked',
+                parsed.stake ?? 0,
+                parsed.matchType ?? 'ranked',
+                parsed.opponentName
+              );
+            } else {
+              onNavigate('arena');
+            }
+            return;
+          } catch (error) {
+            console.error('Failed to parse stored match details', error);
+          }
+        }
+      }
+
+      onNavigate('arena');
+    });
+
     const unsubscribeGameState = wsService.on('game:state', (message: any) => {
       const payload = message?.payload ?? {};
       if (!payload.sessionId) return;
@@ -210,6 +265,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeEnterArena();
+      unsubscribeGameStart();
       unsubscribeGameState();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {

@@ -132,7 +132,7 @@ const GAME_STATE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
 const MAX_FRIEND_STAKE = 10;
-const DISCONNECT_TIMEOUT_MS = 60_000;
+const DISCONNECT_TIMEOUT_MS = 30_000;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
 const getRoomCodeKey = (roomCode: string) => `game:roomcode:${roomCode}`;
@@ -1675,6 +1675,7 @@ export function createWsServer(server: Server) {
     let sessionState: SessionState | undefined;
     if (userId) {
       const activeSessionId = userActiveSessions.get(userId);
+      const isWaitingForReconnect = Boolean(activeSessionId && disconnectTimeouts.has(activeSessionId));
       if (activeSessionId) {
         const restoreResult = await validateRestorableSession(userId, activeSessionId);
         if (restoreResult) {
@@ -1693,7 +1694,10 @@ export function createWsServer(server: Server) {
               : assignments?.p1;
           const opponentName = hasBotOpponent ? 'Training Bot' : userNames.get(opponentId ?? '') ?? undefined;
 
-          logger.info({ userId, activeSessionId }, 'RESTORING ACTIVE SESSION for user');
+          logger.info(
+            { userId, activeSessionId, isWaitingForReconnect },
+            'RESTORING ACTIVE SESSION for user',
+          );
           sendMessage(socket, 'match_found', {
             sessionId: activeSessionId,
             opponentId,
@@ -1704,8 +1708,11 @@ export function createWsServer(server: Server) {
             roomCode: existingState.roomCode,
           });
 
-          clearDisconnectTimeout(activeSessionId);
-          broadcastToSession(activeSessionId, 'player:reconnected', {});
+          if (isWaitingForReconnect) {
+            clearDisconnectTimeout(activeSessionId);
+            broadcastToSession(activeSessionId, 'player:reconnected', {});
+          }
+
           sendMessage(socket, 'game:state', buildGameStatePayload(existingState, userId, opponentName));
         }
       }
@@ -2300,10 +2307,12 @@ export function createWsServer(server: Server) {
         ) {
           const remainingSocket = sockets ? Array.from(sockets).find((s) => s !== socket) : undefined;
           if (remainingSocket && !sessionState.isBotOpponent) {
-            sendMessage(remainingSocket, 'player:disconnected', { timeout: 60 });
-          }
+            sendMessage(remainingSocket, 'player:disconnected', { timeout: DISCONNECT_TIMEOUT_MS / 1000 });
+            logger.info(
+              { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
+              'Opponent disconnected - notifying remaining player',
+            );
 
-          if (remainingSocket && !sessionState.isBotOpponent) {
             clearDisconnectTimeout(sessionRef.sessionId);
             const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);
             const remainingSlot = getOpponentSlot(disconnectedSlot);
@@ -2314,9 +2323,30 @@ export function createWsServer(server: Server) {
                 const activeState = sessionStates.get(sessionRef.sessionId);
                 if (!activeState || activeState.isFinished) return;
 
+                const activeSockets = sessionSockets.get(sessionRef.sessionId) ?? new Set<WebSocket>();
+                const isUserBack = sessionRef.userId
+                  ? Array.from(activeSockets).some((sessionSocket) => sessions.get(sessionSocket)?.userId === sessionRef.userId)
+                  : false;
+
+                if (isUserBack) {
+                  logger.info(
+                    { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
+                    'Disconnect timeout expired but user already reconnected',
+                  );
+                  return;
+                }
+
                 clearTimers(activeState);
                 activeState.scores[remainingSlot] = Math.max(activeState.scores[remainingSlot], ROUNDS_TO_WIN);
                 await finalizeGame(activeState, true);
+                sessions.delete(socket);
+                if (activeState.matchType !== 'bot') {
+                  await redisClient.del(getSessionKey(sessionRef.sessionId));
+                }
+                logger.info(
+                  { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
+                  'Disconnect timeout expired - forfeit finalized',
+                );
               })();
             }, DISCONNECT_TIMEOUT_MS);
 

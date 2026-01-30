@@ -340,6 +340,15 @@ export function GameArena({
     handleOpponentReconnected();
   }, [handleOpponentReconnected]);
 
+  useWebSocketEvent('game:end', () => {
+    setIsOpponentDisconnected(false);
+    setDisconnectCountdown(null);
+    if (disconnectIntervalRef.current) {
+      window.clearInterval(disconnectIntervalRef.current);
+      disconnectIntervalRef.current = null;
+    }
+  }, []);
+
   useWebSocketEvent<WSGameState>('game:state', payload => {
     setCurrentRound(payload.round);
     setPlayerScore(payload.scores.player);
@@ -658,6 +667,7 @@ export function GameArena({
         </div>
       )}
 
+      {/* Opponent Disconnected Overlay */}
       <AnimatePresence>
         {isOpponentDisconnected && (
           <motion.div
@@ -684,7 +694,7 @@ export function GameArena({
                 <div className="flex flex-col items-center gap-5">
                   <div className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-orange-200/80">
                     <WifiOff className="h-4 w-4" />
-                    Connection Lost
+                    OPPONENT DISCONNECTED
                   </div>
                   <motion.div
                     className="text-6xl font-mono font-semibold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-amber-300 drop-shadow-[0_0_20px_rgba(249,115,22,0.45)]"
@@ -695,7 +705,7 @@ export function GameArena({
                   </motion.div>
                   <div>
                     <p className="text-lg font-semibold text-white">
-                      Opponent Disconnected. Claiming victory in...
+                      Winning via forfeit in...
                     </p>
                     <p className="text-sm text-gray-300 mt-1 flex items-center justify-center gap-2">
                       <TimerReset className="h-4 w-4 text-orange-300" />
