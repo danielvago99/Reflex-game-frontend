@@ -240,6 +240,7 @@ export type WSMessageType =
   | 'game:paused'
   | 'game:resume'
   | 'game:resumed'
+  | 'game:state'
   | 'game:player_clicked'
   | 'game:result'
   | 'game:end'
@@ -288,6 +289,25 @@ export interface WSGameCountdown {
   count: number;
 }
 
+export interface WSGameState {
+  sessionId: string;
+  round: number;
+  scores: {
+    player: number;
+    opponent: number;
+  };
+  matchType: 'ranked' | 'friend' | 'bot';
+  stakeAmount: number;
+  opponentName?: string;
+  hasStarted: boolean;
+  isPaused: boolean;
+  target?: {
+    shape: 'circle' | 'square' | 'triangle';
+    color: string;
+    colorName: string;
+  };
+}
+
 export interface WSGameShowButton {
   showTime: number;
 }
@@ -314,6 +334,10 @@ export interface WSRoundPrepare {
     colorName: string;
   };
   instruction: string;
+}
+
+export interface WSPlayerDisconnected {
+  timeout: number;
 }
 
 export interface WSRoundReadyPayload {

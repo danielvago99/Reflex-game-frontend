@@ -51,6 +51,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   } | null>(null);
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
+  const autoRejoinAttemptedRef = useRef(false);
   const pendingMatchRef = useRef<{
     sessionId: string;
     stake: number;
@@ -63,6 +64,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
   const dailyChallengeCompleted = dailyMatchesPlayed >= dailyMatchesTarget;
+  const ACTIVE_MATCH_KEY = 'activeMatchDetails';
+  const ACTIVE_SESSION_KEY = 'gameSessionId';
 
   useEffect(() => {
     setFreeStakes(getFreeStakes());
@@ -97,6 +100,10 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setOpponentName(matchDetails.opponentName ?? 'Unknown Opponent');
       setPendingMatch(matchDetails);
       pendingMatchRef.current = matchDetails;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(ACTIVE_SESSION_KEY, matchDetails.sessionId);
+        localStorage.setItem(ACTIVE_MATCH_KEY, JSON.stringify(matchDetails));
+      }
       setShowInviteDialog(false);
       setShowJoinDialog(false);
       setWaitingForStakeConfirmation(false);
@@ -140,6 +147,45 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setMatchStatus('idle');
     });
 
+    const unsubscribeGameState = wsService.on('game:state', (message: any) => {
+      const payload = message?.payload ?? {};
+      if (!payload.sessionId) return;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(ACTIVE_SESSION_KEY, payload.sessionId);
+        localStorage.setItem(
+          ACTIVE_MATCH_KEY,
+          JSON.stringify({
+            sessionId: payload.sessionId,
+            stake: payload.stakeAmount ?? 0,
+            isBot: payload.matchType === 'bot',
+            matchType: payload.matchType ?? 'ranked',
+            opponentName: payload.opponentName,
+          })
+        );
+      }
+      if (matchFoundTimeoutRef.current) {
+        window.clearTimeout(matchFoundTimeoutRef.current);
+        matchFoundTimeoutRef.current = null;
+      }
+      setShowTransactionModal(false);
+      setMatchStatus('idle');
+      setFriendIntroOpen(false);
+      setWaitingForStakeConfirmation(false);
+      setPendingMatch(null);
+      pendingMatchRef.current = null;
+      setOpponentName(payload.opponentName ?? '');
+      if (onStartMatch) {
+        onStartMatch(
+          payload.matchType === 'ranked',
+          payload.stakeAmount ?? 0,
+          payload.matchType ?? 'ranked',
+          payload.opponentName
+        );
+      } else {
+        onNavigate('arena');
+      }
+    });
+
     const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
       const payload = message?.payload ?? {};
       const toastMessage = payload.message ?? 'Match cancelled.';
@@ -151,6 +197,10 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setWaitingForStakeConfirmation(false);
       setFriendIntroOpen(false);
       setFriendRoom(null);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(ACTIVE_SESSION_KEY);
+        localStorage.removeItem(ACTIVE_MATCH_KEY);
+      }
       toast.info(toastMessage, {
         description: 'You have been returned to the lobby.',
       });
@@ -160,6 +210,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeEnterArena();
+      unsubscribeGameState();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
         window.clearTimeout(matchFoundTimeoutRef.current);
@@ -167,6 +218,39 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       }
     };
   }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
+
+  useEffect(() => {
+    if (!isConnected || autoRejoinAttemptedRef.current) return;
+    autoRejoinAttemptedRef.current = true;
+    if (typeof localStorage === 'undefined') return;
+    const storedSessionId = localStorage.getItem(ACTIVE_SESSION_KEY);
+    const storedMatch = localStorage.getItem(ACTIVE_MATCH_KEY);
+    if (!storedSessionId || !storedMatch) return;
+
+    try {
+      const parsed = JSON.parse(storedMatch) as {
+        sessionId: string;
+        stake: number;
+        matchType: 'ranked' | 'friend' | 'bot';
+        opponentName?: string;
+      };
+      if (!parsed?.sessionId) return;
+      if (onStartMatch) {
+        onStartMatch(
+          parsed.matchType === 'ranked',
+          parsed.stake ?? 0,
+          parsed.matchType ?? 'ranked',
+          parsed.opponentName
+        );
+      } else {
+        onNavigate('arena');
+      }
+    } catch (error) {
+      console.error('Failed to parse stored match details', error);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+      localStorage.removeItem(ACTIVE_MATCH_KEY);
+    }
+  }, [isConnected, onNavigate, onStartMatch]);
 
   const startRankedMatchmaking = () => {
     if (!isConnected) {
