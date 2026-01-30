@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Connection, Transaction } from '@solana/web3.js';
 import {
   deriveSolanaKeypair,
   encryptSeedPhrase,
@@ -30,6 +31,7 @@ interface WalletContextValue {
   importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<{ seed: string[]; publicKey: string }>;
   connectExternalWallet: (address: string, provider: string) => void;
   signMessage: (message: string | Uint8Array) => Promise<Uint8Array>;
+  sendTransaction: (transaction: Transaction, connection: Connection) => Promise<string>;
   logout: () => Promise<void>;
 }
 
@@ -180,6 +182,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return signMessageWithSeedPhrase(vaultRef.current.seed, message);
   };
 
+  const sendTransaction = async (transaction: Transaction, connection: Connection) => {
+    if (!vaultRef.current.seed.length) {
+      throw new Error('Wallet is locked. Unlock or create a wallet to send transactions.');
+    }
+
+    const keypair = await deriveSolanaKeypair(vaultRef.current.seed);
+    transaction.partialSign(keypair);
+    return connection.sendRawTransaction(transaction.serialize());
+  };
+
   const logout = async () => {
     setAddress('');
     setProvider(undefined);
@@ -201,6 +213,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       importFromKeystore,
       connectExternalWallet,
       signMessage,
+      sendTransaction,
       logout
     }),
     [address, hasStoredWalletState, provider]

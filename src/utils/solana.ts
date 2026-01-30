@@ -21,6 +21,8 @@ import {
 } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 
+export const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+
 /**
  * Solana service for blockchain operations
  * 
