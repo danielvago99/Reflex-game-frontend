@@ -1,62 +1,54 @@
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useEffect, useState } from 'react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { useCallback, useEffect, useState } from 'react';
+import { connection } from '../utils/solana';
+import { useActiveWallet } from './useActiveWallet';
 
-interface UseRealBalanceReturn {
+interface RealBalanceState {
   balance: number | null;
   loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
 }
 
-export function useRealBalance(): UseRealBalanceReturn {
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
+export function useRealBalance(): RealBalanceState {
+  const { publicKey } = useActiveWallet();
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchBalance = useCallback(async () => {
+  useEffect(() => {
+    let mounted = true;
+
     if (!publicKey) {
       setBalance(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const lamports = await connection.getBalance(publicKey);
-      setBalance(lamports / LAMPORTS_PER_SOL);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch balance';
-      setError(errorMessage);
-    } finally {
       setLoading(false);
-    }
-  }, [connection, publicKey]);
-
-  useEffect(() => {
-    void fetchBalance();
-  }, [fetchBalance]);
-
-  useEffect(() => {
-    if (!publicKey) {
       return;
     }
+
+    const fetchBalance = async () => {
+      try {
+        setLoading(true);
+        const lamports = await connection.getBalance(publicKey);
+        if (mounted) {
+          setBalance(lamports / LAMPORTS_PER_SOL);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchBalance();
 
     const subscriptionId = connection.onAccountChange(publicKey, (accountInfo) => {
-      setBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      if (mounted) {
+        setBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      }
     });
 
     return () => {
-      void connection.removeAccountChangeListener(subscriptionId);
+      mounted = false;
+      connection.removeAccountChangeListener(subscriptionId).catch(() => undefined);
     };
-  }, [connection, publicKey]);
+  }, [publicKey]);
 
-  return {
-    balance,
-    loading,
-    error,
-    refresh: fetchBalance,
-  };
+  return { balance, loading };
 }

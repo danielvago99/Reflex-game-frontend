@@ -49,7 +49,8 @@ export function DashboardScreen({
 
   const wins = stats?.totalWins ?? 0;
   const walletBalance = useMemo(() => balance ?? 0, [balance]);
-  const balanceDisplay = balanceLoading || balance == null ? '—' : walletBalance.toFixed(4);
+  const isBalanceLoading = Boolean(isLoading || balanceLoading);
+  const balanceDisplay = isBalanceLoading ? '...' : balance == null ? '—' : walletBalance.toFixed(4);
   const displayedWins = isLoading && !stats ? '—' : wins;
 
   const formattedMatches = useMemo(() => {
@@ -211,7 +212,7 @@ export function DashboardScreen({
 
                     <div className="mb-3">
                       <p className="text-3xl text-[#00FFA3] font-bold">
-                        {isLoading || balanceLoading ? '—' : balanceDisplay}
+                        {balanceDisplay}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
                     </div>

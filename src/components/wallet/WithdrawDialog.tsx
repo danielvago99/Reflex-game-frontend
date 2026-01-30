@@ -1,6 +1,5 @@
 import { ArrowUpFromLine, Send, X } from 'lucide-react';
-import { useState } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useEffect, useState } from 'react';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
@@ -8,6 +7,8 @@ import { WalletInput } from './WalletInput';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useActiveWallet } from '../../hooks/useActiveWallet';
+import { connection } from '../../utils/solana';
 
 interface WithdrawDialogProps {
   open: boolean;
@@ -16,17 +17,71 @@ interface WithdrawDialogProps {
 }
 
 export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialogProps) {
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction } = useActiveWallet();
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
   const [errors, setErrors] = useState({ address: '', amount: '' });
+  const [feeLamports, setFeeLamports] = useState<number | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
-  const estimatedFee = 0.000005; // SOL
+  const estimatedFee = feeLamports != null ? feeLamports / LAMPORTS_PER_SOL : 0;
   const numAmount = parseFloat(amount) || 0;
   const totalCost = numAmount + estimatedFee;
-  const canWithdraw = recipientAddress.length > 30 && numAmount > 0 && totalCost <= currentBalance;
+  const canWithdraw =
+    recipientAddress.length > 30 &&
+    numAmount > 0 &&
+    feeLamports != null &&
+    totalCost <= currentBalance;
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchFee = async () => {
+      if (!open) {
+        setFeeLamports(null);
+        return;
+      }
+
+      if (!publicKey) {
+        setFeeLamports(null);
+        return;
+      }
+
+      try {
+        setFeeLoading(true);
+        const latestBlockhash = await connection.getLatestBlockhash();
+        const transaction = new Transaction({
+          feePayer: publicKey,
+          recentBlockhash: latestBlockhash.blockhash,
+        }).add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: publicKey,
+            lamports: 1,
+          })
+        );
+        const feeInfo = await connection.getFeeForMessage(transaction.compileMessage());
+        if (active) {
+          setFeeLamports(feeInfo.value ?? null);
+        }
+      } catch {
+        if (active) {
+          setFeeLamports(null);
+        }
+      } finally {
+        if (active) {
+          setFeeLoading(false);
+        }
+      }
+    };
+
+    fetchFee();
+
+    return () => {
+      active = false;
+    };
+  }, [open, publicKey]);
 
   const handleMaxAmount = () => {
     const maxAmount = Math.max(0, currentBalance - estimatedFee);
@@ -56,7 +111,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     setErrors(newErrors);
     
     if (!newErrors.address && !newErrors.amount) {
-      if (!publicKey) {
+      if (!publicKey || !sendTransaction) {
         toast.error('Wallet not connected', {
           description: 'Connect your wallet before sending SOL.',
         });
@@ -218,7 +273,9 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
                 </div>
                 <div className="flex justify-between text-gray-300">
                   <span>Network Fee</span>
-                  <span className="text-white">~{estimatedFee.toFixed(6)} SOL</span>
+                  <span className="text-white">
+                    {feeLoading ? '...' : feeLamports == null ? '—' : `${estimatedFee.toFixed(6)} SOL`}
+                  </span>
                 </div>
                 <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-2"></div>
                 <div className="flex justify-between">
