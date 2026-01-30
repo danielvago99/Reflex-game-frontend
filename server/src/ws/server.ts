@@ -277,6 +277,22 @@ const getRelativeScores = (state: SessionState, slot: 'p1' | 'p2') => ({
   bot: state.scores[getOpponentSlot(slot)],
 });
 
+const buildGameStatePayload = (state: SessionState, userId?: string, opponentName?: string) => {
+  const slot = getSlotForUser(state, userId);
+  const scores = getRelativeScores(state, slot);
+  return {
+    sessionId: state.sessionId,
+    round: state.round,
+    scores: { player: scores.player, opponent: scores.bot },
+    matchType: state.matchType ?? 'ranked',
+    stakeAmount: state.stakeAmount ?? 0,
+    opponentName,
+    hasStarted: Boolean(state.hasStarted),
+    isPaused: Boolean(state.pausedAt),
+    target: state.target,
+  };
+};
+
 const normalizeRoomCode = (roomCode: string) => roomCode.trim().toUpperCase();
 
 const getRemainingTime = (endsAt?: number) => {
@@ -1675,7 +1691,7 @@ export function createWsServer(server: Server) {
             : assignments?.p1 === userId
               ? assignments?.p2
               : assignments?.p1;
-          const opponentName = hasBotOpponent ? 'Training Bot' : undefined;
+          const opponentName = hasBotOpponent ? 'Training Bot' : userNames.get(opponentId ?? '') ?? undefined;
 
           logger.info({ userId, activeSessionId }, 'RESTORING ACTIVE SESSION for user');
           sendMessage(socket, 'match_found', {
@@ -1690,6 +1706,7 @@ export function createWsServer(server: Server) {
 
           clearDisconnectTimeout(activeSessionId);
           broadcastToSession(activeSessionId, 'player:reconnected', {});
+          sendMessage(socket, 'game:state', buildGameStatePayload(existingState, userId, opponentName));
         }
       }
     }

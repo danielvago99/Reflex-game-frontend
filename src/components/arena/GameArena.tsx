@@ -11,12 +11,20 @@ import { TargetHintPanel } from './TargetHintPanel';
 import { HowToPlayOverlay } from './HowToPlayOverlay';
 import { FullscreenToggle } from './FullscreenToggle';
 import { CustomStatusBar } from './CustomStatusBar';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { TimerReset, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
 import { useGame } from '../../features/arena/context/GameProvider';
 import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
-import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget, WSGameStart } from '../../types/api';
+import type {
+  WSRoundPrepare,
+  WSRoundResult,
+  WSRoundShowTarget,
+  WSGameStart,
+  WSGameState,
+  WSPlayerDisconnected,
+} from '../../types/api';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -66,10 +74,12 @@ export function GameArena({
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
+  const [disconnectCountdown, setDisconnectCountdown] = useState<number | null>(null);
 
   const isWaitingForTarget = currentTarget === null;
 
   const targetShownTimestampRef = useRef<number | null>(null);
+  const disconnectIntervalRef = useRef<number | null>(null);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
   const targetColors = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
@@ -158,7 +168,18 @@ export function GameArena({
     setTargetShowSignal(0);
     setWaitingForOpponent(false);
     setIsOpponentDisconnected(false);
+    setDisconnectCountdown(null);
+    if (disconnectIntervalRef.current) {
+      window.clearInterval(disconnectIntervalRef.current);
+      disconnectIntervalRef.current = null;
+    }
   };
+
+  const clearActiveMatchStorage = useCallback(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem('gameSessionId');
+    localStorage.removeItem('activeMatchDetails');
+  }, []);
 
   const prepareRound = useCallback(
     (roundNumber: number) => {
@@ -276,16 +297,58 @@ export function GameArena({
     }
   }, []);
 
-  useWebSocketEvent<{ timeout?: number }>('player:disconnected', payload => {
+  useWebSocketEvent<WSPlayerDisconnected>('player:disconnected', payload => {
+    const timeoutSeconds = Number.isFinite(payload?.timeout) ? payload.timeout : 60;
     setIsOpponentDisconnected(true);
+    setDisconnectCountdown(timeoutSeconds);
+    if (disconnectIntervalRef.current) {
+      window.clearInterval(disconnectIntervalRef.current);
+    }
+    disconnectIntervalRef.current = window.setInterval(() => {
+      setDisconnectCountdown(prev => {
+        if (prev === null) return prev;
+        if (prev <= 1) {
+          if (disconnectIntervalRef.current) {
+            window.clearInterval(disconnectIntervalRef.current);
+            disconnectIntervalRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     toast.warning('Opponent disconnected, waiting...', {
-      description: `We'll wait up to ${payload?.timeout ?? 60} seconds.`,
+      description: `We'll wait up to ${timeoutSeconds} seconds.`,
       duration: 4000,
     });
   }, []);
 
-  useWebSocketEvent('player:reconnected', () => {
+  const handleOpponentReconnected = useCallback(() => {
     setIsOpponentDisconnected(false);
+    setDisconnectCountdown(null);
+    if (disconnectIntervalRef.current) {
+      window.clearInterval(disconnectIntervalRef.current);
+      disconnectIntervalRef.current = null;
+    }
+    toast.success('Opponent reconnected!', {
+      description: 'Match resumed.',
+      duration: 3000,
+    });
+  }, []);
+
+  useWebSocketEvent('player:reconnected', () => {
+    handleOpponentReconnected();
+  }, [handleOpponentReconnected]);
+
+  useWebSocketEvent<WSGameState>('game:state', payload => {
+    setCurrentRound(payload.round);
+    setPlayerScore(payload.scores.player);
+    setOpponentScore(payload.scores.opponent);
+    setCurrentTarget(payload.target ?? null);
+    setShowHowToPlay(false);
+    setWaitingForOpponent(false);
+    setGameState(payload.hasStarted ? 'playing' : 'countdown');
+    setShowPauseMenu(payload.isPaused);
   }, []);
 
   useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
@@ -303,6 +366,16 @@ export function GameArena({
   useWebSocketEvent('game:resumed', () => {
     setShowPauseMenu(false);
     setIsOpponentDisconnected(false);
+    handleOpponentReconnected();
+  }, [handleOpponentReconnected]);
+
+  useEffect(() => {
+    return () => {
+      if (disconnectIntervalRef.current) {
+        window.clearInterval(disconnectIntervalRef.current);
+        disconnectIntervalRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -388,11 +461,13 @@ export function GameArena({
       setShowForfeitDialog(true);
     } else {
       // Bot match - can quit without penalty
+      clearActiveMatchStorage();
       onQuit();
     }
   };
 
   const handleConfirmForfeit = () => {
+    clearActiveMatchStorage();
     onQuit();
   };
 
@@ -522,7 +597,10 @@ export function GameArena({
           stakeAmount={stakeAmount}
           matchType={matchType}
           onPlayAgain={handleRestart}
-          onBackToMenu={onQuit}
+          onBackToMenu={() => {
+            clearActiveMatchStorage();
+            onQuit();
+          }}
         />
       )}
 
@@ -580,42 +658,56 @@ export function GameArena({
         </div>
       )}
 
-      {isOpponentDisconnected && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="relative max-w-md w-full">
-            <div className="absolute -inset-4 bg-gradient-to-br from-[#FF4D4D]/20 via-[#F97316]/20 to-[#7C3AED]/20 blur-2xl opacity-60"></div>
-            <div
-              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[200px] flex flex-col items-center justify-center text-center p-8"
-              style={{
-                clipPath:
-                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
-              }}
-            >
-              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#FF4D4D] to-transparent"></div>
-              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#FF4D4D] to-transparent"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
-              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+      <AnimatePresence>
+        {isOpponentDisconnected && (
+          <motion.div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="relative max-w-md w-full">
+              <div className="absolute -inset-4 bg-gradient-to-br from-[#F97316]/30 via-[#EF4444]/30 to-[#FB923C]/30 blur-2xl opacity-70"></div>
+              <div
+                className="relative bg-black/80 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden min-h-[240px] flex flex-col items-center justify-center text-center p-8"
+                style={{
+                  clipPath:
+                    'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+                }}
+              >
+                <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#F97316] to-transparent"></div>
+                <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#F97316] to-transparent"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#EF4444] to-transparent"></div>
+                <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#EF4444] to-transparent"></div>
 
-              <div className="flex flex-col items-center gap-4">
-                <div
-                  className="mx-auto h-12 w-12 animate-pulse rounded-full shadow-[0_0_18px_rgba(249,115,22,0.6)]"
-                  style={{
-                    background: 'conic-gradient(from 0deg, #FF4D4D, #F97316, #7C3AED, #FF4D4D)',
-                    WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0)',
-                    mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0)',
-                  }}
-                ></div>
-                <div>
-                  <p className="text-xl font-semibold text-white">Opponent disconnected, waiting...</p>
-                  <p className="text-sm text-gray-300 mt-1">
-                    We&apos;ll resume automatically if they reconnect in time.
-                  </p>
+                <div className="flex flex-col items-center gap-5">
+                  <div className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-orange-200/80">
+                    <WifiOff className="h-4 w-4" />
+                    Connection Lost
+                  </div>
+                  <motion.div
+                    className="text-6xl font-mono font-semibold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-500 to-amber-300 drop-shadow-[0_0_20px_rgba(249,115,22,0.45)]"
+                    animate={{ scale: [1, 1.08, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    {disconnectCountdown ?? 0}
+                  </motion.div>
+                  <div>
+                    <p className="text-lg font-semibold text-white">
+                      Opponent Disconnected. Claiming victory in...
+                    </p>
+                    <p className="text-sm text-gray-300 mt-1 flex items-center justify-center gap-2">
+                      <TimerReset className="h-4 w-4 text-orange-300" />
+                      Reconnect before the timer runs out.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Toggle - Top right corner */}
       <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-[60]" style={{ top: 'max(0.75rem, var(--safe-area-top))' }}>
