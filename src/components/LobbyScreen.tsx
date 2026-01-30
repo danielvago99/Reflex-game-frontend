@@ -110,6 +110,17 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         window.clearTimeout(matchFoundTimeoutRef.current);
       }
 
+      if (matchType === 'bot') {
+        setShowTransactionModal(false);
+        setWaitingForStakeConfirmation(false);
+        send('match:stake_confirmed', {
+          sessionId: matchDetails.sessionId,
+          stake: matchDetails.stake,
+          matchType: matchDetails.matchType,
+        });
+        return;
+      }
+
       if (matchType !== 'friend') {
         matchFoundTimeoutRef.current = window.setTimeout(() => {
           if (walletProvider) {
@@ -178,7 +189,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         stakeConfirmationTimeoutRef.current = null;
       }
     };
-  }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
+  }, [onNavigate, onStartMatch, selectedStake, send, walletProvider]);
 
   useEffect(() => {
     if (!waitingForStakeConfirmation || !pendingMatchRef.current) {
@@ -225,17 +236,13 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     }
 
     setMatchStatus('searching');
-    send('match:find', { stake: parseFloat(selectedStake) });
+    send('match:find', { stake: parseFloat(selectedStake), matchType: 'ranked' });
   };
 
   const handleStartMatch = async () => {
     // For bot mode (practice), no transaction needed
     if (selectedMode === 'bot') {
-      if (onStartMatch) {
-        onStartMatch(false, 0, 'bot', 'Training Bot');
-      } else {
-        onNavigate('arena');
-      }
+      startBotMatchmaking();
       return;
     }
 
@@ -343,6 +350,16 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         description: 'Match cancelled due to transaction failure.',
       });
     }
+  };
+
+  const startBotMatchmaking = () => {
+    if (!isConnected) {
+      toast.error('Connection lost. Reconnecting...');
+      return;
+    }
+
+    setMatchStatus('searching');
+    send('match:find', { stake: 0, matchType: 'bot', isBot: true });
   };
 
   const handleTransactionConfirm = () => {
