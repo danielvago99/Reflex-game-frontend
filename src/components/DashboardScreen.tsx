@@ -7,6 +7,7 @@ import { WithdrawDialog } from './wallet/WithdrawDialog';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
+import { useRealBalance } from '../hooks/useRealBalance';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
 
@@ -14,7 +15,6 @@ interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
   playerName?: string;
   walletAddress?: string;
-  balance?: number;
   avatarUrl?: string;
   stats?: PlayerStats;
   isLoading?: boolean;
@@ -26,7 +26,6 @@ export function DashboardScreen({
   onNavigate,
   playerName = 'Player_0x4f2a',
   walletAddress = 'DemoWallet123456789ABCDEFGHIJKLMNOPQRSTUVWXY',
-  balance = 0,
   avatarUrl,
   stats,
   isLoading,
@@ -36,6 +35,7 @@ export function DashboardScreen({
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const { data: rewardsData } = useRewardsData();
+  const { balance, loading: balanceLoading } = useRealBalance();
   const toastShownRef = useRef(false);
 
   const avatarData = useMemo(() => {
@@ -48,7 +48,8 @@ export function DashboardScreen({
   }, [avatarUrl]);
 
   const wins = stats?.totalWins ?? 0;
-  const walletBalance = useMemo(() => balance, [balance]);
+  const walletBalance = useMemo(() => balance ?? 0, [balance]);
+  const balanceDisplay = balanceLoading || balance == null ? '—' : walletBalance.toFixed(4);
   const displayedWins = isLoading && !stats ? '—' : wins;
 
   const formattedMatches = useMemo(() => {
@@ -210,7 +211,7 @@ export function DashboardScreen({
 
                     <div className="mb-3">
                       <p className="text-3xl text-[#00FFA3] font-bold">
-                        {isLoading ? '—' : walletBalance.toFixed(4)}
+                        {isLoading || balanceLoading ? '—' : balanceDisplay}
                         <span className="text-lg text-gray-400 ml-2">SOL</span>
                       </p>
                     </div>
@@ -416,7 +417,7 @@ export function DashboardScreen({
       <WithdrawDialog
         open={showWithdraw}
         onClose={() => setShowWithdraw(false)}
-        currentBalance={balance}
+        currentBalance={walletBalance}
       />
     </div>
   );
