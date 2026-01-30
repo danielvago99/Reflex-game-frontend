@@ -16,7 +16,14 @@ import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
 import { useGame } from '../../features/arena/context/GameProvider';
 import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
-import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget, WSGameStart } from '../../types/api';
+import type {
+  WSRoundPrepare,
+  WSRoundResult,
+  WSRoundShowTarget,
+  WSGameStart,
+  WSPlayerDisconnected,
+  WSGameEnd,
+} from '../../types/api';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -66,6 +73,11 @@ export function GameArena({
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
+  const [disconnectDeadlineTs, setDisconnectDeadlineTs] = useState<number | null>(null);
+  const [disconnectSecondsRemaining, setDisconnectSecondsRemaining] = useState<number | null>(null);
+  const [lastDisconnectedSlot, setLastDisconnectedSlot] = useState<'p1' | 'p2' | null>(null);
+  const [playerSlot, setPlayerSlot] = useState<'p1' | 'p2' | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -84,6 +96,8 @@ export function GameArena({
     '#FF0099': 'Pink',
   };
 
+  const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
+
   const [defaultTarget] = useState<Target>(() => {
     const shape = targetShapes[Math.floor(Math.random() * targetShapes.length)];
     const color = targetColors[Math.floor(Math.random() * targetColors.length)];
@@ -95,13 +109,14 @@ export function GameArena({
     };
   });
 
-  const { isConnected, send } = useWebSocket({ autoConnect: true });
+  const { isConnected, send, connect } = useWebSocket({ autoConnect: true });
 
   const MAX_PAUSES = 3;
   const isMatchOver =
     playerScore >= ROUNDS_TO_WIN ||
     opponentScore >= ROUNDS_TO_WIN ||
     currentRound >= MAX_ROUNDS;
+  const shouldShowReconnect = !isConnected && !showFinalResults && !showHowToPlay;
 
   // Detect mobile
   const isMobile = window.innerWidth < 640;
@@ -129,6 +144,30 @@ export function GameArena({
       name: opponentName ?? prev.name,
     }));
   }, [opponentName]);
+
+  useEffect(() => {
+    if (!disconnectDeadlineTs) {
+      setDisconnectSecondsRemaining(null);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const remainingMs = disconnectDeadlineTs - Date.now();
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+      setDisconnectSecondsRemaining(remainingSeconds);
+    };
+
+    updateRemaining();
+    const intervalId = window.setInterval(updateRemaining, 250);
+
+    return () => window.clearInterval(intervalId);
+  }, [disconnectDeadlineTs]);
+
+  useEffect(() => {
+    if (isConnected) {
+      setIsReconnecting(false);
+    }
+  }, [isConnected]);
 
   // Reset all game state for restart
   const handleRestart = () => {
@@ -158,6 +197,10 @@ export function GameArena({
     setTargetShowSignal(0);
     setWaitingForOpponent(false);
     setIsOpponentDisconnected(false);
+    setDisconnectDeadlineTs(null);
+    setDisconnectSecondsRemaining(null);
+    setLastDisconnectedSlot(null);
+    setPlayerSlot(null);
   };
 
   const prepareRound = useCallback(
@@ -194,7 +237,7 @@ export function GameArena({
   const handleReact = (e?: { isTrusted?: boolean }) => {
     if (e && !e.isTrusted) return;
 
-    if (gameState !== 'playing' || roundResolved || hasSentClick) return;
+    if (gameState !== 'playing' || roundResolved || hasSentClick || isOpponentDisconnected) return;
 
     setHasSentClick(true);
 
@@ -218,6 +261,7 @@ export function GameArena({
   const handleRoundResult = useCallback((result: WSRoundResult) => {
     setRoundResolved(true);
     setHasSentClick(false);
+    setPlayerSlot(result.playerSlot);
 
     setPlayerReactionTime(result.playerTime);
     setOpponentReactionTime(result.opponentTime);
@@ -276,16 +320,24 @@ export function GameArena({
     }
   }, []);
 
-  useWebSocketEvent<{ timeout?: number }>('player:disconnected', payload => {
+  useWebSocketEvent<WSPlayerDisconnected>('player:disconnected', payload => {
     setIsOpponentDisconnected(true);
+    setDisconnectDeadlineTs(payload?.deadlineTs ?? null);
+    setLastDisconnectedSlot(payload?.disconnectedSlot ?? null);
+    if (!playerSlot && payload?.disconnectedSlot) {
+      setPlayerSlot(getOpponentSlot(payload.disconnectedSlot));
+    }
     toast.warning('Opponent disconnected, waiting...', {
-      description: `We'll wait up to ${payload?.timeout ?? 60} seconds.`,
+      description: `We'll wait up to ${payload?.timeoutSeconds ?? 30} seconds.`,
       duration: 4000,
     });
-  }, []);
+  }, [playerSlot]);
 
   useWebSocketEvent('player:reconnected', () => {
     setIsOpponentDisconnected(false);
+    setDisconnectDeadlineTs(null);
+    setDisconnectSecondsRemaining(null);
+    setLastDisconnectedSlot(null);
   }, []);
 
   useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
@@ -303,7 +355,33 @@ export function GameArena({
   useWebSocketEvent('game:resumed', () => {
     setShowPauseMenu(false);
     setIsOpponentDisconnected(false);
+    setDisconnectDeadlineTs(null);
+    setDisconnectSecondsRemaining(null);
+    setLastDisconnectedSlot(null);
   }, []);
+
+  useWebSocketEvent<WSGameEnd>('game:end', payload => {
+    const resolvedSlot =
+      playerSlot ?? (lastDisconnectedSlot ? getOpponentSlot(lastDisconnectedSlot) : null);
+
+    if (resolvedSlot) {
+      setPlayerScore(payload.scores[resolvedSlot]);
+      setOpponentScore(payload.scores[getOpponentSlot(resolvedSlot)]);
+    } else {
+      setPlayerScore(payload.scores.p1);
+      setOpponentScore(payload.scores.p2);
+    }
+
+    setShowPauseMenu(false);
+    setShowForfeitDialog(false);
+    setRoundResult(null);
+    setGameState('result');
+    setShowFinalResults(true);
+    setIsOpponentDisconnected(false);
+    setDisconnectDeadlineTs(null);
+    setDisconnectSecondsRemaining(null);
+    setLastDisconnectedSlot(null);
+  }, [playerSlot, lastDisconnectedSlot]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -380,6 +458,21 @@ export function GameArena({
     });
   };
 
+  const handleReconnect = async () => {
+    if (isReconnecting) return;
+    setIsReconnecting(true);
+    try {
+      await connect();
+    } catch (error) {
+      toast.error('Reconnect failed', {
+        description: 'Please try again.',
+        duration: 3000,
+      });
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
   const handleQuitClick = () => {
     // If it's a ranked match or has stakes, show forfeit confirmation
     // Bot practice matches can quit directly
@@ -443,7 +536,7 @@ export function GameArena({
         {/* Arena Canvas */}
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
           <ArenaCanvas
-            isActive={gameState === 'playing'}
+            isActive={gameState === 'playing' && !isOpponentDisconnected && isConnected}
             targetShape={(currentTarget || defaultTarget).shape}
             targetColor={(currentTarget || defaultTarget).color}
             onTargetAppeared={handleTargetAppeared}
@@ -471,7 +564,7 @@ export function GameArena({
         <BottomBar
           onPause={handlePause}
           onReact={handleReact}
-          isActive={gameState === 'playing' && playerReactionTime === null}
+          isActive={gameState === 'playing' && playerReactionTime === null && !isOpponentDisconnected && isConnected}
           reactionTime={playerReactionTime}
         />
       </div>
@@ -580,6 +673,36 @@ export function GameArena({
         </div>
       )}
 
+      {shouldShowReconnect && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="relative max-w-md w-full">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#F97316]/20 via-[#FF4D4D]/20 to-[#7C3AED]/20 blur-2xl opacity-60"></div>
+            <div
+              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[220px] flex flex-col items-center justify-center text-center p-8 gap-5"
+              style={{
+                clipPath:
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+              }}
+            >
+              <div>
+                <p className="text-xl font-semibold text-white">Connection lost</p>
+                <p className="text-sm text-gray-300 mt-1">
+                  Reconnect within the grace window to resume your match.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleReconnect}
+                disabled={isReconnecting}
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#F97316] to-[#FF4D4D] text-white font-semibold shadow-lg hover:opacity-90 transition disabled:opacity-50"
+              >
+                {isReconnecting ? 'Reconnecting...' : 'Reconnect'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isOpponentDisconnected && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="relative max-w-md w-full">
@@ -609,6 +732,11 @@ export function GameArena({
                   <p className="text-xl font-semibold text-white">Opponent disconnected, waiting...</p>
                   <p className="text-sm text-gray-300 mt-1">
                     We&apos;ll resume automatically if they reconnect in time.
+                  </p>
+                  <p className="text-sm text-orange-200 mt-3 font-semibold">
+                    {disconnectSecondsRemaining !== null
+                      ? `Reconnect window: ${disconnectSecondsRemaining}s`
+                      : 'Reconnect window: 30s'}
                   </p>
                 </div>
               </div>

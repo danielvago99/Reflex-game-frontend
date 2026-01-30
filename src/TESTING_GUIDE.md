@@ -443,6 +443,35 @@ if (winner === 'player') {
 
 ---
 
+## 🔌 Disconnect / Pause / Reconnect / Forfeit Manual Checklist
+
+Use two browsers (or two devices) logged into different accounts in the same match.
+
+1. **Disconnect once → pause → reconnect within 30s → resume**
+   - Start a ranked or friend match and wait for the round to begin.
+   - Kill one client’s network or close the tab.
+   - **Connected player** sees: “Opponent disconnected, waiting…” + 30s countdown.
+   - Reconnect the disconnected player within 30 seconds.
+   - Match resumes automatically with timers continuing.
+
+2. **Disconnect once → no reconnect → forfeit at 30s**
+   - Repeat the disconnect.
+   - Wait 30 seconds.
+   - Connected player sees the match end and is awarded the win by forfeit.
+
+3. **Disconnect twice → immediate forfeit**
+   - Reconnect, re-enter the same match, and disconnect the same player again.
+   - The second disconnect triggers an immediate forfeit (no grace window).
+
+4. **Timers stop while paused**
+   - During the disconnect pause, verify no target shows and the server timer does not advance.
+
+5. **No double-finalize / no UI inconsistencies**
+   - Ensure only one final result modal appears.
+   - Ensure the pause overlay clears on resume or forfeit.
+
+---
+
 ## 📝 Bug Report Template
 
 ```markdown
