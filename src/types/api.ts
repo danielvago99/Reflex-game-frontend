@@ -236,6 +236,10 @@ export type WSMessageType =
   | 'game:countdown'
   | 'game:enter_arena'
   | 'game:show_button'
+  | 'game:pause'
+  | 'game:paused'
+  | 'game:resume'
+  | 'game:resumed'
   | 'game:player_clicked'
   | 'game:result'
   | 'game:end'
@@ -244,8 +248,11 @@ export type WSMessageType =
   | 'round:result'
   | 'round:ready'
   | 'player:click'
+  | 'player:disconnected'
+  | 'player:reconnected'
   | 'match:find'
   | 'match:cancel'
+  | 'match:cancel_stake'
   | 'match:cancelled'
   | 'match:stake_failed'
   | 'match:searching'
@@ -267,8 +274,14 @@ export interface WSLobbyUpdate {
 
 export interface WSGameStart {
   sessionId: string;
-  players: GamePlayer[];
-  stake: number;
+  player: {
+    name: string;
+    avatar?: string | null;
+  };
+  opponent: {
+    name: string;
+    avatar?: string | null;
+  };
 }
 
 export interface WSGameCountdown {

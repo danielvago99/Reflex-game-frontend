@@ -190,7 +190,7 @@ export function GameResultModal({
             </div>
 
             {/* SOL Earnings/Loss - Only for ranked matches */}
-            {isRanked && (
+            {(isRanked || stakeAmount > 0) && (
               <div className={`mb-5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border ${
                 playerWon
                   ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'

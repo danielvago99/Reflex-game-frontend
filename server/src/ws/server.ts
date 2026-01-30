@@ -23,6 +23,12 @@ interface RoundTimers {
   roundTimeout?: NodeJS.Timeout;
 }
 
+interface TimerSnapshot {
+  showDelay?: number;
+  botTimeout?: number;
+  roundTimeout?: number;
+}
+
 interface SessionState extends RoundTimers {
   round: number;
   scores: { p1: number; p2: number };
@@ -43,6 +49,11 @@ interface SessionState extends RoundTimers {
   roundResolved: boolean;
   isFinished?: boolean;
   reactions: { p1?: number; p2?: number };
+  pausedAt?: number;
+  timeRemaining?: TimerSnapshot;
+  showTimeoutEndsAt?: number;
+  botTimeoutEndsAt?: number;
+  roundTimeoutEndsAt?: number;
   history: Array<{
     round: number;
     p1Time: number;
@@ -74,6 +85,8 @@ interface RedisSessionState {
   botReactionTime?: number;
   roundResolved: boolean;
   reactions: { p1?: number; p2?: number };
+  pausedAt?: number;
+  timeRemaining?: TimerSnapshot;
   history: Array<{
     round: number;
     p1Time: number;
@@ -119,6 +132,7 @@ const GAME_STATE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
 const MAX_FRIEND_STAKE = 10;
+const DISCONNECT_TIMEOUT_MS = 60_000;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
 const getRoomCodeKey = (roomCode: string) => `game:roomcode:${roomCode}`;
@@ -142,6 +156,8 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   botReactionTime: state.botReactionTime,
   roundResolved: state.roundResolved,
   reactions: state.reactions,
+  pausedAt: state.pausedAt,
+  timeRemaining: state.timeRemaining,
   history: state.history,
   userId: state.userId,
   username: state.username,
@@ -218,6 +234,10 @@ const clearTimers = (state: SessionState) => {
     clearTimeout(state.roundTimeout);
     state.roundTimeout = undefined;
   }
+
+  state.showTimeoutEndsAt = undefined;
+  state.botTimeoutEndsAt = undefined;
+  state.roundTimeoutEndsAt = undefined;
 };
 
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
@@ -226,6 +246,7 @@ const userNames = new Map<string, string>();
 const sessions = new WeakMap<WebSocket, SocketSessionRef>();
 const activeUsers = new Map<string, WebSocket>();
 const sessionSockets = new Map<string, Set<WebSocket>>();
+const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 
 const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -257,6 +278,31 @@ const getRelativeScores = (state: SessionState, slot: 'p1' | 'p2') => ({
 });
 
 const normalizeRoomCode = (roomCode: string) => roomCode.trim().toUpperCase();
+
+const getRemainingTime = (endsAt?: number) => {
+  if (!endsAt) return undefined;
+  return Math.max(0, endsAt - Date.now());
+};
+
+const setTimerSnapshot = (state: SessionState) => {
+  const showDelay = getRemainingTime(state.showTimeoutEndsAt);
+  const botTimeout = getRemainingTime(state.botTimeoutEndsAt);
+  const roundTimeout = getRemainingTime(state.roundTimeoutEndsAt);
+
+  state.timeRemaining = {
+    showDelay: showDelay !== undefined ? showDelay : undefined,
+    botTimeout: botTimeout !== undefined ? botTimeout : undefined,
+    roundTimeout: roundTimeout !== undefined ? roundTimeout : undefined,
+  };
+};
+
+const clearDisconnectTimeout = (sessionId: string) => {
+  const timeout = disconnectTimeouts.get(sessionId);
+  if (timeout) {
+    clearTimeout(timeout);
+    disconnectTimeouts.delete(sessionId);
+  }
+};
 
 const generateRoomCode = (): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -421,6 +467,8 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.targetShownAt = undefined;
   state.botReactionTime = undefined;
   state.reactions = {};
+  state.pausedAt = undefined;
+  state.timeRemaining = undefined;
 
   if (state.matchType !== 'friend') {
     state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
@@ -608,6 +656,7 @@ const validateRestorableSession = async (userId: string, sessionId: string) => {
 };
 
 const finalizeGame = async (state: SessionState, forfeit: boolean) => {
+  clearDisconnectTimeout(state.sessionId);
   clearSessionAssignments(state.sessionId, state);
 
   const assignments = sessionAssignments.get(state.sessionId);
@@ -1094,10 +1143,12 @@ const finalizeRound = async (
   return false;
 };
 
-const scheduleTargetShow = (sessionId: string, state: SessionState) => {
-  const delay = 3000 + Math.random() * 5000;
+const scheduleTargetShow = (sessionId: string, state: SessionState, delayOverride?: number) => {
+  const delay = typeof delayOverride === 'number' ? delayOverride : 3000 + Math.random() * 5000;
 
+  state.showTimeoutEndsAt = Date.now() + delay;
   state.showTimeout = setTimeout(() => {
+    state.showTimeoutEndsAt = undefined;
     state.targetShownAt = Date.now();
     state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
 
@@ -1111,16 +1162,57 @@ const scheduleTargetShow = (sessionId: string, state: SessionState) => {
     );
 
     if (state.isBotOpponent) {
+      const botDelay = (state.botReactionTime ?? 0) + BOT_GRACE_MS;
+      state.botTimeoutEndsAt = Date.now() + botDelay;
       state.botTimeout = setTimeout(() => {
+        state.botTimeoutEndsAt = undefined;
         void (async () => {
           const matchOver = await finalizeRound(state, { reason: 'no-reaction' });
           if (matchOver) {
             await finalizeGame(state, false);
           }
         })();
-      }, state.botReactionTime + BOT_GRACE_MS);
+      }, botDelay);
     }
   }, delay);
+};
+
+const restoreTimers = (state: SessionState) => {
+  if (!state.timeRemaining) return;
+
+  if (state.timeRemaining.showDelay !== undefined && !state.targetShownAt) {
+    scheduleTargetShow(state.sessionId, state, state.timeRemaining.showDelay);
+  }
+
+  if (state.timeRemaining.botTimeout !== undefined && state.isBotOpponent && state.targetShownAt) {
+    const botDelay = state.timeRemaining.botTimeout;
+    state.botTimeoutEndsAt = Date.now() + botDelay;
+    state.botTimeout = setTimeout(() => {
+      state.botTimeoutEndsAt = undefined;
+      void (async () => {
+        const matchOver = await finalizeRound(state, { reason: 'no-reaction' });
+        if (matchOver) {
+          await finalizeGame(state, false);
+        }
+      })();
+    }, botDelay);
+  }
+
+  if (state.timeRemaining.roundTimeout !== undefined && !state.isBotOpponent && state.targetShownAt) {
+    const roundDelay = state.timeRemaining.roundTimeout;
+    state.roundTimeoutEndsAt = Date.now() + roundDelay;
+    state.roundTimeout = setTimeout(() => {
+      state.roundTimeoutEndsAt = undefined;
+      void (async () => {
+        const matchOver = await finalizeRound(state, { reason: 'no-reaction' });
+        if (matchOver) {
+          await finalizeGame(state, false);
+        }
+      })();
+    }, roundDelay);
+  }
+
+  state.timeRemaining = undefined;
 };
 
 const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef, payload: any) => {
@@ -1210,6 +1302,10 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
     return;
   }
 
+  if (sessionState.pausedAt) {
+    return;
+  }
+
   if (sessionState.roundResolved) return;
   const slot = getSlotForUser(sessionState, sessionRef.userId);
   if (sessionState.reactions[slot] !== undefined) {
@@ -1247,6 +1343,7 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
   if (sessionState.botTimeout && playerTime < (sessionState.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
     clearTimeout(sessionState.botTimeout);
     sessionState.botTimeout = undefined;
+    sessionState.botTimeoutEndsAt = undefined;
   }
 
   if (sessionState.isBotOpponent) {
@@ -1266,7 +1363,9 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
   }
 
   if (!sessionState.roundTimeout) {
+    sessionState.roundTimeoutEndsAt = Date.now() + HUMAN_GRACE_MS;
     sessionState.roundTimeout = setTimeout(() => {
+      sessionState.roundTimeoutEndsAt = undefined;
       void (async () => {
         const matchOver = await finalizeRound(sessionState, {
           reason: 'no-reaction',
@@ -1277,6 +1376,70 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
         }
       })();
     }, HUMAN_GRACE_MS);
+  }
+};
+
+const getAvatarFallback = (name: string) =>
+  `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+
+const fetchPlayerProfile = async (userId: string | undefined, fallbackName: string) => {
+  if (!userId || userId.startsWith('guest') || userId === 'bot_opponent') {
+    return {
+      name: fallbackName,
+      avatar: getAvatarFallback(fallbackName),
+    };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, avatar: true },
+    });
+
+    const name = user?.username ?? fallbackName;
+    return {
+      name,
+      avatar: user?.avatar ?? getAvatarFallback(name),
+    };
+  } catch (error) {
+    logger.warn({ error, userId }, 'Failed to fetch user profile for game start');
+    return {
+      name: fallbackName,
+      avatar: getAvatarFallback(fallbackName),
+    };
+  }
+};
+
+const startGame = async (state: SessionState) => {
+  const sockets = sessionSockets.get(state.sessionId);
+  if (!sockets || sockets.size === 0) {
+    return;
+  }
+
+  const assignments = sessionAssignments.get(state.sessionId);
+  const p1Id = assignments?.p1 ?? state.userId;
+  const p2Id = assignments?.p2 ?? (state.isBotOpponent ? 'bot_opponent' : undefined);
+
+  const fallbackP1Name = userNames.get(p1Id ?? '') ?? 'Player 1';
+  const fallbackP2Name =
+    state.isBotOpponent || p2Id === 'bot_opponent' ? 'Training Bot' : userNames.get(p2Id ?? '') ?? 'Player 2';
+
+  const [p1Profile, p2Profile] = await Promise.all([
+    fetchPlayerProfile(p1Id, fallbackP1Name),
+    fetchPlayerProfile(p2Id ?? 'bot_opponent', fallbackP2Name),
+  ]);
+
+  for (const sessionSocket of sockets) {
+    const sessionRef = sessions.get(sessionSocket);
+    const slot = getSlotForUser(state, sessionRef?.userId);
+    const playerProfile = slot === 'p1' ? p1Profile : p2Profile;
+    const opponentProfile = slot === 'p1' ? p2Profile : p1Profile;
+
+    sendMessage(sessionSocket, 'game:start', {
+      sessionId: state.sessionId,
+      player: playerProfile,
+      opponent: opponentProfile,
+    });
   }
 };
 
@@ -1296,6 +1459,8 @@ export function createWsServer(server: Server) {
     state.hasStarted = true;
     void persistSessionState(state);
     logger.info({ sessionId: state.sessionId, count: sockets.size }, 'Broadcasting game:countdown');
+
+    void startGame(state);
 
     for (const sessionSocket of sockets) {
       sendMessage(sessionSocket, 'game:countdown', { count: 3 });
@@ -1522,6 +1687,9 @@ export function createWsServer(server: Server) {
             matchType: existingState.matchType ?? (hasBotOpponent ? 'bot' : 'ranked'),
             roomCode: existingState.roomCode,
           });
+
+          clearDisconnectTimeout(activeSessionId);
+          broadcastToSession(activeSessionId, 'player:reconnected', {});
         }
       }
     }
@@ -1845,6 +2013,26 @@ export function createWsServer(server: Server) {
             }
             break;
           }
+          case 'match:cancel_stake': {
+            const { userId } = sessionRef;
+            const activeSessionId = userId ? userActiveSessions.get(userId) : sessionRef.sessionId;
+
+            if (activeSessionId) {
+              const sessionState = sessionStates.get(activeSessionId);
+              if (sessionState && isPreGameSession(sessionState)) {
+                await failFastCancelSession(
+                  activeSessionId,
+                  'stake cancelled',
+                  'Match cancelled because a player cancelled the stake.',
+                );
+              }
+            }
+
+            if (userId) {
+              clearUserActiveSession(userId);
+            }
+            break;
+          }
           case 'match:stake_failed': {
             const { userId } = sessionRef;
             const sessionId =
@@ -1965,6 +2153,46 @@ export function createWsServer(server: Server) {
             }
             break;
           }
+          case 'game:pause': {
+            const sessionState = sessionStates.get(sessionRef.sessionId);
+            if (!sessionState || sessionState.isFinished) {
+              break;
+            }
+
+            if (sessionState.pausedAt) {
+              break;
+            }
+
+            sessionState.pausedAt = Date.now();
+            setTimerSnapshot(sessionState);
+            clearTimers(sessionState);
+
+            broadcastToSession(sessionRef.sessionId, 'game:paused', {});
+            void persistSessionState(sessionState);
+            break;
+          }
+          case 'game:resume': {
+            const sessionState = sessionStates.get(sessionRef.sessionId);
+            if (!sessionState || sessionState.isFinished) {
+              break;
+            }
+
+            if (!sessionState.pausedAt) {
+              break;
+            }
+
+            const pauseDuration = Date.now() - sessionState.pausedAt;
+            sessionState.pausedAt = undefined;
+
+            if (sessionState.targetShownAt) {
+              sessionState.targetShownAt += pauseDuration;
+            }
+
+            restoreTimers(sessionState);
+            broadcastToSession(sessionRef.sessionId, 'game:resumed', {});
+            void persistSessionState(sessionState);
+            break;
+          }
           case 'game:player_ready': {
             const targetSessionId =
               typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : sessionRef.sessionId;
@@ -2050,14 +2278,38 @@ export function createWsServer(server: Server) {
 
         if (
           sessionState &&
-          (sessionState.matchType === 'ranked' || sessionState.matchType === 'bot') &&
+          (sessionState.matchType === 'ranked' || sessionState.matchType === 'bot' || sessionState.matchType === 'friend') &&
           !sessionState.isFinished
         ) {
-          logger.info(
-            { sessionId: sessionRef.sessionId },
-            'Client disconnected - Holding session for reconnect',
-          );
-          return;
+          const remainingSocket = sockets ? Array.from(sockets).find((s) => s !== socket) : undefined;
+          if (remainingSocket && !sessionState.isBotOpponent) {
+            sendMessage(remainingSocket, 'player:disconnected', { timeout: 60 });
+          }
+
+          if (remainingSocket && !sessionState.isBotOpponent) {
+            clearDisconnectTimeout(sessionRef.sessionId);
+            const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);
+            const remainingSlot = getOpponentSlot(disconnectedSlot);
+
+            const timeout = setTimeout(() => {
+              void (async () => {
+                disconnectTimeouts.delete(sessionRef.sessionId);
+                const activeState = sessionStates.get(sessionRef.sessionId);
+                if (!activeState || activeState.isFinished) return;
+
+                clearTimers(activeState);
+                activeState.scores[remainingSlot] = Math.max(activeState.scores[remainingSlot], ROUNDS_TO_WIN);
+                await finalizeGame(activeState, true);
+              })();
+            }, DISCONNECT_TIMEOUT_MS);
+
+            disconnectTimeouts.set(sessionRef.sessionId, timeout);
+            logger.info(
+              { sessionId: sessionRef.sessionId, timeoutSeconds: DISCONNECT_TIMEOUT_MS / 1000 },
+              'Client disconnected - waiting for reconnect',
+            );
+            return;
+          }
         }
 
         if (sessionState?.isFinished) {

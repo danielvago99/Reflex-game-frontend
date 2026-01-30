@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { MAX_ROUNDS, ROUNDS_TO_WIN } from '../../features/arena/constants';
 import { useGame } from '../../features/arena/context/GameProvider';
 import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
-import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget } from '../../types/api';
+import type { WSRoundPrepare, WSRoundResult, WSRoundShowTarget, WSGameStart } from '../../types/api';
 
 interface GameArenaProps {
   onQuit: () => void;
@@ -65,6 +65,7 @@ export function GameArena({
   const [hasSentClick, setHasSentClick] = useState(false);
   const [hasRequestedInitialRound, setHasRequestedInitialRound] = useState(false);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [isOpponentDisconnected, setIsOpponentDisconnected] = useState(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -105,6 +106,30 @@ export function GameArena({
   // Detect mobile
   const isMobile = window.innerWidth < 640;
 
+  const [playerProfile, setPlayerProfile] = useState(() => ({
+    name: playerName || 'You',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player1',
+  }));
+
+  const [opponentProfile, setOpponentProfile] = useState(() => ({
+    name: opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Opponent'),
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=opponent1',
+  }));
+
+  useEffect(() => {
+    setPlayerProfile(prev => ({
+      ...prev,
+      name: playerName || prev.name || 'You',
+    }));
+  }, [playerName]);
+
+  useEffect(() => {
+    setOpponentProfile(prev => ({
+      ...prev,
+      name: opponentName ?? prev.name,
+    }));
+  }, [opponentName]);
+
   // Reset all game state for restart
   const handleRestart = () => {
     if (isConnected) {
@@ -132,17 +157,7 @@ export function GameArena({
     setHasRequestedInitialRound(false);
     setTargetShowSignal(0);
     setWaitingForOpponent(false);
-  };
-
-  // Players (get from profile in real app)
-  const player = {
-    name: playerName || 'You',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player1',
-  };
-
-  const opponent = {
-    name: opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Opponent'),
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=opponent1',
+    setIsOpponentDisconnected(false);
   };
 
   const prepareRound = useCallback(
@@ -232,6 +247,7 @@ export function GameArena({
     console.log('round:prepare payload received:', payload);
     setCurrentTarget(payload.target);
     setLossReason(null);
+    setIsOpponentDisconnected(false);
   }, []);
 
   useWebSocketEvent<WSRoundShowTarget>('round:show_target', payload => {
@@ -242,11 +258,51 @@ export function GameArena({
     setHasSentClick(false);
   }, []);
 
+  useWebSocketEvent<WSGameStart>('game:start', payload => {
+    if (payload?.player) {
+      setPlayerProfile(prev => ({
+        ...prev,
+        name: payload.player.name ?? prev.name,
+        avatar: payload.player.avatar ?? prev.avatar,
+      }));
+    }
+
+    if (payload?.opponent) {
+      setOpponentProfile(prev => ({
+        ...prev,
+        name: payload.opponent.name ?? prev.name,
+        avatar: payload.opponent.avatar ?? prev.avatar,
+      }));
+    }
+  }, []);
+
+  useWebSocketEvent<{ timeout?: number }>('player:disconnected', payload => {
+    setIsOpponentDisconnected(true);
+    toast.warning('Opponent disconnected, waiting...', {
+      description: `We'll wait up to ${payload?.timeout ?? 60} seconds.`,
+      duration: 4000,
+    });
+  }, []);
+
+  useWebSocketEvent('player:reconnected', () => {
+    setIsOpponentDisconnected(false);
+  }, []);
+
   useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
 
   useWebSocketEvent<{ count?: number }>('game:countdown', () => {
     setWaitingForOpponent(false);
+    setIsOpponentDisconnected(false);
     setGameState('countdown');
+  }, []);
+
+  useWebSocketEvent('game:paused', () => {
+    setShowPauseMenu(true);
+  }, []);
+
+  useWebSocketEvent('game:resumed', () => {
+    setShowPauseMenu(false);
+    setIsOpponentDisconnected(false);
   }, []);
 
   useEffect(() => {
@@ -309,15 +365,15 @@ export function GameArena({
     }
     
     setPauseCount(prev => prev + 1);
-    setShowPauseMenu(true);
+    send('game:pause', {});
   };
 
   const handleResume = () => {
-    setShowPauseMenu(false);
+    send('game:resume', {});
   };
 
   const handleAutoResume = () => {
-    setShowPauseMenu(false);
+    send('game:resume', {});
     toast.info('⏱️ Match resumed automatically', {
       description: 'Pause time limit reached',
       duration: 3000,
@@ -375,8 +431,8 @@ export function GameArena({
       <div className="relative z-10 flex flex-col h-full">
         {/* HUD */}
         <HUD
-          player={player}
-          opponent={opponent}
+          player={playerProfile}
+          opponent={opponentProfile}
           playerScore={playerScore}
           opponentScore={opponentScore}
           currentRound={currentRound}
@@ -515,7 +571,44 @@ export function GameArena({
                 <div>
                   <p className="text-xl font-semibold text-white">Waiting for opponent to get ready...</p>
                   <p className="text-sm text-gray-300 mt-1">
-                    {opponent.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
+                    {opponentProfile.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isOpponentDisconnected && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative max-w-md w-full">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#FF4D4D]/20 via-[#F97316]/20 to-[#7C3AED]/20 blur-2xl opacity-60"></div>
+            <div
+              className="relative bg-black/20 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden min-h-[200px] flex flex-col items-center justify-center text-center p-8"
+              style={{
+                clipPath:
+                  'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
+              }}
+            >
+              <div className="absolute top-0 left-0 w-8 h-px bg-gradient-to-r from-[#FF4D4D] to-transparent"></div>
+              <div className="absolute top-0 left-0 w-px h-8 bg-gradient-to-b from-[#FF4D4D] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-px bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
+              <div className="absolute bottom-0 right-0 w-px h-8 bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
+
+              <div className="flex flex-col items-center gap-4">
+                <div
+                  className="mx-auto h-12 w-12 animate-pulse rounded-full shadow-[0_0_18px_rgba(249,115,22,0.6)]"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #FF4D4D, #F97316, #7C3AED, #FF4D4D)',
+                    WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0)',
+                    mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0)',
+                  }}
+                ></div>
+                <div>
+                  <p className="text-xl font-semibold text-white">Opponent disconnected, waiting...</p>
+                  <p className="text-sm text-gray-300 mt-1">
+                    We&apos;ll resume automatically if they reconnect in time.
                   </p>
                 </div>
               </div>
