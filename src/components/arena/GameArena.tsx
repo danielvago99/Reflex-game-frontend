@@ -78,6 +78,12 @@ export function GameArena({
   const [lastDisconnectedSlot, setLastDisconnectedSlot] = useState<'p1' | 'p2' | null>(null);
   const [playerSlot, setPlayerSlot] = useState<'p1' | 'p2' | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const botReactionTimeRef = useRef<number | null>(null);
+  const localTimersRef = useRef<number[]>([]);
+  const roundResolvedRef = useRef(roundResolved);
+  const hasSentClickRef = useRef(hasSentClick);
+  const playerScoreRef = useRef(playerScore);
+  const opponentScoreRef = useRef(opponentScore);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -169,8 +175,28 @@ export function GameArena({
     }
   }, [isConnected]);
 
+  useEffect(() => {
+    roundResolvedRef.current = roundResolved;
+  }, [roundResolved]);
+
+  useEffect(() => {
+    hasSentClickRef.current = hasSentClick;
+  }, [hasSentClick]);
+
+  useEffect(() => {
+    playerScoreRef.current = playerScore;
+  }, [playerScore]);
+
+  useEffect(() => {
+    opponentScoreRef.current = opponentScore;
+  }, [opponentScore]);
+
   // Reset all game state for restart
   const handleRestart = () => {
+    localTimersRef.current.forEach(timer => window.clearTimeout(timer));
+    localTimersRef.current = [];
+    botReactionTimeRef.current = null;
+
     if (isConnected) {
       send('match:reset', {
         stake: stakeAmount,
@@ -203,6 +229,105 @@ export function GameArena({
     setPlayerSlot(null);
   };
 
+  const resolveLocalRound = useCallback(
+    ({
+      round,
+      playerTime,
+      opponentTime,
+      winner,
+      reason,
+      target,
+    }: {
+      round: number;
+      playerTime: number;
+      opponentTime: number;
+      winner: 'player' | 'bot' | 'none';
+      reason?: 'early-click' | 'no-reaction' | 'slower';
+      target: Target;
+    }) => {
+      localTimersRef.current.forEach(timer => window.clearTimeout(timer));
+      localTimersRef.current = [];
+
+      const nextPlayerScore = playerScoreRef.current + (winner === 'player' ? 1 : 0);
+      const nextOpponentScore = opponentScoreRef.current + (winner === 'bot' ? 1 : 0);
+
+      const result: WSRoundResult = {
+        round,
+        playerTime,
+        opponentTime,
+        p1Time: playerTime,
+        p2Time: opponentTime,
+        playerSlot: 'p1',
+        winnerSlot: winner === 'player' ? 'p1' : winner === 'bot' ? 'p2' : 'none',
+        target,
+        winner,
+        reason,
+        scores: {
+          player: nextPlayerScore,
+          bot: nextOpponentScore,
+        },
+      };
+
+      handleRoundResult(result);
+    },
+    [handleRoundResult]
+  );
+
+  const prepareLocalRound = useCallback(
+    (roundNumber: number) => {
+      localTimersRef.current.forEach(timer => window.clearTimeout(timer));
+      localTimersRef.current = [];
+      botReactionTimeRef.current = null;
+
+      const shape = targetShapes[Math.floor(Math.random() * targetShapes.length)];
+      const color = targetColors[Math.floor(Math.random() * targetColors.length)];
+      const target = {
+        shape,
+        color,
+        colorName: targetColorNames[color] ?? 'Target',
+      } as Target;
+
+      setCurrentTarget(target);
+      setLossReason(null);
+
+      const showDelay = 700 + Math.floor(Math.random() * 700);
+      const showTimer = window.setTimeout(() => {
+        targetShownTimestampRef.current = Date.now();
+        botReactionTimeRef.current = 220 + Math.floor(Math.random() * 380);
+        setTargetShowSignal(signal => signal + 1);
+
+        const botTimer = window.setTimeout(() => {
+          if (roundResolvedRef.current || hasSentClickRef.current) return;
+          resolveLocalRound({
+            round: roundNumber,
+            playerTime: 9999,
+            opponentTime: botReactionTimeRef.current ?? 450,
+            winner: 'bot',
+            reason: 'no-reaction',
+            target,
+          });
+        }, botReactionTimeRef.current ?? 450);
+
+        const noReactionTimer = window.setTimeout(() => {
+          if (roundResolvedRef.current || hasSentClickRef.current) return;
+          resolveLocalRound({
+            round: roundNumber,
+            playerTime: 9999,
+            opponentTime: botReactionTimeRef.current ?? 450,
+            winner: 'bot',
+            reason: 'no-reaction',
+            target,
+          });
+        }, 2200);
+
+        localTimersRef.current.push(botTimer, noReactionTimer);
+      }, showDelay);
+
+      localTimersRef.current.push(showTimer);
+    },
+    [resolveLocalRound, targetColors, targetColorNames, targetShapes]
+  );
+
   const prepareRound = useCallback(
     (roundNumber: number) => {
       setPlayerReactionTime(null);
@@ -212,6 +337,11 @@ export function GameArena({
       setHasSentClick(false);
       setTargetShowSignal(0);
       setCurrentTarget(null);
+
+      if (matchType === 'bot') {
+        prepareLocalRound(roundNumber);
+        return;
+      }
 
       if (!isConnected) {
         toast.error('WebSocket disconnected', {
@@ -227,7 +357,7 @@ export function GameArena({
 
       send('round:ready', roundReadyPayload);
     },
-    [isConnected, send, stakeAmount]
+    [isConnected, matchType, prepareLocalRound, send, stakeAmount]
   );
 
   const handleTargetAppeared = () => {};
@@ -240,6 +370,35 @@ export function GameArena({
     if (gameState !== 'playing' || roundResolved || hasSentClick || isOpponentDisconnected) return;
 
     setHasSentClick(true);
+
+    if (matchType === 'bot') {
+      const activeTarget = currentTarget ?? defaultTarget;
+      const botTime = botReactionTimeRef.current ?? (220 + Math.floor(Math.random() * 380));
+
+      if (!targetShownTimestampRef.current) {
+        resolveLocalRound({
+          round: currentRound,
+          playerTime: 0,
+          opponentTime: botTime,
+          winner: 'bot',
+          reason: 'early-click',
+          target: activeTarget,
+        });
+        return;
+      }
+
+      const duration = Date.now() - targetShownTimestampRef.current;
+      const isPlayerWinner = duration <= botTime;
+      resolveLocalRound({
+        round: currentRound,
+        playerTime: duration,
+        opponentTime: botTime,
+        winner: isPlayerWinner ? 'player' : 'bot',
+        reason: isPlayerWinner ? undefined : 'slower',
+        target: activeTarget,
+      });
+      return;
+    }
 
     if (!isConnected) {
       toast.error('Not connected to game server', {
@@ -384,7 +543,7 @@ export function GameArena({
   }, [playerSlot, lastDisconnectedSlot]);
 
   useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected && matchType !== 'bot') {
       setHasRequestedInitialRound(false);
       return;
     }
@@ -395,7 +554,14 @@ export function GameArena({
       prepareRound(currentRound);
       setHasRequestedInitialRound(true);
     }
-  }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+  }, [isConnected, matchType, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+
+  useEffect(() => {
+    return () => {
+      localTimersRef.current.forEach(timer => window.clearTimeout(timer));
+      localTimersRef.current = [];
+    };
+  }, []);
 
   const handleNextRound = () => {
     if (isMatchOver) {
