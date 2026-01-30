@@ -52,7 +52,6 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const stakeConfirmationTimeoutRef = useRef<number | null>(null);
-  const stakeCancelToastedRef = useRef(false);
   const pendingMatchRef = useRef<{
     sessionId: string;
     stake: number;
@@ -160,13 +159,9 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setWaitingForStakeConfirmation(false);
       setFriendIntroOpen(false);
       setFriendRoom(null);
-      if (isStakeCancel && stakeCancelToastedRef.current) {
-        stakeCancelToastedRef.current = false;
-      } else {
-        toast.info(toastMessage, {
-          description: 'You have been returned to the lobby.',
-        });
-      }
+      toast.info(toastMessage, {
+        description: 'You have been returned to the lobby.',
+      });
     });
 
     return () => {
@@ -205,7 +200,6 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     stakeConfirmationTimeoutRef.current = window.setTimeout(() => {
       const matchToCancel = pendingMatchRef.current;
       if (!matchToCancel) return;
-      stakeCancelToastedRef.current = true;
       send('match:cancel_stake', {
         sessionId: matchToCancel.sessionId,
         reason: 'stake_cancel_timeout',
@@ -214,9 +208,6 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setMatchStatus('idle');
       setPendingMatch(null);
       pendingMatchRef.current = null;
-      toast.info('Match cancelled due to stake cancel.', {
-        description: 'Opponent did not confirm the stake in time.',
-      });
     }, 15000);
 
     return () => {
