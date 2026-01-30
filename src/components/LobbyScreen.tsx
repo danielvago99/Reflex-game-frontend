@@ -51,6 +51,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   } | null>(null);
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
+  const stakeConfirmationTimeoutRef = useRef<number | null>(null);
+  const stakeCancelToastedRef = useRef(false);
   const pendingMatchRef = useRef<{
     sessionId: string;
     stake: number;
@@ -140,9 +142,16 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setMatchStatus('idle');
     });
 
-    const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
+      const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
       const payload = message?.payload ?? {};
-      const toastMessage = payload.message ?? 'Match cancelled.';
+      const isStakeCancel =
+        payload.reason === 'stake_cancel' ||
+        payload.reason === 'stake_cancel_timeout' ||
+        payload.cancelReason === 'stake_cancel' ||
+        payload.type === 'stake_cancel';
+      const toastMessage = isStakeCancel
+        ? 'Match cancelled due to stake cancel.'
+        : payload.message ?? 'Match cancelled.';
       setMatchStatus('idle');
       setPendingMatch(null);
       pendingMatchRef.current = null;
@@ -151,9 +160,13 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setWaitingForStakeConfirmation(false);
       setFriendIntroOpen(false);
       setFriendRoom(null);
-      toast.info(toastMessage, {
-        description: 'You have been returned to the lobby.',
-      });
+      if (isStakeCancel && stakeCancelToastedRef.current) {
+        stakeCancelToastedRef.current = false;
+      } else {
+        toast.info(toastMessage, {
+          description: 'You have been returned to the lobby.',
+        });
+      }
     });
 
     return () => {
@@ -165,8 +178,54 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         window.clearTimeout(matchFoundTimeoutRef.current);
         matchFoundTimeoutRef.current = null;
       }
+      if (stakeConfirmationTimeoutRef.current) {
+        window.clearTimeout(stakeConfirmationTimeoutRef.current);
+        stakeConfirmationTimeoutRef.current = null;
+      }
     };
   }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
+
+  useEffect(() => {
+    if (!waitingForStakeConfirmation || !pendingMatchRef.current) {
+      if (stakeConfirmationTimeoutRef.current) {
+        window.clearTimeout(stakeConfirmationTimeoutRef.current);
+        stakeConfirmationTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (pendingMatchRef.current.matchType === 'bot') {
+      return;
+    }
+
+    if (stakeConfirmationTimeoutRef.current) {
+      window.clearTimeout(stakeConfirmationTimeoutRef.current);
+    }
+
+    stakeConfirmationTimeoutRef.current = window.setTimeout(() => {
+      const matchToCancel = pendingMatchRef.current;
+      if (!matchToCancel) return;
+      stakeCancelToastedRef.current = true;
+      send('match:cancel_stake', {
+        sessionId: matchToCancel.sessionId,
+        reason: 'stake_cancel_timeout',
+      });
+      setWaitingForStakeConfirmation(false);
+      setMatchStatus('idle');
+      setPendingMatch(null);
+      pendingMatchRef.current = null;
+      toast.info('Match cancelled due to stake cancel.', {
+        description: 'Opponent did not confirm the stake in time.',
+      });
+    }, 15000);
+
+    return () => {
+      if (stakeConfirmationTimeoutRef.current) {
+        window.clearTimeout(stakeConfirmationTimeoutRef.current);
+        stakeConfirmationTimeoutRef.current = null;
+      }
+    };
+  }, [send, waitingForStakeConfirmation]);
 
   const startRankedMatchmaking = () => {
     if (!isConnected) {
