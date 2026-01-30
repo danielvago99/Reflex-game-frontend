@@ -1,5 +1,8 @@
-import { ArrowUpFromLine, AlertTriangle, Send, X } from 'lucide-react';
+import { ArrowUpFromLine, Send, X } from 'lucide-react';
 import { useState } from 'react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { WalletInput } from './WalletInput';
 import { WalletButton } from './WalletButton';
@@ -13,6 +16,8 @@ interface WithdrawDialogProps {
 }
 
 export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialogProps) {
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
@@ -28,8 +33,15 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     setAmount(maxAmount.toFixed(6));
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const newErrors = { address: '', amount: '' };
+
+    if (network !== 'devnet') {
+      toast.error('Devnet only', {
+        description: 'Switch to devnet to send SOL from this app.',
+      });
+      return;
+    }
     
     if (recipientAddress.length < 32) {
       newErrors.address = 'Invalid Solana address';
@@ -44,9 +56,58 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     setErrors(newErrors);
     
     if (!newErrors.address && !newErrors.amount) {
-      // Process withdrawal
-      console.log('Withdrawing', amount, 'SOL to', recipientAddress);
-      onClose();
+      if (!publicKey) {
+        toast.error('Wallet not connected', {
+          description: 'Connect your wallet before sending SOL.',
+        });
+        return;
+      }
+
+      let recipientPublicKey: PublicKey;
+      try {
+        recipientPublicKey = new PublicKey(recipientAddress);
+      } catch {
+        setErrors({ ...newErrors, address: 'Invalid Solana address' });
+        return;
+      }
+
+      const toastId = toast.loading('Processing withdrawal...');
+      try {
+        const latestBlockhash = await connection.getLatestBlockhash();
+        const transaction = new Transaction({
+          feePayer: publicKey,
+          recentBlockhash: latestBlockhash.blockhash,
+        }).add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: recipientPublicKey,
+            lamports: Math.round(numAmount * LAMPORTS_PER_SOL),
+          })
+        );
+
+        const signature = await sendTransaction(transaction, connection);
+        await connection.confirmTransaction(
+          {
+            signature,
+            ...latestBlockhash,
+          },
+          'finalized'
+        );
+
+        toast.success('Withdrawal sent', {
+          id: toastId,
+          description: 'Your transaction has been confirmed on devnet.',
+        });
+        setAmount('');
+        setRecipientAddress('');
+        onClose();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to send transaction';
+        toast.error('Withdrawal failed', {
+          id: toastId,
+          description: message,
+        });
+      }
     }
   };
 
