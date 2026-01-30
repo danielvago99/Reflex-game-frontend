@@ -327,6 +327,24 @@ export interface WSRoundShowTarget {
   timestampStart: number;
 }
 
+export interface WSPlayerDisconnected {
+  disconnectedSlot: 'p1' | 'p2';
+  deadlineTs: number;
+  timeoutSeconds: number;
+  disconnectCountForThatPlayer: number;
+}
+
+export interface WSGameEnd {
+  winnerSlot: 'p1' | 'p2';
+  loserSlot: 'p1' | 'p2';
+  scores: {
+    p1: number;
+    p2: number;
+  };
+  forfeit: boolean;
+  reason?: 'disconnect-timeout' | 'disconnect-limit';
+}
+
 export interface WSRoundResult {
   round: number;
   playerTime: number;
