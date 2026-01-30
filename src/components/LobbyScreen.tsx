@@ -321,6 +321,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   };
 
   const handleTransactionCancelled = () => {
+    send('match:cancel_stake', {});
     if (pendingMatchRef.current) {
       send('match:stake_failed', {
         sessionId: pendingMatchRef.current.sessionId,
