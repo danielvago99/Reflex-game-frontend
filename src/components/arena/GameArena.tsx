@@ -200,7 +200,7 @@ export function GameArena({
       return;
     }
 
-    setReadyDeadlineTs(Date.now() + READY_WAIT_SECONDS * 1000);
+    setReadyDeadlineTs(prevDeadline => prevDeadline ?? Date.now() + READY_WAIT_SECONDS * 1000);
   }, [readyTimerMode, READY_WAIT_SECONDS]);
 
   useEffect(() => {
