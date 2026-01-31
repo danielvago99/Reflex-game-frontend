@@ -15,6 +15,7 @@ interface GameResultModalProps {
   isRanked: boolean;
   stakeAmount: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
+  wasForfeit: boolean;
   onPlayAgain: () => void;
   onBackToMenu: () => void;
 }
@@ -27,6 +28,7 @@ export function GameResultModal({
   isRanked,
   stakeAmount,
   matchType = 'bot', // Default to 'bot' if not provided
+  wasForfeit,
   onPlayAgain,
   onBackToMenu
 }: GameResultModalProps) {
@@ -174,7 +176,9 @@ export function GameResultModal({
                   <h2 className="text-2xl sm:text-3xl mb-1 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
                     Victory!
                   </h2>
-                  <p className="text-gray-400">You dominated the arena</p>
+                  <p className="text-gray-400">
+                    {wasForfeit ? 'Opponent forfeited match' : 'You dominated the arena'}
+                  </p>
                 </>
               ) : (
                 <>
@@ -184,7 +188,9 @@ export function GameResultModal({
                     </div>
                   </div>
                   <h2 className="text-2xl sm:text-3xl text-red-400 mb-1">Defeat</h2>
-                  <p className="text-gray-400">Better luck next time</p>
+                  <p className="text-gray-400">
+                    {wasForfeit ? 'You forfeited match' : 'Better luck next time'}
+                  </p>
                 </>
               )}
             </div>
