@@ -261,6 +261,8 @@ const sessions = new WeakMap<WebSocket, SocketSessionRef>();
 const activeUsers = new Map<string, WebSocket>();
 const sessionSockets = new Map<string, Set<WebSocket>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+const stakeConfirmationTimeouts = new Map<string, NodeJS.Timeout>();
+const STAKE_CONFIRMATION_TIMEOUT_MS = 15000;
 
 const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -315,6 +317,14 @@ const clearDisconnectTimeout = (sessionId: string) => {
   if (timeout) {
     clearTimeout(timeout);
     disconnectTimeouts.delete(sessionId);
+  }
+};
+
+const clearStakeConfirmationTimeout = (sessionId: string) => {
+  const timeout = stakeConfirmationTimeouts.get(sessionId);
+  if (timeout) {
+    clearTimeout(timeout);
+    stakeConfirmationTimeouts.delete(sessionId);
   }
 };
 
@@ -620,6 +630,7 @@ const cleanupAbortedSession = async (sessionId: string, reason: string) => {
 
   sessionState.isFinished = true;
   clearTimers(sessionState);
+  clearStakeConfirmationTimeout(sessionId);
   clearSessionAssignments(sessionId, sessionState);
   sessionAssignments.delete(sessionId);
   sessionSockets.delete(sessionId);
@@ -2223,9 +2234,31 @@ export function createWsServer(server: Server) {
               : resolvedSessionState.p1Staked && resolvedSessionState.p2Staked;
 
             if (bothStaked) {
+              clearStakeConfirmationTimeout(sessionId);
               void persistSessionState(resolvedSessionState);
               for (const sessionSocket of sockets) {
                 sendMessage(sessionSocket, 'game:enter_arena', { sessionId });
+              }
+            } else if (!hasBotOpponent) {
+              if (!stakeConfirmationTimeouts.has(sessionId)) {
+                const timeout = setTimeout(() => {
+                  const pendingState = sessionStates.get(sessionId);
+                  if (!pendingState || pendingState.isFinished) {
+                    clearStakeConfirmationTimeout(sessionId);
+                    return;
+                  }
+                  const stillWaiting = pendingState.p1Staked !== pendingState.p2Staked;
+                  if (stillWaiting) {
+                    void failFastCancelSession(
+                      sessionId,
+                      'stake_cancel_timeout',
+                      'Match cancelled because a player did not confirm the stake in time.',
+                    );
+                  } else {
+                    clearStakeConfirmationTimeout(sessionId);
+                  }
+                }, STAKE_CONFIRMATION_TIMEOUT_MS);
+                stakeConfirmationTimeouts.set(sessionId, timeout);
               }
             }
             break;
