@@ -3,7 +3,6 @@ import { HUD } from './HUD';
 import { ArenaCanvas } from './ArenaCanvas';
 import { BottomBar } from './BottomBar';
 import { PauseMenu } from './PauseMenu';
-import { ForfeitConfirmDialog } from './ForfeitConfirmDialog';
 import { CountdownOverlay } from './CountdownOverlay';
 import { RoundResultModal } from './RoundResultModal';
 import { GameResultModal } from './GameResultModal';
@@ -55,7 +54,6 @@ export function GameArena({
   const [playerScore, setPlayerScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
   const [showPauseMenu, setShowPauseMenu] = useState(false);
-  const [showForfeitDialog, setShowForfeitDialog] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [showHowToPlay, setShowHowToPlay] = useState(true);
   const [playerReactionTime, setPlayerReactionTime] = useState<number | null>(null);
@@ -606,15 +604,7 @@ export function GameArena({
   };
 
   const handleQuitClick = () => {
-    // If it's a ranked match or has stakes, show forfeit confirmation
-    // Bot practice matches can quit directly
-    if (isRanked || stakeAmount > 0) {
-      setShowPauseMenu(false);
-      setShowForfeitDialog(true);
-    } else {
-      // Bot match - can quit without penalty
-      onQuit();
-    }
+    handleConfirmForfeit();
   };
 
   const handleConfirmForfeit = () => {
@@ -626,7 +616,6 @@ export function GameArena({
     }
 
     setShowPauseMenu(false);
-    setShowForfeitDialog(false);
     setDidForfeit(true);
     send('game:forfeit', {});
   };
@@ -759,15 +748,6 @@ export function GameArena({
           wasForfeit={wasForfeitResult}
           onPlayAgain={handleRestart}
           onBackToMenu={onQuit}
-        />
-      )}
-
-      {showForfeitDialog && (
-        <ForfeitConfirmDialog
-          isRanked={isRanked}
-          stakeAmount={stakeAmount}
-          onConfirm={handleConfirmForfeit}
-          onCancel={() => setShowForfeitDialog(false)}
         />
       )}
 
