@@ -80,10 +80,15 @@ export function GameArena({
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [didForfeit, setDidForfeit] = useState(false);
   const [wasForfeitResult, setWasForfeitResult] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [readyTimerMode, setReadyTimerMode] = useState<'initial' | 'opponent' | null>(null);
+  const [readyDeadlineTs, setReadyDeadlineTs] = useState<number | null>(null);
+  const [readySecondsRemaining, setReadySecondsRemaining] = useState<number | null>(null);
 
   const isWaitingForTarget = currentTarget === null;
 
   const targetShownTimestampRef = useRef<number | null>(null);
+  const readyTimeoutTriggeredRef = useRef(false);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
   const targetColors = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
@@ -114,6 +119,8 @@ export function GameArena({
   const { isConnected, send, connect } = useWebSocket({ autoConnect: true });
 
   const MAX_PAUSES = 3;
+  const READY_WAIT_SECONDS = 30;
+  const READY_COUNTDOWN_SECONDS = 30;
   const isMatchOver =
     playerScore >= ROUNDS_TO_WIN ||
     opponentScore >= ROUNDS_TO_WIN ||
@@ -166,6 +173,55 @@ export function GameArena({
   }, [disconnectDeadlineTs]);
 
   useEffect(() => {
+    if (showFinalResults) {
+      setReadyTimerMode(null);
+      return;
+    }
+
+    if (waitingForOpponent) {
+      setReadyTimerMode('opponent');
+      return;
+    }
+
+    if (!isPlayerReady) {
+      setReadyTimerMode('initial');
+      return;
+    }
+
+    setReadyTimerMode(null);
+  }, [waitingForOpponent, isPlayerReady, showFinalResults]);
+
+  useEffect(() => {
+    readyTimeoutTriggeredRef.current = false;
+
+    if (!readyTimerMode) {
+      setReadyDeadlineTs(null);
+      setReadySecondsRemaining(null);
+      return;
+    }
+
+    setReadyDeadlineTs(Date.now() + READY_WAIT_SECONDS * 1000);
+  }, [readyTimerMode, READY_WAIT_SECONDS]);
+
+  useEffect(() => {
+    if (!readyDeadlineTs) {
+      setReadySecondsRemaining(null);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const remainingMs = readyDeadlineTs - Date.now();
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+      setReadySecondsRemaining(remainingSeconds);
+    };
+
+    updateRemaining();
+    const intervalId = window.setInterval(updateRemaining, 250);
+
+    return () => window.clearInterval(intervalId);
+  }, [readyDeadlineTs]);
+
+  useEffect(() => {
     if (isConnected) {
       setIsReconnecting(false);
     }
@@ -204,6 +260,10 @@ export function GameArena({
     setLastDisconnectedSlot(null);
     setPlayerSlot(null);
     setDidForfeit(false);
+    setIsPlayerReady(false);
+    setReadyTimerMode(null);
+    setReadyDeadlineTs(null);
+    setReadySecondsRemaining(null);
   };
 
   const prepareRound = useCallback(
@@ -260,6 +320,33 @@ export function GameArena({
       round: currentRound,
     });
   };
+
+  const handleReadyTimeout = useCallback(
+    (mode: 'initial' | 'opponent') => {
+      if (!isConnected) {
+        toast.error('WebSocket disconnected', {
+          description: 'Unable to cancel match while offline.',
+        });
+      } else {
+        send('match:cancel', { stake: stakeAmount });
+      }
+
+      if (mode === 'initial') {
+        toast.info('Match cancelled', {
+          description: 'You did not ready up in time.',
+        });
+      } else {
+        toast.info('Match cancelled', {
+          description: `${opponentProfile.name} did not ready up in time.`,
+        });
+      }
+
+      setWaitingForOpponent(false);
+      setShowHowToPlay(false);
+      onQuit();
+    },
+    [isConnected, onQuit, opponentProfile.name, send, stakeAmount]
+  );
 
   const handleRoundResult = useCallback((result: WSRoundResult) => {
     setRoundResolved(true);
@@ -322,6 +409,14 @@ export function GameArena({
       }));
     }
   }, []);
+
+  useWebSocketEvent('match:cancelled', payload => {
+    const message = payload?.message ?? 'Match cancelled.';
+    toast.info(message, {
+      description: 'You have been returned to the lobby.',
+    });
+    onQuit();
+  }, [onQuit]);
 
   useWebSocketEvent<WSPlayerDisconnected>('player:disconnected', payload => {
     setIsOpponentDisconnected(true);
@@ -401,6 +496,19 @@ export function GameArena({
   }, [playerSlot, lastDisconnectedSlot, didForfeit]);
 
   useEffect(() => {
+    if (readySecondsRemaining === null || readySecondsRemaining > 0) {
+      return;
+    }
+
+    if (!readyTimerMode || readyTimeoutTriggeredRef.current) {
+      return;
+    }
+
+    readyTimeoutTriggeredRef.current = true;
+    handleReadyTimeout(readyTimerMode);
+  }, [handleReadyTimeout, readySecondsRemaining, readyTimerMode]);
+
+  useEffect(() => {
     if (!isConnected) {
       setHasRequestedInitialRound(false);
       return;
@@ -436,6 +544,7 @@ export function GameArena({
   const handleReadyUp = () => {
     setShowHowToPlay(false);
     setWaitingForOpponent(true);
+    setIsPlayerReady(true);
 
     if (!isConnected) {
       toast.error('WebSocket disconnected', {
@@ -694,6 +803,11 @@ export function GameArena({
                   <p className="text-sm text-gray-300 mt-1">
                     {opponentProfile.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
                   </p>
+                  {readySecondsRemaining !== null && readySecondsRemaining <= READY_COUNTDOWN_SECONDS && (
+                    <p className="text-sm text-emerald-200 mt-3 font-semibold">
+                      Opponent must ready up in {readySecondsRemaining}s or forfeit.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
