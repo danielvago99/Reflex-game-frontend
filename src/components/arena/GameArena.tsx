@@ -811,7 +811,7 @@ export function GameArena({
                     {opponentProfile.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
                   </p>
                   {readySecondsRemaining !== null && readySecondsRemaining <= READY_COUNTDOWN_SECONDS && (
-                    <p className="text-sm text-emerald-200 mt-3 font-semibold">
+                    <p className="text-sm text-gray-300 mt-3 font-semibold">
                       Opponent must ready up in {readySecondsRemaining}s or forfeit.
                     </p>
                   )}
