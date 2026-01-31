@@ -7,6 +7,7 @@ import prisma from '../db/prisma';
 import { env } from '../config/env';
 import { redisClient } from '../db/redis';
 import { matchmakingService } from '../services/matchmaking';
+import { botWalletService } from '../services/BotWalletService';
 import { matchmakingEvents } from '../utils/events';
 
 type Shape = 'circle' | 'square' | 'triangle';
@@ -1600,12 +1601,16 @@ export function createWsServer(server: Server) {
     );
   });
 
-  matchmakingEvents.on('bot_match', (data) => {
+  matchmakingEvents.on('bot_match', async (data) => {
     const { userId, stake } = data as { userId: string; stake: number };
     const socket = activeUsers.get(userId);
     const sessionId = crypto.randomUUID();
 
     try {
+      const rankedBot = await botWalletService.getRankedBot(stake);
+      const opponentId = rankedBot.publicKey;
+      const opponentName = rankedBot.username;
+
       const sessionState: SessionState = {
         sessionId,
         round: 1,
@@ -1621,7 +1626,7 @@ export function createWsServer(server: Server) {
         username: userNames.get(userId),
         botReactionTime: 600,
         p1Staked: false,
-        p2Staked: true,
+        p2Staked: false,
         p1Ready: false,
         p2Ready: true,
         p1RoundReady: false,
@@ -1629,9 +1634,10 @@ export function createWsServer(server: Server) {
       };
 
       sessionStates.set(sessionId, sessionState);
-      sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
+      sessionAssignments.set(sessionId, { p1: userId, p2: opponentId });
       sessionSockets.set(sessionId, new Set());
       userActiveSessions.set(userId, sessionId);
+      userNames.set(opponentId, opponentName);
 
       const sockets = sessionSockets.get(sessionId);
 
@@ -1641,12 +1647,37 @@ export function createWsServer(server: Server) {
 
         sendMessage(socket, 'match_found', {
           sessionId,
-          opponentId: 'bot_opponent',
-          opponentName: 'Training Bot',
+          opponentId,
+          opponentName,
           stake,
           isBot: true,
-          matchType: 'bot',
+          matchType: 'ranked',
         });
+      }
+
+      try {
+        const signature = await botWalletService.payEntryStake(rankedBot.keypair, stake);
+        sessionState.p2Staked = true;
+        void persistSessionState(sessionState);
+        if (socket) {
+          sendMessage(socket, 'match:opponent_staked', { sessionId, opponentId, signature });
+        }
+        if (sessionState.p1Staked) {
+          broadcastToSession(sessionId, 'game:enter_arena', { sessionId });
+        }
+      } catch (error) {
+        logger.error({ error, userId, sessionId }, 'Bot stake payment failed');
+        if (sessionStates.has(sessionId)) {
+          void failFastCancelSession(sessionId, 'bot stake failed', 'Match cancelled due to bot stake failure.');
+        } else if (socket) {
+          sendMessage(socket, 'match:cancelled', {
+            sessionId,
+            reason: 'bot stake failed',
+            message: 'Match cancelled due to bot stake failure.',
+          });
+        }
+        clearUserActiveSession(userId);
+        return;
       }
 
       logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
@@ -2315,8 +2346,11 @@ export function createWsServer(server: Server) {
             sockets.add(socket);
             sessionSockets.set(sessionId, sockets);
 
+            const requiresBotStake = hasBotOpponent && matchType !== 'bot';
             const bothStaked = hasBotOpponent
-              ? resolvedSessionState.p1Staked
+              ? requiresBotStake
+                ? resolvedSessionState.p1Staked && resolvedSessionState.p2Staked
+                : resolvedSessionState.p1Staked
               : resolvedSessionState.p1Staked && resolvedSessionState.p2Staked;
 
             if (bothStaked) {
