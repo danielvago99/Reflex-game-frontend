@@ -489,7 +489,6 @@ export function GameArena({
     }
 
     setShowPauseMenu(false);
-    setShowForfeitDialog(false);
     setRoundResult(null);
     setGameState('result');
     setShowFinalResults(true);
