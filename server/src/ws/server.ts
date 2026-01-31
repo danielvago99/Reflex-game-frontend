@@ -2230,6 +2230,29 @@ export function createWsServer(server: Server) {
             }
             break;
           }
+          case 'game:forfeit': {
+            const sessionState = sessionStates.get(sessionRef.sessionId);
+            if (!sessionState || sessionState.isFinished) {
+              break;
+            }
+
+            const forfeitingSlot = getSlotForUser(sessionState, sessionRef.userId);
+            const winningSlot = getOpponentSlot(forfeitingSlot);
+
+            clearTimers(sessionState);
+            sessionState.scores[winningSlot] = Math.max(sessionState.scores[winningSlot], ROUNDS_TO_WIN);
+
+            broadcastToSession(sessionRef.sessionId, 'game:end', {
+              winnerSlot: winningSlot,
+              loserSlot: forfeitingSlot,
+              scores: sessionState.scores,
+              forfeit: true,
+            });
+
+            void persistSessionState(sessionState);
+            void finalizeGame(sessionState, true);
+            break;
+          }
           case 'game:pause': {
             const sessionState = sessionStates.get(sessionRef.sessionId);
             if (!sessionState || sessionState.isFinished) {
