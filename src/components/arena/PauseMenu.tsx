@@ -190,17 +190,14 @@ export function PauseMenu({
                 </div>
               </button>
 
-              {/* Quit button */}
+              {/* Forfeit button */}
               <button
                 onClick={onQuit}
-                className="group relative w-full px-6 py-3 sm:py-3.5 rounded-xl overflow-hidden transition-all active:scale-95 sm:hover:scale-105 min-h-[48px]"
-                aria-label="Quit to lobby"
+                className="w-full bg-red-500/20 hover:bg-red-500/30 border-2 border-red-500/50 hover:border-red-500 text-red-400 hover:text-red-300 h-12 transition-all rounded-xl flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95 sm:hover:scale-105"
+                aria-label="Forfeit match"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-gray-600 to-gray-700 opacity-80 sm:group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative flex items-center justify-center gap-2 text-white text-sm sm:text-base">
-                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span>Quit to Lobby</span>
-                </div>
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>{hasStake ? `Forfeit & Lose ${stakeAmount} SOL` : 'Forfeit Match'}</span>
               </button>
             </div>
           </div>
