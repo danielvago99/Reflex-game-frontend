@@ -257,7 +257,7 @@ const clearTimers = (state: SessionState) => {
 const sessionAssignments = new Map<string, { p1?: string; p2?: string }>();
 const sessionStates = new Map<string, SessionState>();
 const userNames = new Map<string, string>();
-const sessions = new WeakMap<WebSocket, SocketSessionRef>();
+const sessions = new Map<WebSocket, SocketSessionRef>();
 const activeUsers = new Map<string, WebSocket>();
 const sessionSockets = new Map<string, Set<WebSocket>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
