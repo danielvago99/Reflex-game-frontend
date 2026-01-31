@@ -598,6 +598,12 @@ const collectSessionSockets = (sessionId: string, state?: SessionState) => {
     }
   }
 
+  for (const [sessionSocket, sessionRef] of sessions.entries()) {
+    if (sessionRef.sessionId === sessionId) {
+      sockets.add(sessionSocket);
+    }
+  }
+
   const assignments = sessionAssignments.get(sessionId);
   const potentialUsers = [assignments?.p1, assignments?.p2, state?.userId];
   for (const userId of potentialUsers) {
