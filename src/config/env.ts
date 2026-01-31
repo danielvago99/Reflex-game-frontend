@@ -23,6 +23,21 @@ const isFlagEnabled = (value: string | undefined, defaultValue: boolean) => {
   return defaultValue;
 };
 
+const env = import.meta.env as Record<string, string | undefined>;
+
+const resolveSolanaRpcUrl = () =>
+  env.VITE_SOLANA_RPC_URL || env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+
+const resolveSolanaNetwork = (rpcUrl: string) => {
+  if (env.VITE_SOLANA_NETWORK) return env.VITE_SOLANA_NETWORK;
+  if (env.SOLANA_NETWORK) return env.SOLANA_NETWORK;
+  if (rpcUrl.includes('mainnet')) return 'mainnet-beta';
+  if (rpcUrl.includes('testnet')) return 'testnet';
+  return 'devnet';
+};
+
+const solanaRpcUrl = resolveSolanaRpcUrl();
+
 export const ENV = {
   // Backend API Configuration
   API_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api',
@@ -31,8 +46,8 @@ export const ENV = {
   WS_URL: import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws',
 
   // Solana Configuration
-  SOLANA_RPC_URL: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
-  SOLANA_NETWORK: import.meta.env.VITE_SOLANA_NETWORK || 'devnet',
+  SOLANA_RPC_URL: solanaRpcUrl,
+  SOLANA_NETWORK: resolveSolanaNetwork(solanaRpcUrl),
 
   // Platform Configuration
   PLATFORM_FEE_PERCENTAGE: 15, // 15% platform fee

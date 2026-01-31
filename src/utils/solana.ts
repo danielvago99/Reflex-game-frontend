@@ -10,7 +10,6 @@
  */
 
 import {
-  clusterApiUrl,
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
@@ -20,8 +19,9 @@ import {
   Transaction,
 } from '@solana/web3.js';
 import nacl from 'tweetnacl';
+import { ENV } from '../config/env';
 
-export const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+export const connection = new Connection(ENV.SOLANA_RPC_URL, 'confirmed');
 
 /**
  * Solana service for blockchain operations
@@ -40,8 +40,8 @@ class SolanaService {
   private rpcUrl: string;
 
   constructor() {
-    this.network = 'devnet';
-    this.rpcUrl = clusterApiUrl('devnet');
+    this.network = ENV.SOLANA_NETWORK;
+    this.rpcUrl = ENV.SOLANA_RPC_URL;
     this.initialize();
   }
 
