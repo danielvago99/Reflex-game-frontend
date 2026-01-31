@@ -79,6 +79,7 @@ export function GameArena({
   const [playerSlot, setPlayerSlot] = useState<'p1' | 'p2' | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [didForfeit, setDidForfeit] = useState(false);
+  const [wasForfeitResult, setWasForfeitResult] = useState(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -363,6 +364,7 @@ export function GameArena({
   }, []);
 
   useWebSocketEvent<WSGameEnd>('game:end', payload => {
+    setWasForfeitResult(payload.forfeit);
     const resolvedSlot =
       playerSlot ?? (lastDisconnectedSlot ? getOpponentSlot(lastDisconnectedSlot) : null);
 
@@ -639,6 +641,7 @@ export function GameArena({
           isRanked={isRanked}
           stakeAmount={stakeAmount}
           matchType={matchType}
+          wasForfeit={wasForfeitResult}
           onPlayAgain={handleRestart}
           onBackToMenu={onQuit}
         />
