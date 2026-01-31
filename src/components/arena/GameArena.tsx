@@ -415,6 +415,12 @@ export function GameArena({
     toast.info(message, {
       description: 'You have been returned to the lobby.',
     });
+    readyTimeoutTriggeredRef.current = true;
+    setWaitingForOpponent(false);
+    setIsPlayerReady(false);
+    setReadyTimerMode(null);
+    setReadyDeadlineTs(null);
+    setReadySecondsRemaining(null);
     onQuit();
   }, [onQuit]);
 
@@ -769,6 +775,7 @@ export function GameArena({
         <HowToPlayOverlay
           targetShape={(currentTarget ?? defaultTarget).shape}
           targetColor={(currentTarget ?? defaultTarget).color}
+          readySecondsRemaining={readyTimerMode === 'initial' ? readySecondsRemaining : null}
           onContinue={handleReadyUp}
         />
       )}

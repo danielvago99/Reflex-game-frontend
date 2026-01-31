@@ -8,9 +8,15 @@ interface HowToPlayOverlayProps {
   targetShape: string;
   targetColor: string;
   onContinue: () => void;
+  readySecondsRemaining?: number | null;
 }
 
-export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowToPlayOverlayProps) {
+export function HowToPlayOverlay({
+  targetShape,
+  targetColor,
+  onContinue,
+  readySecondsRemaining,
+}: HowToPlayOverlayProps) {
   // Keyboard support
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -239,6 +245,11 @@ export function HowToPlayOverlay({ targetShape, targetColor, onContinue }: HowTo
                 <span className="text-lg sm:text-xl font-bold tracking-wide">
                   I&apos;m Ready
                 </span>
+                {readySecondsRemaining !== null && readySecondsRemaining !== undefined && (
+                  <span className="text-sm sm:text-base font-semibold text-white/90">
+                    ({readySecondsRemaining}s)
+                  </span>
+                )}
                 <motion.div
                   animate={{ rotate: [0, -5, 5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.1 }}
