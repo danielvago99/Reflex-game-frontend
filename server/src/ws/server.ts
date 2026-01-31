@@ -1993,6 +1993,103 @@ export function createWsServer(server: Server) {
               void handleMatchReset(sessionState, message.payload);
             }
             break;
+          case 'match:create_bot': {
+            const { userId } = sessionRef;
+            if (!userId) {
+              sendMessage(socket, 'match:cancelled', {
+                reason: 'auth_required',
+                message: 'Authentication required.',
+              });
+              break;
+            }
+
+            if (userActiveSessions.has(userId)) {
+              const activeSessionId = userActiveSessions.get(userId)!;
+              const restoreResult = await validateRestorableSession(userId, activeSessionId);
+              if (restoreResult) {
+                const { state: existingState, assignments, hasBotOpponent } = restoreResult;
+                logger.info(
+                  { userId, sessionId: activeSessionId },
+                  'User tried to start bot practice but has active session. Restoring...',
+                );
+
+                sessions.set(socket, { sessionId: activeSessionId, userId });
+                const roomSockets = sessionSockets.get(activeSessionId);
+                if (roomSockets) roomSockets.add(socket);
+
+                const opponentId = hasBotOpponent
+                  ? 'bot_opponent'
+                  : assignments?.p1 === userId
+                    ? assignments?.p2
+                    : assignments?.p1;
+                const isBot = hasBotOpponent;
+                const stake = existingState.stakeAmount || 0;
+
+                sendMessage(socket, 'match_found', {
+                  sessionId: activeSessionId,
+                  opponentId,
+                  stake,
+                  isBot,
+                  matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
+                  roomCode: existingState?.roomCode,
+                });
+                clearDisconnectTimeout(activeSessionId);
+                if (existingState.disconnectPause) {
+                  existingState.disconnectPause = undefined;
+                  resumeFromPause(existingState);
+                  broadcastToSession(activeSessionId, 'game:resumed', {});
+                  void persistSessionState(existingState);
+                }
+                broadcastToSession(activeSessionId, 'player:reconnected', {});
+                return;
+              }
+            }
+
+            const sessionId = crypto.randomUUID();
+            const sessionState: SessionState = {
+              sessionId,
+              round: 1,
+              scores: { p1: 0, p2: 0 },
+              disconnectCounts: { p1: 0, p2: 0 },
+              matchType: 'bot',
+              isBotOpponent: true,
+              stakeAmount: 0,
+              roundResolved: false,
+              reactions: {},
+              history: [],
+              userId,
+              username: userNames.get(userId),
+              botReactionTime: 600,
+              p1Staked: true,
+              p2Staked: true,
+              p1Ready: false,
+              p2Ready: true,
+              p1RoundReady: false,
+              p2RoundReady: true,
+            };
+
+            sessionStates.set(sessionId, sessionState);
+            sessionAssignments.set(sessionId, { p1: userId, p2: 'bot_opponent' });
+            sessionSockets.set(sessionId, new Set());
+            userActiveSessions.set(userId, sessionId);
+
+            const sockets = sessionSockets.get(sessionId);
+            sessions.set(socket, { sessionId, userId });
+            sockets?.add(socket);
+
+            sendMessage(socket, 'match_found', {
+              sessionId,
+              opponentId: 'bot_opponent',
+              opponentName: 'Training Bot',
+              stake: 0,
+              stakeAmount: 0,
+              isBot: true,
+              matchType: 'bot',
+            });
+            sendMessage(socket, 'game:enter_arena', { sessionId });
+            logger.info({ userId, sessionId }, 'Started practice bot match');
+            break;
+          }
           case 'match:find':
             const { userId } = sessionRef;
             if (userId) {

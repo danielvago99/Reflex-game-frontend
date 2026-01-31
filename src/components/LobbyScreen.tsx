@@ -110,7 +110,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
         window.clearTimeout(matchFoundTimeoutRef.current);
       }
 
-      if (matchType !== 'friend') {
+      if (matchType !== 'bot') {
         matchFoundTimeoutRef.current = window.setTimeout(() => {
           if (walletProvider) {
             void handleExternalWalletTransaction(matchDetails);
@@ -231,11 +231,11 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const handleStartMatch = async () => {
     // For bot mode (practice), no transaction needed
     if (selectedMode === 'bot') {
-      if (onStartMatch) {
-        onStartMatch(false, 0, 'bot', 'Training Bot');
-      } else {
-        onNavigate('arena');
+      if (!isConnected) {
+        toast.error('Connection lost. Reconnecting...');
+        return;
       }
+      wsService.send('match:create_bot', {});
       return;
     }
 
