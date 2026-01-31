@@ -238,6 +238,7 @@ export type WSMessageType =
   | 'game:show_button'
   | 'game:pause'
   | 'game:paused'
+  | 'game:forfeit'
   | 'game:resume'
   | 'game:resumed'
   | 'game:player_clicked'

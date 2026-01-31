@@ -486,7 +486,16 @@ export function GameArena({
   };
 
   const handleConfirmForfeit = () => {
-    onQuit();
+    if (!isConnected) {
+      toast.error('WebSocket disconnected', {
+        description: 'Unable to forfeit match while offline.'
+      });
+      return;
+    }
+
+    setShowPauseMenu(false);
+    setShowForfeitDialog(false);
+    send('game:forfeit', {});
   };
 
   return (
