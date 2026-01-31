@@ -78,6 +78,7 @@ export function GameArena({
   const [lastDisconnectedSlot, setLastDisconnectedSlot] = useState<'p1' | 'p2' | null>(null);
   const [playerSlot, setPlayerSlot] = useState<'p1' | 'p2' | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [didForfeit, setDidForfeit] = useState(false);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -201,6 +202,7 @@ export function GameArena({
     setDisconnectSecondsRemaining(null);
     setLastDisconnectedSlot(null);
     setPlayerSlot(null);
+    setDidForfeit(false);
   };
 
   const prepareRound = useCallback(
@@ -367,6 +369,19 @@ export function GameArena({
     if (resolvedSlot) {
       setPlayerScore(payload.scores[resolvedSlot]);
       setOpponentScore(payload.scores[getOpponentSlot(resolvedSlot)]);
+    } else if (payload.forfeit) {
+      const winnerScore = payload.scores[payload.winnerSlot];
+      const loserScore = payload.scores[payload.loserSlot];
+      const forfeitWinnerScore = winnerScore === loserScore ? 1 : winnerScore;
+      const forfeitLoserScore = winnerScore === loserScore ? 0 : loserScore;
+
+      if (didForfeit) {
+        setPlayerScore(forfeitLoserScore);
+        setOpponentScore(forfeitWinnerScore);
+      } else {
+        setPlayerScore(forfeitWinnerScore);
+        setOpponentScore(forfeitLoserScore);
+      }
     } else {
       setPlayerScore(payload.scores.p1);
       setOpponentScore(payload.scores.p2);
@@ -381,7 +396,7 @@ export function GameArena({
     setDisconnectDeadlineTs(null);
     setDisconnectSecondsRemaining(null);
     setLastDisconnectedSlot(null);
-  }, [playerSlot, lastDisconnectedSlot]);
+  }, [playerSlot, lastDisconnectedSlot, didForfeit]);
 
   useEffect(() => {
     if (!isConnected) {
@@ -495,6 +510,7 @@ export function GameArena({
 
     setShowPauseMenu(false);
     setShowForfeitDialog(false);
+    setDidForfeit(true);
     send('game:forfeit', {});
   };
 
