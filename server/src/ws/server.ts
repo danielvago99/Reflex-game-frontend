@@ -53,6 +53,7 @@ interface SessionState extends RoundTimers {
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
+  botDisplayName?: string;
   roundResolved: boolean;
   isFinished?: boolean;
   reactions: { p1?: number; p2?: number };
@@ -96,6 +97,7 @@ interface RedisSessionState {
   target?: Target;
   targetShownAt?: number;
   botReactionTime?: number;
+  botDisplayName?: string;
   roundResolved: boolean;
   reactions: { p1?: number; p2?: number };
   pausedAt?: number;
@@ -139,8 +141,10 @@ const MAX_ROUNDS = 5;
 const BOT_GRACE_MS = 600;
 const HUMAN_GRACE_MS = 2000;
 const MAX_TIME = 999_999;
-const BOT_REACTION_MIN = 400;
-const BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
+const PRACTICE_BOT_REACTION_MIN = 400;
+const PRACTICE_BOT_REACTION_RANGE = 500; // results in 400-900ms reaction time
+const RANKED_BOT_REACTION_MIN = 300;
+const RANKED_BOT_REACTION_RANGE = 400; // results in 300-700ms reaction time
 const GAME_STATE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
@@ -169,6 +173,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   target: state.target,
   targetShownAt: state.targetShownAt,
   botReactionTime: state.botReactionTime,
+  botDisplayName: state.botDisplayName,
   roundResolved: state.roundResolved,
   reactions: state.reactions,
   pausedAt: state.pausedAt,
@@ -193,6 +198,14 @@ const persistSessionState = async (state: SessionState) => {
 };
 
 const isBotOpponent = (state: SessionState) => state.isBotOpponent ?? state.matchType === 'bot';
+
+const getBotReactionWindow = (state: SessionState) => {
+  if (state.matchType === 'ranked') {
+    return { min: RANKED_BOT_REACTION_MIN, range: RANKED_BOT_REACTION_RANGE };
+  }
+
+  return { min: PRACTICE_BOT_REACTION_MIN, range: PRACTICE_BOT_REACTION_RANGE };
+};
 
 const createInstruction = (target: Target) => {
   const shapeName = target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
@@ -751,8 +764,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
   const player1Id = assignments?.p1;
   const player2Id = assignments?.p2;
+  const hasBotOpponent = isBotOpponent(sharedState);
 
-  if (!player1Id || !player2Id) {
+  if (!player1Id || (!player2Id && !hasBotOpponent)) {
     logger.error(
       { sessionId: sharedState.sessionId, player1Id, player2Id, matchType: sharedState.matchType },
       'Cannot persist match: Missing player IDs in session'
@@ -771,8 +785,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   }
 
   try {
-    const winnerSlot =
-      sharedState.scores.p1 >= sharedState.scores.p2 ? 'p1' : 'p2';
+    const winnerSlot = sharedState.scores.p1 >= sharedState.scores.p2 ? 'p1' : 'p2';
     const loserSlot = getOpponentSlot(winnerSlot);
     const stakeAmount =
       typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
@@ -802,8 +815,37 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       ? opponentTimes.reduce((sum, time) => sum + time, 0) / opponentTimes.length
       : undefined;
 
-    const winnerId = winnerSlot === 'p1' ? player1Id : player2Id;
-    const loserId = winnerSlot === 'p1' ? player2Id : player1Id;
+    const humanSlot = hasBotOpponent
+      ? player1Id && player1Id !== 'bot_opponent' && !player1Id.startsWith('guest')
+        ? 'p1'
+        : player2Id && player2Id !== 'bot_opponent' && !player2Id.startsWith('guest')
+          ? 'p2'
+          : undefined
+      : undefined;
+    const humanId = humanSlot === 'p1' ? player1Id : humanSlot === 'p2' ? player2Id : undefined;
+
+    if (hasBotOpponent && !humanId) {
+      logger.error({ sessionId: sharedState.sessionId }, 'Cannot persist bot match without a human player');
+      finalizedSessions.delete(sharedState.sessionId);
+      return;
+    }
+
+    const winnerId =
+      hasBotOpponent
+        ? winnerSlot === humanSlot
+          ? humanId ?? null
+          : null
+        : winnerSlot === 'p1'
+          ? player1Id
+          : player2Id;
+    const loserId =
+      hasBotOpponent
+        ? winnerSlot === humanSlot
+          ? null
+          : humanId ?? null
+        : winnerSlot === 'p1'
+          ? player2Id
+          : player1Id;
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -903,9 +945,26 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       for (const round of sharedState.history) {
         const roundPlayerTime = round.p1Time;
         const roundOpponentTime = round.p2Time;
-        const roundWinnerId = round.winner === 'p1' ? player1Id : round.winner === 'p2' ? player2Id : null;
+        const roundWinnerId =
+          round.winner === 'none'
+            ? null
+            : hasBotOpponent
+              ? round.winner === humanSlot
+                ? humanId ?? null
+                : null
+              : round.winner === 'p1'
+                ? player1Id
+                : player2Id;
         const roundLoserId =
-          round.winner === 'p1' ? player2Id : round.winner === 'p2' ? player1Id : null;
+          round.winner === 'none'
+            ? null
+            : hasBotOpponent
+              ? round.winner === humanSlot
+                ? null
+                : humanId ?? null
+              : round.winner === 'p1'
+                ? player2Id
+                : player1Id;
 
         await tx.gameRound.create({
           data: {
@@ -921,25 +980,37 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         });
       }
 
-      if (winnerId) {
-        const winnerStats =
-          winnerSlot === 'p1'
-            ? { bestReaction: playerBestReaction, averageReaction: playerAverageReaction }
-            : { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction };
-        await updatePlayerStats(winnerId, 'win', winnerStats);
-      }
-
-      if (loserId) {
-        const loserStats =
-          winnerSlot === 'p1'
+      if (hasBotOpponent) {
+        const humanStats =
+          humanSlot === 'p2'
             ? { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction }
             : { bestReaction: playerBestReaction, averageReaction: playerAverageReaction };
-        await updatePlayerStats(loserId, 'loss', loserStats);
+        if (humanId) {
+          await updatePlayerStats(humanId, winnerSlot === humanSlot ? 'win' : 'loss', humanStats);
+        }
+      } else {
+        if (winnerId) {
+          const winnerStats =
+            winnerSlot === 'p1'
+              ? { bestReaction: playerBestReaction, averageReaction: playerAverageReaction }
+              : { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction };
+          await updatePlayerStats(winnerId, 'win', winnerStats);
+        }
+
+        if (loserId) {
+          const loserStats =
+            winnerSlot === 'p1'
+              ? { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction }
+              : { bestReaction: playerBestReaction, averageReaction: playerAverageReaction };
+          await updatePlayerStats(loserId, 'loss', loserStats);
+        }
       }
 
-      const persistableUserIds = Array.from(new Set([player1Id, player2Id])).filter(
-        (userId): userId is string => !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest')
-      );
+      const persistableUserIds = hasBotOpponent
+        ? [humanId].filter((userId): userId is string => !!userId && !userId.startsWith('guest'))
+        : Array.from(new Set([player1Id, player2Id])).filter(
+            (userId): userId is string => !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest')
+          );
 
       for (const userId of persistableUserIds) {
         const referral = await tx.referral.findFirst({
@@ -1209,7 +1280,8 @@ const scheduleTargetShow = (sessionId: string, state: SessionState, delayOverrid
   state.showTimeout = setTimeout(() => {
     state.showTimeoutEndsAt = undefined;
     state.targetShownAt = Date.now();
-    state.botReactionTime = BOT_REACTION_MIN + Math.random() * BOT_REACTION_RANGE;
+    const botWindow = getBotReactionWindow(state);
+    state.botReactionTime = botWindow.min + Math.random() * botWindow.range;
 
     const socketsCount = broadcastToSession(sessionId, 'round:show_target', {
       round: state.round,
@@ -1481,7 +1553,9 @@ const startGame = async (state: SessionState) => {
 
   const fallbackP1Name = userNames.get(p1Id ?? '') ?? 'Player 1';
   const fallbackP2Name =
-    state.isBotOpponent || p2Id === 'bot_opponent' ? 'Training Bot' : userNames.get(p2Id ?? '') ?? 'Player 2';
+    state.isBotOpponent || p2Id === 'bot_opponent'
+      ? state.botDisplayName ?? 'Training Bot'
+      : userNames.get(p2Id ?? '') ?? 'Player 2';
 
   const [p1Profile, p2Profile] = await Promise.all([
     fetchPlayerProfile(p1Id, fallbackP1Name),
@@ -1624,6 +1698,7 @@ export function createWsServer(server: Server) {
         history: [],
         userId,
         username: userNames.get(userId),
+        botDisplayName: opponentName,
         botReactionTime: 600,
         p1Staked: false,
         p2Staked: false,
@@ -1766,7 +1841,7 @@ export function createWsServer(server: Server) {
             : assignments?.p1 === userId
               ? assignments?.p2
               : assignments?.p1;
-          const opponentName = hasBotOpponent ? 'Training Bot' : undefined;
+          const opponentName = hasBotOpponent ? existingState.botDisplayName ?? 'Training Bot' : undefined;
 
           logger.info({ userId, activeSessionId }, 'RESTORING ACTIVE SESSION for user');
           sendMessage(socket, 'match_found', {
@@ -2055,6 +2130,7 @@ export function createWsServer(server: Server) {
                     : assignments?.p1;
                 const isBot = hasBotOpponent;
                 const stake = existingState.stakeAmount || 0;
+                const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
 
                 sendMessage(socket, 'match_found', {
                   sessionId: activeSessionId,
@@ -2062,6 +2138,7 @@ export function createWsServer(server: Server) {
                   stake,
                   isBot,
                   matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
+                  opponentName,
                   roomCode: existingState?.roomCode,
                 });
                 clearDisconnectTimeout(activeSessionId);
@@ -2090,6 +2167,7 @@ export function createWsServer(server: Server) {
               history: [],
               userId,
               username: userNames.get(userId),
+              botDisplayName: 'Training Bot',
               botReactionTime: 600,
               p1Staked: true,
               p2Staked: true,
@@ -2111,7 +2189,7 @@ export function createWsServer(server: Server) {
             sendMessage(socket, 'match_found', {
               sessionId,
               opponentId: 'bot_opponent',
-              opponentName: 'Training Bot',
+              opponentName: sessionState.botDisplayName ?? 'Training Bot',
               stake: 0,
               stakeAmount: 0,
               isBot: true,
@@ -2151,6 +2229,7 @@ export function createWsServer(server: Server) {
                   // Need to define stake/isBot from state
                   const isBot = hasBotOpponent;
                   const stake = existingState.stakeAmount || 0;
+                  const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
 
                   socket.send(
                     JSON.stringify({
@@ -2161,6 +2240,7 @@ export function createWsServer(server: Server) {
                         stake,
                         isBot,
                         matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
+                        opponentName,
                         roomCode: existingState?.roomCode,
                       },
                     }),
