@@ -95,7 +95,7 @@ export function ProfileScreen({
           >
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h1 className="text-2xl text-white">Player Ranked Stats</h1>
+          <h1 className="text-2xl text-white">Player Staked Stats</h1>
         </div>
 
         {/* Profile Card */}

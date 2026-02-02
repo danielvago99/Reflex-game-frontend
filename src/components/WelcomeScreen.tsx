@@ -135,7 +135,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             
             <div className="p-6">
               <p className="text-gray-300 text-center leading-relaxed">
-                Compete worldwide or challenge friends in real-time reflex battles to win SOL. 
+                Compete worldwide or challenge friends in real-time reflex battles with on-chain payouts. 
               </p>
             </div>
           </div>
@@ -145,15 +145,15 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
           <div className="bg-white/10 backdrop-blur-sm border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Target className="w-6 h-6 text-[#00FFA3]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Quick Reflexes</span>
+            <span className="text-xs text-gray-400">1000+ Players</span>
           </div>
           <div className="bg-white/10 backdrop-blur-sm border border-[#06B6D4]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Timer className="w-6 h-6 text-[#06B6D4]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Real-time</span>
+            <span className="text-xs text-gray-400">Live PvP 1v1</span>
           </div>
           <div className="bg-white/10 backdrop-blur-sm border border-[#7C3AED]/20 rounded-xl p-3 flex flex-col items-center gap-2">
             <Trophy className="w-6 h-6 text-[#7C3AED]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Earn SOL</span>
+            <span className="text-xs text-gray-400">Winner Takes All</span>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         {/* Footer */}
         <div className="mt-8 flex items-center gap-2 text-gray-500 text-sm">
           <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
-          <span>Powered by Community</span>
+          <span>Built for competitive players</span>
         </div>
       </div>
 

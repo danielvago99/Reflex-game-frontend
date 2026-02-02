@@ -41,7 +41,7 @@ export function GameResultModal({
       accent: 'text-cyan-400',
       border: 'border-cyan-400/40',
       icon: Trophy,
-      message: 'You dominated the neon arena',
+      message: 'You dominated the match !',
     },
     lose: {
       title: 'DEFEAT',
@@ -50,7 +50,7 @@ export function GameResultModal({
       accent: 'text-pink-400',
       border: 'border-pink-400/40',
       icon: X,
-      message: 'Reset, refocus, and strike back',
+      message: 'Reset, refocus, and strike back !',
     },
   };
   const config = playerWon ? resultConfig.win : resultConfig.lose;
