@@ -33,6 +33,28 @@ export function GameResultModal({
   onBackToMenu
 }: GameResultModalProps) {
   const playerWon = playerScore > opponentScore;
+  const resultConfig = {
+    win: {
+      title: 'VICTORY',
+      color: 'from-cyan-400 to-blue-400',
+      glow: 'from-cyan-500 to-blue-500',
+      accent: 'text-cyan-400',
+      border: 'border-cyan-400/40',
+      icon: Trophy,
+      message: 'You dominated the neon arena',
+    },
+    lose: {
+      title: 'DEFEAT',
+      color: 'from-pink-400 to-purple-400',
+      glow: 'from-pink-500 to-purple-500',
+      accent: 'text-pink-400',
+      border: 'border-pink-400/40',
+      icon: X,
+      message: 'Reset, refocus, and strike back',
+    },
+  };
+  const config = playerWon ? resultConfig.win : resultConfig.lose;
+  const ResultIcon = config.icon;
   const totalPot = stakeAmount * 2;
   const platformFee = totalPot * 0.15;
   const winnerPayout = totalPot - platformFee;
@@ -162,7 +184,7 @@ export function GameResultModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -172,15 +194,9 @@ export function GameResultModal({
         className="relative max-w-2xl w-full"
       >
         <div className="relative">
-          <div
-            className={`absolute -inset-3 rounded-[32px] blur-3xl ${
-              playerWon
-                ? 'bg-gradient-to-r from-[#00FFA3]/40 via-[#06B6D4]/40 to-[#A855F7]/30'
-                : 'bg-gradient-to-r from-[#F87171]/40 via-[#EF4444]/40 to-[#7F1D1D]/40'
-            } animate-pulse`}
-          ></div>
+          <div className={`absolute -inset-6 bg-gradient-to-r ${config.glow} rounded-3xl blur-3xl opacity-40 animate-pulse`}></div>
 
-          <div className="relative overflow-hidden bg-gradient-to-br from-black/95 via-[#0B0F1A]/95 to-[#030712]/95 border border-white/10 rounded-[32px] p-5 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div className="relative overflow-hidden bg-black/60 backdrop-blur-2xl border-2 border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto">
             {playerWon && (
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 {coinParticles.map((coin) => (
@@ -208,37 +224,24 @@ export function GameResultModal({
             <div className="relative z-10">
               <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <div
-                  className={`relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border ${
-                    playerWon
-                      ? 'border-[#00FFA3]/50 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/20'
-                      : 'border-red-500/40 bg-gradient-to-br from-red-500/30 to-red-900/20'
-                  } shadow-[0_0_40px_rgba(0,255,163,0.2)]`}
+                  className={`relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border ${config.border} shadow-[0_0_40px_rgba(56,189,248,0.25)]`}
                 >
-                  {playerWon ? (
-                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-[#00FFA3]" strokeWidth={2.5} />
-                  ) : (
-                    <X className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" strokeWidth={2.5} />
-                  )}
+                  <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${config.color} opacity-30`}></div>
+                  <ResultIcon className={`relative w-8 h-8 sm:w-10 sm:h-10 ${config.accent}`} strokeWidth={2.5} />
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Match Result</p>
                   <h2
-                    className={`text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight ${
-                      playerWon
-                        ? 'bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#A855F7] bg-clip-text text-transparent'
-                        : 'bg-gradient-to-r from-[#F87171] via-[#EF4444] to-[#F97316] bg-clip-text text-transparent'
-                    }`}
+                    className={`text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight bg-gradient-to-r ${config.color} bg-clip-text text-transparent`}
                   >
-                    {playerWon ? 'VICTORY' : 'DEFEAT'}
+                    {config.title}
                   </h2>
                   <p className="text-sm sm:text-base text-gray-400 mt-1">
                     {wasForfeit
                       ? playerWon
                         ? 'Opponent forfeited the match'
                         : 'You forfeited the match'
-                      : playerWon
-                        ? 'You dominated the neon arena'
-                        : 'Reset, refocus, and strike back'}
+                      : config.message}
                   </p>
                 </div>
               </div>
@@ -248,21 +251,17 @@ export function GameResultModal({
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Final Score</p>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full border ${
-                        playerWon
-                          ? 'border-[#00FFA3]/40 text-[#00FFA3]'
-                          : 'border-red-400/40 text-red-300'
-                      }`}
+                      className={`text-xs px-2 py-1 rounded-full border ${config.border} ${config.accent}`}
                     >
                       {playerWon ? 'Winner' : 'Runner Up'}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-4 sm:gap-6 py-4">
-                    <div className={`text-3xl sm:text-4xl font-semibold ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
+                    <div className={`text-3xl sm:text-4xl font-semibold ${playerWon ? config.accent : 'text-white'}`}>
                       {playerScore}
                     </div>
                     <div className="text-xl sm:text-2xl text-gray-600">-</div>
-                    <div className={`text-3xl sm:text-4xl font-semibold ${!playerWon ? 'text-red-400' : 'text-white'}`}>
+                    <div className={`text-3xl sm:text-4xl font-semibold ${!playerWon ? config.accent : 'text-white'}`}>
                       {opponentScore}
                     </div>
                   </div>
@@ -273,8 +272,8 @@ export function GameResultModal({
                         className={`w-3 h-8 rounded-full ${
                           playerTimes[round] !== null && opponentTimes[round] !== null
                             ? playerTimes[round]! < opponentTimes[round]!
-                              ? 'bg-gradient-to-t from-[#00FFA3] to-[#06B6D4]'
-                              : 'bg-gradient-to-t from-red-500 to-red-700'
+                              ? 'bg-gradient-to-t from-cyan-400 to-blue-500'
+                              : 'bg-gradient-to-t from-pink-500 to-purple-600'
                             : 'bg-white/10'
                         }`}
                       ></div>
@@ -291,9 +290,7 @@ export function GameResultModal({
                         Earnings
                       </div>
                       <p
-                        className={`mt-2 text-lg font-semibold ${
-                          earnings >= 0 ? 'text-[#00FFA3]' : 'text-red-400'
-                        }`}
+                        className={`mt-2 text-lg font-semibold ${earnings >= 0 ? config.accent : 'text-pink-400'}`}
                       >
                         {earnings >= 0 ? '+' : '-'}
                         {Math.abs(earnings).toFixed(2)} SOL
@@ -330,7 +327,7 @@ export function GameResultModal({
               <div className="grid gap-3 sm:gap-4 grid-cols-2">
                 <button
                   onClick={onPlayAgain}
-                  className="bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#A855F7] hover:shadow-[0_0_35px_rgba(0,255,163,0.5)] text-[#030712] py-3 sm:py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5 font-semibold text-base"
+                  className={`bg-gradient-to-r ${config.color} hover:shadow-[0_0_35px_rgba(56,189,248,0.5)] text-[#030712] py-3 sm:py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5 font-semibold text-base`}
                 >
                   <RotateCcw className="w-5 h-5" />
                   <span>Play Again</span>
