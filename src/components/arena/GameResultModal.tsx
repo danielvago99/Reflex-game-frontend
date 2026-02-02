@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
-import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2 } from 'lucide-react';
+import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2, ShieldAlert } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ export function GameResultModal({
   const platformFee = totalPot * 0.15;
   const winnerPayout = totalPot - platformFee;
   const netProfit = winnerPayout - stakeAmount;
+  const earnings = playerWon ? netProfit : -stakeAmount;
   const hasRecordedRef = useRef(false);
   const [challengeUpdate, setChallengeUpdate] = useState<{
     newProgress: number;
@@ -140,6 +141,22 @@ export function GameResultModal({
     }
   };
 
+  const handleReport = () => {
+    toast.info('Report submitted. Our team will review the match.');
+  };
+
+  const coinParticles = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, index) => ({
+        id: `coin-${index}`,
+        left: `${Math.random() * 100}%`,
+        duration: 3 + Math.random() * 2,
+        delay: Math.random() * 1.5,
+        size: 12 + Math.random() * 10
+      })),
+    []
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -151,164 +168,196 @@ export function GameResultModal({
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: "spring", duration: 0.5 }}
-        className="relative max-w-lg w-full"
+        transition={{ type: 'spring', duration: 0.5 }}
+        className="relative max-w-2xl w-full"
       >
         <div className="relative">
-          {/* Glow effect */}
-          <div className={`absolute -inset-2 rounded-3xl blur-2xl ${
-            playerWon
-              ? 'bg-gradient-to-r from-[#00FFA3]/40 to-[#06B6D4]/40'
-              : 'bg-gradient-to-r from-red-500/40 to-red-600/40'
-          } animate-pulse`}></div>
+          <div
+            className={`absolute -inset-3 rounded-[32px] blur-3xl ${
+              playerWon
+                ? 'bg-gradient-to-r from-[#00FFA3]/40 via-[#06B6D4]/40 to-[#A855F7]/30'
+                : 'bg-gradient-to-r from-[#F87171]/40 via-[#EF4444]/40 to-[#7F1D1D]/40'
+            } animate-pulse`}
+          ></div>
 
-          <div className="relative bg-gradient-to-br from-black/90 to-[#0B0F1A]/90 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
-            {/* Header */}
-            <div className="text-center mb-5">
-              {playerWon ? (
-                <>
-                  <div className="mb-3 relative inline-block">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-60 rounded-full animate-pulse"></div>
-                    <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#06B6D4] p-4 sm:p-5 rounded-full shadow-2xl">
-                      <Trophy className="w-10 h-10 sm:w-14 sm:h-14 text-[#0B0F1A]" strokeWidth={2.5} />
-                    </div>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl mb-1 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent">
-                    Victory!
-                  </h2>
-                  <p className="text-gray-400">
-                    {wasForfeit ? 'Opponent forfeited match' : 'You dominated the arena'}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="mb-3">
-                    <div className="bg-red-500/20 p-4 sm:p-5 rounded-full inline-block border-4 border-red-500/30">
-                      <X className="w-10 h-10 sm:w-14 sm:h-14 text-red-400" strokeWidth={2.5} />
-                    </div>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl text-red-400 mb-1">Defeat</h2>
-                  <p className="text-gray-400">
-                    {wasForfeit ? 'You forfeited match' : 'Better luck next time'}
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* SOL Earnings/Loss - Only for ranked matches */}
-            {(isRanked || stakeAmount > 0) && (
-              <div className={`mb-5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border ${
-                playerWon
-                  ? 'bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 border-[#00FFA3]/30'
-                  : 'bg-red-500/10 border-red-500/30'
-              }`}>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
-                  <div className="flex items-center gap-2">
-                    <Coins className={`w-5 h-5 ${playerWon ? 'text-[#00FFA3]' : 'text-red-400'}`} />
-                    <div className="leading-snug">
-                      <p className="text-[10px] sm:text-xs text-gray-400">
-                        {playerWon ? 'You won' : 'You lost'}
-                      </p>
-                      <p className={`text-base sm:text-lg ${
-                        playerWon
-                          ? 'bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] bg-clip-text text-transparent'
-                          : 'text-red-400'
-                      }`}>
-                        {playerWon ? '+' : '-'}{playerWon ? netProfit.toFixed(2) : stakeAmount.toFixed(2)} SOL
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right text-[10px] sm:text-xs text-gray-500 leading-snug">
-                    {playerWon ? (
-                      <>
-                        <div>Prize: {winnerPayout.toFixed(2)} SOL</div>
-                        <div>Stake: -{stakeAmount.toFixed(2)} SOL</div>
-                      </>
-                    ) : (
-                      <>
-                        <div>Total Pot: {totalPot.toFixed(2)} SOL</div>
-                        <div>Stake Lost: -{stakeAmount.toFixed(2)} SOL</div>
-                      </>
-                    )}
-                  </div>
-                </div>
+          <div className="relative overflow-hidden bg-gradient-to-br from-black/95 via-[#0B0F1A]/95 to-[#030712]/95 border border-white/10 rounded-[32px] p-5 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto">
+            {playerWon && (
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                {coinParticles.map((coin) => (
+                  <motion.span
+                    key={coin.id}
+                    className="absolute top-0 rounded-full bg-gradient-to-br from-[#FFD700] via-[#FDE047] to-[#F59E0B] shadow-[0_0_18px_rgba(253,224,71,0.6)]"
+                    style={{
+                      left: coin.left,
+                      width: coin.size,
+                      height: coin.size
+                    }}
+                    initial={{ y: -40, opacity: 0 }}
+                    animate={{ y: 520, opacity: [0, 1, 1, 0] }}
+                    transition={{
+                      duration: coin.duration,
+                      delay: coin.delay,
+                      repeat: Infinity,
+                      ease: 'easeInOut'
+                    }}
+                  />
+                ))}
               </div>
             )}
 
-            {/* Score */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
-              <div className="text-center mb-3">
-                <p className="text-sm text-gray-400 mb-2">Final Score</p>
-                <div className="flex items-center justify-center gap-4">
-                  <div className={`text-xl sm:text-2xl ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
-                    {playerScore}
-                  </div>
-                  <div className="text-lg sm:text-xl text-gray-600">-</div>
-                  <div className={`text-xl sm:text-2xl ${!playerWon ? 'text-red-400' : 'text-white'}`}>
-                    {opponentScore}
-                  </div>
+            <div className="relative z-10">
+              <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+                <div
+                  className={`relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border ${
+                    playerWon
+                      ? 'border-[#00FFA3]/50 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/20'
+                      : 'border-red-500/40 bg-gradient-to-br from-red-500/30 to-red-900/20'
+                  } shadow-[0_0_40px_rgba(0,255,163,0.2)]`}
+                >
+                  {playerWon ? (
+                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-[#00FFA3]" strokeWidth={2.5} />
+                  ) : (
+                    <X className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" strokeWidth={2.5} />
+                  )}
                 </div>
-              </div>
-
-              {/* Round indicators */}
-              <div className="flex justify-center gap-2">
-                {Array.from({ length: MAX_ROUNDS }, (_, round) => round).map((round) => (
-                  <div
-                    key={round}
-                    className={`w-3 h-8 rounded-full ${
-                      playerTimes[round] !== null && opponentTimes[round] !== null
-                        ? playerTimes[round]! < opponentTimes[round]!
-                          ? 'bg-gradient-to-t from-[#00FFA3] to-[#06B6D4]'
-                          : 'bg-red-500'
-                        : 'bg-white/10'
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Match Result</p>
+                  <h2
+                    className={`text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight ${
+                      playerWon
+                        ? 'bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#A855F7] bg-clip-text text-transparent'
+                        : 'bg-gradient-to-r from-[#F87171] via-[#EF4444] to-[#F97316] bg-clip-text text-transparent'
                     }`}
-                  ></div>
-                ))}
+                  >
+                    {playerWon ? 'VICTORY' : 'DEFEAT'}
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-400 mt-1">
+                    {wasForfeit
+                      ? playerWon
+                        ? 'Opponent forfeited the match'
+                        : 'You forfeited the match'
+                      : playerWon
+                        ? 'You dominated the neon arena'
+                        : 'Reset, refocus, and strike back'}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-5">
-              <h3 className="text-sm text-gray-400 mb-3">Your Statistics</h3>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/20 p-2 rounded-lg">
-                    <Clock className="w-4 h-4 text-[#06B6D4]" />
+              <div className="grid gap-4 md:grid-cols-[1.2fr_1fr] mb-6">
+                <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Final Score</p>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full border ${
+                        playerWon
+                          ? 'border-[#00FFA3]/40 text-[#00FFA3]'
+                          : 'border-red-400/40 text-red-300'
+                      }`}
+                    >
+                      {playerWon ? 'Winner' : 'Runner Up'}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Avg Reaction</p>
-                    <p className="text-white">{avgPlayerTime}ms</p>
+                  <div className="flex items-center justify-center gap-4 sm:gap-6 py-4">
+                    <div className={`text-3xl sm:text-4xl font-semibold ${playerWon ? 'text-[#00FFA3]' : 'text-white'}`}>
+                      {playerScore}
+                    </div>
+                    <div className="text-xl sm:text-2xl text-gray-600">-</div>
+                    <div className={`text-3xl sm:text-4xl font-semibold ${!playerWon ? 'text-red-400' : 'text-white'}`}>
+                      {opponentScore}
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    {Array.from({ length: MAX_ROUNDS }, (_, round) => round).map((round) => (
+                      <div
+                        key={round}
+                        className={`w-3 h-8 rounded-full ${
+                          playerTimes[round] !== null && opponentTimes[round] !== null
+                            ? playerTimes[round]! < opponentTimes[round]!
+                              ? 'bg-gradient-to-t from-[#00FFA3] to-[#06B6D4]'
+                              : 'bg-gradient-to-t from-red-500 to-red-700'
+                            : 'bg-white/10'
+                        }`}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl p-4 sm:p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-4">Match Stats</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                        <Coins className="w-3.5 h-3.5 text-[#FDE047]" />
+                        Earnings
+                      </div>
+                      <p
+                        className={`mt-2 text-lg font-semibold ${
+                          earnings >= 0 ? 'text-[#00FFA3]' : 'text-red-400'
+                        }`}
+                      >
+                        {earnings >= 0 ? '+' : '-'}
+                        {Math.abs(earnings).toFixed(2)} SOL
+                      </p>
+                      {(isRanked || stakeAmount > 0) && (
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          Pot {totalPot.toFixed(2)} · Fee {platformFee.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
+                      <div className="text-xs text-gray-400">Final Score</div>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {playerScore}-{opponentScore}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        {playerWon ? 'Dominant finish' : 'Close the gap'}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
+                      <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                        <Clock className="w-3.5 h-3.5 text-[#06B6D4]" />
+                        Avg RT
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-white">{avgPlayerTime}ms</p>
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        {avgPlayerTime > 0 ? 'Lightning reflexes' : 'No data'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-2.5">
-              <button
-                onClick={onPlayAgain}
-                className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-2.5 sm:py-3.5 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5"
-              >
-                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Play Again</span>
-              </button>
+              <div className="grid gap-3 sm:gap-4 grid-cols-2">
+                <button
+                  onClick={onPlayAgain}
+                  className="bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#A855F7] hover:shadow-[0_0_35px_rgba(0,255,163,0.5)] text-[#030712] py-3 sm:py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5 font-semibold text-base"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  <span>Play Again</span>
+                </button>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                 <button
                   onClick={handleShare}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-3 sm:py-3.5 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
-                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Share2 className="w-4 h-4" />
                   <span>Share Result</span>
                 </button>
 
                 <button
                   onClick={onBackToMenu}
-                  className="w-full bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2.5"
+                  className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-3 sm:py-3.5 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2.5"
                 >
-                  <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Home className="w-4 h-4" />
                   <span>Back to Lobby</span>
+                </button>
+
+                <button
+                  onClick={handleReport}
+                  className="bg-transparent border border-red-400/40 text-red-300/90 hover:text-red-200 hover:border-red-300/60 hover:bg-red-500/10 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  <span>Report Opponent</span>
                 </button>
               </div>
             </div>
