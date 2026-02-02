@@ -275,6 +275,9 @@ const sessions = new WeakMap<WebSocket, SocketSessionRef>();
 const activeUsers = new Map<string, WebSocket>();
 const sessionSockets = new Map<string, Set<WebSocket>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+const isPersistableUserId = (userId?: string | null) =>
+  Boolean(userId && userId !== 'bot_opponent' && !userId.startsWith('guest'));
+const toPersistableUserId = (userId?: string | null) => (isPersistableUserId(userId) ? userId : null);
 
 const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -836,16 +839,16 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           ? humanId ?? null
           : null
         : winnerSlot === 'p1'
-          ? player1Id
-          : player2Id;
+          ? toPersistableUserId(player1Id)
+          : toPersistableUserId(player2Id);
     const loserId =
       hasBotOpponent
         ? winnerSlot === humanSlot
           ? null
           : humanId ?? null
         : winnerSlot === 'p1'
-          ? player2Id
-          : player1Id;
+          ? toPersistableUserId(player2Id)
+          : toPersistableUserId(player1Id);
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -953,8 +956,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
                 ? humanId ?? null
                 : null
               : round.winner === 'p1'
-                ? player1Id
-                : player2Id;
+                ? toPersistableUserId(player1Id)
+                : toPersistableUserId(player2Id);
         const roundLoserId =
           round.winner === 'none'
             ? null
@@ -963,8 +966,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
                 ? null
                 : humanId ?? null
               : round.winner === 'p1'
-                ? player2Id
-                : player1Id;
+                ? toPersistableUserId(player2Id)
+                : toPersistableUserId(player1Id);
 
         await tx.gameRound.create({
           data: {
