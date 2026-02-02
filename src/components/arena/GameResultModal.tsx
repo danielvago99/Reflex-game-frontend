@@ -353,9 +353,9 @@ export function GameResultModal({
                 {showReportButton && (
                   <button
                     onClick={handleReport}
-                    className="bg-gradient-to-r from-red-500/90 to-rose-500/90 text-white hover:from-red-400 hover:to-rose-400 border border-red-300/60 shadow-[0_0_20px_rgba(239,68,68,0.35)] py-2.5 sm:py-3 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <ShieldAlert className="w-4 h-4" />
+                    className="bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-[0_0_35px_rgba(239,68,68,0.5)] text-white py-3 sm:py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5 font-semibold text-base"
+>
+                    <ShieldAlert className="w-5 h-5" />
                     <span>Report Opponent</span>
                   </button>
                 )}
