@@ -166,6 +166,7 @@ export function GameResultModal({
   const handleReport = () => {
     toast.info('Report submitted. Our team will review the match.');
   };
+  const showReportButton = isRanked || matchType === 'ranked';
 
   const coinParticles = useMemo(
     () =>
@@ -349,13 +350,15 @@ export function GameResultModal({
                   <span>Back to Lobby</span>
                 </button>
 
-                <button
-                  onClick={handleReport}
-                  className="bg-transparent border border-red-400/40 text-red-300/90 hover:text-red-200 hover:border-red-300/60 hover:bg-red-500/10 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>Report Opponent</span>
-                </button>
+                {showReportButton && (
+                  <button
+                    onClick={handleReport}
+                    className="bg-gradient-to-r from-red-500/90 to-rose-500/90 text-white hover:from-red-400 hover:to-rose-400 border border-red-300/60 shadow-[0_0_20px_rgba(239,68,68,0.35)] py-2.5 sm:py-3 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                    <span>Report Opponent</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
