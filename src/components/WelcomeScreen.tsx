@@ -261,12 +261,6 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <span>Unlock Existing Wallet</span>
           </button>
         </div>
-
-        {/* Footer */}
-        <div className="mt-8 flex items-center gap-2 text-gray-500 text-sm">
-          <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
-          <span>Built for competitive players</span>
-        </div>
       </div>
 
       {isWalletModalOpen ? (
