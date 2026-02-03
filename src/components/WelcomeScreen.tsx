@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
-import { Cpu, Key, Scale, Shield, Wallet, X, Zap } from 'lucide-react';
+import { Gamepad2, Key, ShieldCheck, Trophy, UsersRound, Wallet, X, Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
 import { useAuth } from '../features/auth/hooks/useAuth';
@@ -151,7 +151,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <Shield className="h-5 w-5" strokeWidth={2.5} />
+                  <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Anti-Cheat</h4>
@@ -161,11 +161,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Smart Contract */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#06B6D4]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#06B6D4]/10 p-2 text-[#06B6D4] shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                  <Cpu className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                  <Trophy className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Winner Gets Paid</h4>
@@ -175,11 +175,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Practise Mode */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                  <Zap className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+                  <Gamepad2 className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Practise Mode</h4>
@@ -189,11 +189,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Matchmaking */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#F472B6]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#F472B6]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#A855F7]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#F472B6]/10 p-2 text-[#F472B6] shadow-[0_0_15px_rgba(244,114,182,0.2)]">
-                  <Scale className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#A855F7]/10 p-2 text-[#A855F7] shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                  <UsersRound className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Fair Matchmaking</h4>
