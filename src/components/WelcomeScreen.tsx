@@ -204,7 +204,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           </div>
           {/* Neon Header with Decorations */}
-          <div className="mt-6 flex items-center justify-center gap-3 mb-5">
+          <div className="mt-6 flex items-center justify-center gap-3">
             {/* Left Decoration */}
             <div className="flex items-center gap-1 opacity-50">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
