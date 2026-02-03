@@ -118,8 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Compete in Live 1v1 Reflex Battles for SOL.</p>
-        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">React faster than your opponent. Winner takes the pot.</p>
+        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">Compete in Live 1v1 Reflex Battles for SOL. React faster than your opponent. Winner takes the pot.</p>
         
         {/* Guaranteed Fair Play Section */}
         <div className="w-full max-w-sm mx-auto mb-8">
@@ -183,7 +182,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                   <Zap className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-200">Practise mode</h4>
+                  <h4 className="text-xs font-bold text-gray-200">Practise Mode</h4>
                   <p className="text-[10px] text-gray-500 leading-tight">You can train without SOL stake against bot in practise mode.</p>
                 </div>
               </div>
@@ -198,7 +197,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Fair Matchmaking</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Stake your SOL to compete in 1v1 ranked matches or friend matches.</p>
+                  <p className="text-[10px] text-gray-500 leading-tight">Stake your SOL to compete in 1v1 ranked or friend matches.</p>
                 </div>
               </div>
             </div>
