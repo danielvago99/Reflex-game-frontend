@@ -247,7 +247,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           
           <button
             onClick={() => onNavigate('create-wallet')}
-            className="w-full bg-white/10 backdrop-blur-sm border border-[#00FFA3]/30 hover:bg-white/10 hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-white/10 backdrop-blur-sm border border-[#06B6D4]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
           >
             <Zap className="w-5 h-5" />
             <span>Create Wallet</span>
@@ -255,7 +255,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           <button
             onClick={() => onNavigate('unlock-wallet')}
-            className="w-full text-[#00FFA3] hover:text-[#06B6D4] py-2 text-center text-sm transition-all flex items-center justify-center gap-2"
+            className="w-full text-[#06B6D4] hover:text-[#7C3AED] py-2 text-center text-sm transition-all flex items-center justify-center gap-2"
           >
             <Key className="w-4 h-4" />
             <span>Unlock Existing Wallet</span>
