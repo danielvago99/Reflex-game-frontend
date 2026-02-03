@@ -229,7 +229,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           <div className="w-full rounded-xl bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] p-[1px] shadow-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)]">
             <button
               onClick={() => onNavigate('create-wallet')}
-              className="w-full rounded-[11px] bg-white/10 py-3 text-white backdrop-blur-sm transition-all duration-300 hover:bg-white/15 flex items-center justify-center gap-2"
+              className="w-full rounded-[11px] bg-[#05070d] py-3 text-white backdrop-blur-sm transition-all duration-300 hover:bg-[#1a1f2e] flex items-center justify-center gap-2"
             >
               <Zap className="w-5 h-5" />
               <span>Create Wallet</span>
