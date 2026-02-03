@@ -147,7 +147,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           <div className="grid grid-cols-2 gap-3">
             
             {/* Anti-Cheat */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4] bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
@@ -161,7 +161,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Smart Contract */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4] bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
@@ -175,7 +175,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Practise Mode */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4] bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
@@ -189,7 +189,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Matchmaking */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4] bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
