@@ -164,11 +164,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED]/60 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
                   <Trophy className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#7C3AED]/60">Winner Gets Paid</h4>
+                  <h4 className="text-xs font-bold text-[#7C3AED]">Winner Gets Paid</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts on-chain with verification on solscan.io</p>
                 </div>
               </div>
