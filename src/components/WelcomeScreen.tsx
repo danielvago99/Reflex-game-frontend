@@ -100,106 +100,216 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
   const statusLabel = isSigning ? 'Signing...' : isConnecting ? 'Connecting...' : undefined;
 
   return (
-    <div id="page-root" className="h-screen-dvh bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] flex flex-col items-center justify-center p-3 xs:p-4 sm:p-6 relative overflow-hidden">
-      
+    <div
+      id="page-root"
+      className="min-h-screen-dvh bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] px-4 py-8 sm:px-6 lg:px-10 relative overflow-hidden"
+    >
       <FuturisticBackground />
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center max-w-md w-full">
-        {/* Logo */}
-        <div className="mb-6 xs:mb-8 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
-          <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#7C3AED] p-4 xs:p-5 sm:p-6 rounded-2xl xs:rounded-3xl shadow-2xl">
-            <Zap className="w-12 xs:w-14 sm:w-16 h-12 xs:h-14 sm:h-16 text-[#0B0F1A]" strokeWidth={2.5} />
-          </div>
-        </div>
-
-        {/* Title */}
-        <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
-          REFLEXMATCH.io
-        </h1>
-        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Earn More by Reacting Faster on Solana</p>
-        
-        {/* Description - Futuristic Panel */}
-        <div className="relative mb-8 max-w-sm mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/30 via-[#06B6D4]/30 to-[#7C3AED]/30 blur-sm" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
-          
-          <div className="relative backdrop-blur-[3px] border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
-            {/* Top accent line */}
-            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
-            <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
-            
-            {/* Corner indicators */}
-            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
-            <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
-            
-            <div className="p-6">
-              <p className="text-gray-300 text-center leading-relaxed">
-                Compete worldwide or challenge friends in real-time reflex battles with on-chain payouts. 
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <header className="flex flex-col gap-4 text-center lg:text-left">
+          <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50"></div>
+              <div className="relative rounded-3xl bg-gradient-to-br from-[#00FFA3] to-[#7C3AED] p-4 shadow-2xl sm:p-5">
+                <Zap className="h-10 w-10 text-[#0B0F1A] sm:h-12 sm:w-12" strokeWidth={2.5} />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#00FFA3]/80">Reflexmatch Protocol</p>
+              <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
+                REFLEXMATCH<span className="text-[#00FFA3]">.io</span>
+              </h1>
+              <p className="mt-2 text-sm text-gray-400 sm:text-base">
+                Enter the neon arena where milliseconds decide the payout.
               </p>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Game features mini preview */}
-        <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Target className="w-6 h-6 text-[#00FFA3]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">1000+ Players</span>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm border border-[#06B6D4]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Timer className="w-6 h-6 text-[#06B6D4]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Live PvP 1v1</span>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm border border-[#7C3AED]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Trophy className="w-6 h-6 text-[#7C3AED]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Winner Takes All</span>
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="w-full space-y-3 max-w-xs mx-auto">
-          <button
-            onClick={handleConnectWallet}
-            disabled={isConnecting || isSigning}
-            className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            <span>{statusLabel ?? 'Connect Wallet'}</span>
-          </button>
-
-          {statusLabel ? (
-            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
-          ) : null}
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
-              {errorMessage}
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr_0.9fr]">
+          <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl shadow-[0_0_40px_rgba(0,255,163,0.12)]">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#7C3AED]/80">Game Briefing</p>
+              <h2 className="mt-3 text-2xl font-semibold text-white">Fastest reaction wins the vault.</h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                Reflexmatch is a high-stakes reaction duel powered by Solana. Trigger the signal, land
+                the perfect timing window, and secure instant on-chain payouts. Spectators track your
+                streak live while you climb the global leaderboard.
+              </p>
             </div>
-          ) : null}
-          
-          <button
-            onClick={() => onNavigate('create-wallet')}
-            className="w-full bg-white/10 backdrop-blur-sm border border-[#00FFA3]/30 hover:bg-white/10 hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
-          >
-            <Zap className="w-5 h-5" />
-            <span>Create Wallet</span>
-          </button>
 
-          <button
-            onClick={() => onNavigate('unlock-wallet')}
-            className="w-full text-[#00FFA3] hover:text-[#06B6D4] py-2 text-center text-sm transition-all flex items-center justify-center gap-2"
-          >
-            <Key className="w-4 h-4" />
-            <span>Unlock Existing Wallet</span>
-          </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-xs text-gray-400">Match Format</p>
+                <p className="mt-2 text-lg font-semibold text-white">1v1 Neon Duels</p>
+                <p className="mt-1 text-xs text-gray-500">Ranked + private rooms</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-xs text-gray-400">Latency Target</p>
+                <p className="mt-2 text-lg font-semibold text-white">&lt; 100ms</p>
+                <p className="mt-1 text-xs text-gray-500">Realtime signal sync</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-xs text-gray-400">Payout Speed</p>
+                <p className="mt-2 text-lg font-semibold text-white">Instant SPL</p>
+                <p className="mt-1 text-xs text-gray-500">Autonomous settlement</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-xs text-gray-400">Skill Curve</p>
+                <p className="mt-2 text-lg font-semibold text-white">Adaptive</p>
+                <p className="mt-1 text-xs text-gray-500">AI-adjusted difficulty</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-6 rounded-3xl border border-[#00FFA3]/20 bg-gradient-to-b from-black/60 via-black/40 to-black/70 p-6 shadow-[0_0_35px_rgba(0,255,163,0.15)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#00FFA3]/70">Live Arena</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">Active pulse feed</h3>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#00FFA3]">
+                24/7 ONLINE
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Target className="h-5 w-5 text-[#00FFA3]" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Precision Streaks</p>
+                      <p className="text-xs text-gray-400">Target windows tighten per win</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#00FFA3]">+12% XP</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Timer className="h-5 w-5 text-[#06B6D4]" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Realtime Matchmaking</p>
+                      <p className="text-xs text-gray-400">Queue matched under 30s</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#06B6D4]">Synced</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Trophy className="h-5 w-5 text-[#7C3AED]" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">Winner Takes Vault</p>
+                      <p className="text-xs text-gray-400">On-chain pot distribution</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#7C3AED]">Top Tier</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#00FFA3]/10 via-[#06B6D4]/10 to-[#7C3AED]/10 p-4 text-sm text-gray-300">
+              <p className="font-semibold text-white">Season 04: Neon Ascension</p>
+              <p className="mt-2 text-xs text-gray-400">
+                Unlock holographic skins, climb ladder ranks, and earn split-second bonuses for
+                perfect reaction chains.
+              </p>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#00FFA3]/70">Access Terminal</p>
+              <h3 className="text-xl font-semibold text-white">Authenticate &amp; deploy</h3>
+              <p className="text-xs text-gray-400">
+                Connect your Solana wallet or create a new vault to enter competitive queues.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleConnectWallet}
+                disabled={isConnecting || isSigning}
+                className="w-full rounded-2xl bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] py-3 text-sm font-semibold text-[#0B0F1A] shadow-[0_0_30px_rgba(0,255,163,0.35)] transition hover:shadow-[0_0_40px_rgba(0,255,163,0.6)] disabled:opacity-60"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  {statusLabel ?? 'Connect Wallet'}
+                </span>
+              </button>
+
+              {statusLabel ? (
+                <p className="text-center text-xs uppercase tracking-widest text-[#00FFA3]">{statusLabel}</p>
+              ) : null}
+
+              {errorMessage ? (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
+                  {errorMessage}
+                </div>
+              ) : null}
+
+              <button
+                onClick={() => onNavigate('create-wallet')}
+                className="w-full rounded-2xl border border-[#00FFA3]/40 bg-white/5 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(0,255,163,0.2)] transition hover:border-[#00FFA3]/70 hover:bg-white/10"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Create Wallet
+                </span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('lobby')}
+                className="w-full rounded-2xl border border-[#7C3AED]/40 bg-white/5 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(124,58,237,0.25)] transition hover:border-[#7C3AED]/70 hover:bg-white/10"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  Show Demo
+                </span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('unlock-wallet')}
+                className="w-full rounded-2xl border border-white/10 py-2 text-xs text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:text-[#06B6D4]"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Unlock Existing Wallet
+                </span>
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-xs text-gray-400">
+              <div className="flex items-center justify-between">
+                <span>Competitive Uptime</span>
+                <span className="text-[#00FFA3]">99.97%</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span>Active competitors</span>
+                <span className="text-white">2,418 online</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span>Vault liquidity</span>
+                <span className="text-white">4,102 SOL</span>
+              </div>
+            </div>
+          </section>
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 flex items-center gap-2 text-gray-500 text-sm">
-          <div className="w-2 h-2 bg-[#00FFA3] rounded-full animate-pulse"></div>
-          <span>Built for competitive players</span>
-        </div>
+        <footer className="flex flex-col items-center justify-between gap-2 text-xs text-gray-500 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-[#00FFA3]"></div>
+            <span>Built for competitive players</span>
+          </div>
+          <span className="text-[#00FFA3]/70">Neon latency optimized · Solana native</span>
+        </footer>
       </div>
 
       {isWalletModalOpen ? (
