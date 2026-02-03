@@ -118,7 +118,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Earn More by Reacting Faster on Solana</p>
+        <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Compete in Live 1v1 Reflex Battles for SOL. React faster than your opponent.Winner takes the pot.</p>
+        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">React faster than your opponent. Winner takes the pot.</p>
         
         {/* Guaranteed Fair Play Section */}
         <div className="w-full max-w-sm mx-auto mb-8">
@@ -132,14 +133,14 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
             
             {/* Neon Text */}
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
+            <span className="text-lg font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
               Guaranteed Fair Play
             </span>
 
             {/* Right Decoration */}
             <div className="flex items-center gap-1 opacity-50">
-              <div className="h-1 w-1 rounded-full bg-[#06B6D4] shadow-[0_0_5px_#06B6D4]"></div>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#06B6D4]"></div>
+              <div className="h-1 w-1 rounded-full bg-[#7C3AED] shadow-[0_0_5px_#06B6D4]"></div>
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#7C3AED]"></div>
             </div>
           </div>
 
@@ -147,7 +148,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           <div className="grid grid-cols-2 gap-3">
             
             {/* Anti-Cheat */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-md transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
@@ -155,41 +156,41 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Anti-Cheat</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Secure Validation</p>
+                  <p className="text-[10px] text-gray-500 leading-tight">Server-verified reaction times, identical targets, equal latency.</p>
                 </div>
               </div>
             </div>
 
             {/* Smart Contract */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-md transition-all duration-300 hover:border-[#06B6D4]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#06B6D4]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#06B6D4]/10 p-2 text-[#06B6D4] shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                   <Cpu className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-200">Smart Contract</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Trustless Payouts</p>
+                  <h4 className="text-xs font-bold text-gray-200">Winner Gets Paid</h4>
+                  <p className="text-[10px] text-gray-500 leading-tight">Automatic Payouts on-chain with transparent verification on solscan.io</p>
                 </div>
               </div>
             </div>
 
-            {/* Equal Latency */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-md transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
+            {/* Matchmaking */}
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
                   <Zap className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-200">Equal Latency</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Lag Protection</p>
+                  <h4 className="text-xs font-bold text-gray-200">Matchmaking</h4>
+                  <p className="text-[10px] text-gray-500 leading-tight">You can train with no stake in practise mode. Staking your SOL only in 1v1 ranked match or friend-match.</p>
                 </div>
               </div>
             </div>
 
             {/* Unbiased RNG */}
-            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-md transition-all duration-300 hover:border-[#F472B6]/50 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#F472B6]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#F472B6]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-[#F472B6]/10 p-2 text-[#F472B6] shadow-[0_0_15px_rgba(244,114,182,0.2)]">
