@@ -203,6 +203,26 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
           </div>
+
+          {/* Demo CTA */}
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="flex items-center gap-1 opacity-50">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
+              <div className="h-1 w-1 rounded-full bg-[#00FFA3] shadow-[0_0_5px_#00FFA3]"></div>
+            </div>
+
+            <button
+              type="button"
+              className="text-[#00FFA3] hover:text-[#06B6D4] text-xs uppercase tracking-[0.2em] transition-all"
+            >
+              CLICK HERE TO SHOW DEMO
+            </button>
+
+            <div className="flex items-center gap-1 opacity-50">
+              <div className="h-1 w-1 rounded-full bg-[#7C3AED] shadow-[0_0_5px_#06B6D4]"></div>
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#7C3AED]"></div>
+            </div>
+          </div>
         </div>
 
         {/* Buttons */}
