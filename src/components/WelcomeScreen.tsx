@@ -170,7 +170,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-200">Winner Gets Paid</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Automatic Payouts on-chain with transparent verification on solscan.io</p>
+                  <p className="text-[10px] text-gray-500 leading-tight">Automatic payouts on-chain with verification on solscan.io</p>
                 </div>
               </div>
             </div>
@@ -183,8 +183,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                   <Zap className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-200">Matchmaking</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">You can train with no stake in practise mode. Staking your SOL only in 1v1 ranked match or friend-match.</p>
+                  <h4 className="text-xs font-bold text-gray-200">Practise mode</h4>
+                  <p className="text-[10px] text-gray-500 leading-tight">You can train without SOL stake against bot in practise mode.</p>
                 </div>
               </div>
             </div>
@@ -197,8 +197,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                   <Scale className="h-5 w-5" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-200">Unbiased RNG</h4>
-                  <p className="text-[10px] text-gray-500 leading-tight">Verified Random</p>
+                  <h4 className="text-xs font-bold text-gray-200">Fair Matchmaking</h4>
+                  <p className="text-[10px] text-gray-500 leading-tight">Stake your SOL to compete in 1v1 ranked matches or friend matches.</p>
                 </div>
               </div>
             </div>
