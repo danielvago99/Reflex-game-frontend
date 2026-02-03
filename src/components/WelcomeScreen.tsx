@@ -8,9 +8,10 @@ import { useAuth } from '../features/auth/hooks/useAuth';
 
 interface WelcomeScreenProps {
   onNavigate: (screen: string) => void;
+  onDemo: () => void;
 }
 
-export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
+export function WelcomeScreen({ onNavigate, onDemo }: WelcomeScreenProps) {
   const { wallets, select, connect, connected, connecting, publicKey, wallet, signMessage } = useSolanaWallet();
   const { connectExternalWallet } = useAppWallet();
   const { loginWithExternalWallet } = useAuth();
@@ -212,9 +213,13 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
             
             {/* Neon Text */}
-            <span className="inline-block text-sm font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
+            <button
+              type="button"
+              onClick={onDemo}
+              className="inline-block text-sm font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)] transition hover:brightness-110"
+            >
               Click here to show demo
-            </span>
+            </button>
 
             {/* Right Decoration */}
             <div className="flex items-center gap-1 opacity-50">

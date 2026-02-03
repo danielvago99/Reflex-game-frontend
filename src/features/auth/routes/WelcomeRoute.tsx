@@ -13,5 +13,9 @@ export default function WelcomeRoute() {
     }
   };
 
-  return <WelcomeScreen onNavigate={handleNavigate} />;
+  const handleDemo = () => {
+    navigate('/demo');
+  };
+
+  return <WelcomeScreen onNavigate={handleNavigate} onDemo={handleDemo} />;
 }

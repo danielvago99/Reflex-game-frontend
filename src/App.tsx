@@ -21,6 +21,7 @@ const UnlockWalletRoute = lazy(() => import('./features/wallet/routes/UnlockWall
 const DashboardRoute = lazy(() => import('./features/auth/routes/DashboardRoute'));
 const LobbyRoute = lazy(() => import('./features/arena/routes/LobbyRoute'));
 const ArenaRoute = lazy(() => import('./features/arena/routes/ArenaRoute'));
+const DemoArenaRoute = lazy(() => import('./features/arena/routes/DemoArenaRoute'));
 const ProfileRoute = lazy(() => import('./features/auth/routes/ProfileRoute'));
 const AmbassadorRoute = lazy(() => import('./features/auth/routes/AmbassadorRoute'));
 const SettingsRoute = lazy(() => import('./features/auth/routes/SettingsRoute'));
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/wallet/import" element={<ImportWalletRoute />} />
             <Route path="/wallet/unlock" element={<UnlockWalletRoute />} />
             <Route path="/ref/:code" element={<ReferralHandler />} />
+            <Route path="/demo" element={<DemoArenaRoute />} />
             <Route element={<RouteGuard />}>
               <Route path="/dashboard" element={<DashboardRoute />} />
               <Route path="/lobby" element={<LobbyRoute />} />
