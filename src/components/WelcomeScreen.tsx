@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
-import { Key, Target, Timer, Trophy, Wallet, X, Zap } from 'lucide-react';
+import { Key, ShieldCheck, Swords, Trophy, Users, Wallet, X, Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
 import { useAuth } from '../features/auth/hooks/useAuth';
@@ -120,40 +120,53 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         </h1>
         <p className="text-lg xs:text-xl text-gray-400 mb-2 text-center px-2">Earn More by Reacting Faster on Solana</p>
         
-        {/* Description - Futuristic Panel */}
-        <div className="relative mb-8 max-w-sm mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[#00FFA3]/30 via-[#06B6D4]/30 to-[#7C3AED]/30 blur-sm" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}></div>
-          
-          <div className="relative backdrop-blur-[3px] border border-white/10 shadow-xl overflow-hidden" style={{ clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)' }}>
-            {/* Top accent line */}
-            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
-            <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
-            
-            {/* Corner indicators */}
-            <div className="absolute top-2 left-2 w-3 h-3 border-t border-l border-[#00FFA3]/50"></div>
-            <div className="absolute bottom-2 right-2 w-3 h-3 border-b border-r border-[#06B6D4]/50"></div>
-            
-            <div className="p-6">
-              <p className="text-gray-300 text-center leading-relaxed">
-                Compete worldwide or challenge friends in real-time reflex battles with on-chain payouts. 
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Guaranteed Fair Play */}
+        <div className="relative mb-8 w-full max-w-sm mx-auto">
+          <div className="absolute -inset-2 bg-gradient-to-r from-[#00FFA3]/20 via-[#06B6D4]/20 to-[#7C3AED]/20 blur-lg" />
+          <div className="relative rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm shadow-[0_0_35px_rgba(0,255,163,0.15)]">
+            <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent" />
+            <div className="absolute -bottom-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent" />
 
-        {/* Game features mini preview */}
-        <div className="grid grid-cols-3 gap-3 mb-8 w-full max-w-sm mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm border border-[#00FFA3]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Target className="w-6 h-6 text-[#00FFA3]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">1000+ Players</span>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm border border-[#06B6D4]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Timer className="w-6 h-6 text-[#06B6D4]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Live PvP 1v1</span>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm border border-[#7C3AED]/20 rounded-xl p-3 flex flex-col items-center gap-2">
-            <Trophy className="w-6 h-6 text-[#7C3AED]" strokeWidth={2} />
-            <span className="text-xs text-gray-400">Winner Takes All</span>
+            <div className="mb-4 text-center">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#00FFA3]/80">Guaranteed Fair Play</p>
+              <h2 className="text-lg text-white">Built for transparent, on-chain reflex duels</h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0b1c20]/80 to-[#12263a]/80 p-4 shadow-[0_0_18px_rgba(0,255,163,0.12)]">
+                <div className="mb-2 flex items-center gap-2 text-[#00FFA3]">
+                  <Swords className="h-5 w-5" />
+                  <span className="text-sm font-semibold text-white">Join a Match</span>
+                </div>
+                <p className="text-xs text-gray-300">Choose a stake and get paired instantly.</p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a1427]/80 to-[#231638]/80 p-4 shadow-[0_0_18px_rgba(124,58,237,0.15)]">
+                <div className="mb-2 flex items-center gap-2 text-[#7C3AED]">
+                  <Zap className="h-5 w-5" />
+                  <span className="text-sm font-semibold text-white">React Faster</span>
+                </div>
+                <p className="text-xs text-gray-300">Both players see the same targets.</p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#071c1a]/80 to-[#0b2e2a]/80 p-4 shadow-[0_0_18px_rgba(6,182,212,0.15)]">
+                <div className="mb-2 flex items-center gap-2 text-[#06B6D4]">
+                  <ShieldCheck className="h-5 w-5" />
+                  <span className="text-sm font-semibold text-white">Winner Gets Paid</span>
+                </div>
+                <p className="text-xs text-gray-300">Payouts settle automatically on-chain.</p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#131822]/80 to-[#1d2230]/80 p-4 shadow-[0_0_18px_rgba(0,255,163,0.12)]">
+                <div className="mb-2 flex items-center gap-2 text-[#00FFA3]">
+                  <Users className="h-5 w-5" />
+                  <span className="text-sm font-semibold text-white">Players online now</span>
+                </div>
+                <p className="text-xs text-gray-300">
+                  <span className="text-base font-semibold text-[#00FFA3]">128</span> active competitors.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
