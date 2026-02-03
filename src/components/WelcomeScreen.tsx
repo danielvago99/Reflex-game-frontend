@@ -203,21 +203,20 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
           </div>
-
-          {/* Demo CTA */}
-          <div className="mt-6 flex items-center justify-center gap-3">
+          {/* Neon Header with Decorations */}
+          <div className="flex items-center justify-center gap-3 mb-5">
+            {/* Left Decoration */}
             <div className="flex items-center gap-1 opacity-50">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
               <div className="h-1 w-1 rounded-full bg-[#00FFA3] shadow-[0_0_5px_#00FFA3]"></div>
             </div>
+            
+            {/* Neon Text */}
+            <span className="inline-block text-sm font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
+              Click here to try demo
+            </span>
 
-            <button
-              type="button"
-              className="text-[#00FFA3] hover:text-[#06B6D4] text-xs uppercase tracking-[0.2em] transition-all"
-            >
-              CLICK HERE TO SHOW DEMO
-            </button>
-
+            {/* Right Decoration */}
             <div className="flex items-center gap-1 opacity-50">
               <div className="h-1 w-1 rounded-full bg-[#7C3AED] shadow-[0_0_5px_#06B6D4]"></div>
               <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#7C3AED]"></div>
