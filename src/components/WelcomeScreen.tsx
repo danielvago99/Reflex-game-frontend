@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">Compete in Live 1v1 Reflex Battles for SOL. React faster than your opponent. Winner takes the pot.</p>
+        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.</p>
         
         {/* Guaranteed Fair Play Section */}
         <div className="w-full max-w-sm mx-auto mb-8">
@@ -174,7 +174,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               </div>
             </div>
 
-            {/* Matchmaking */}
+            {/* Practise Mode */}
             <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
@@ -188,7 +188,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               </div>
             </div>
 
-            {/* Unbiased RNG */}
+            {/* Matchmaking */}
             <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#F472B6]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#F472B6]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
