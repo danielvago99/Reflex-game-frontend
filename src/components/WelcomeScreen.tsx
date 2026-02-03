@@ -132,7 +132,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
             
             {/* Neon Text */}
-            <span className="text-lg font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
               Guaranteed Fair Play
             </span>
 
