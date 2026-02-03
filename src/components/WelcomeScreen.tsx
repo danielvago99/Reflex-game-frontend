@@ -210,7 +210,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           <button
             onClick={handleConnectWallet}
             disabled={isConnecting || isSigning}
-            className="w-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             <Wallet className="w-5 h-5" />
             <span>{statusLabel ?? 'Connect Wallet'}</span>
