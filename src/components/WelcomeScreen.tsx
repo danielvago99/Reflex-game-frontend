@@ -261,6 +261,65 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <span>Unlock Existing Wallet</span>
           </button>
         </div>
+
+        <footer className="mt-8 flex items-center justify-center gap-4">
+          <a
+            href="https://x.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="X"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.35)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M18.244 2H21l-6.573 7.51L22 22h-6.5l-4.15-5.64L6.204 22H3.448l7.063-8.083L2 2h6.662l3.75 5.104L18.244 2zm-.96 18.33h1.82L7.78 3.57H5.86l11.424 16.76z"
+              />
+            </svg>
+          </a>
+          <a
+            href="https://discord.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Discord"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#06B6D4] transition hover:border-[#06B6D4]/60 hover:shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M20.317 4.369a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.444.864-.608 1.249a18.264 18.264 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.249.077.077 0 0 0-.079-.037 19.736 19.736 0 0 0-4.885 1.515.069.069 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.083.083 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.04.077.077 0 0 0 .084-.026c.461-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.041-.105 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.007-.128c.125-.094.251-.192.371-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.099.246.198.372.291a.077.077 0 0 1-.006.128 12.903 12.903 0 0 1-1.873.892.076.076 0 0 0-.04.105c.36.699.772 1.364 1.225 1.994a.076.076 0 0 0 .084.026 19.873 19.873 0 0 0 6.002-3.04.077.077 0 0 0 .031-.055c.5-5.177-.838-9.673-3.548-13.66a.061.061 0 0 0-.031-.028ZM8.02 15.331c-1.183 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.175 1.095 2.156 2.418 0 1.334-.955 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.175 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419Z"
+              />
+            </svg>
+          </a>
+          <a
+            href="https://www.tiktok.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="TikTok"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#7C3AED] transition hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.35)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M21.41 7.588a6.93 6.93 0 0 1-4.012-1.278v7.078a5.97 5.97 0 1 1-5.988-5.97c.328 0 .646.027.956.077v3.287a2.68 2.68 0 1 0 1.783 2.523V2h3.249a6.92 6.92 0 0 0 4.012 3.338v2.25Z"
+              />
+            </svg>
+          </a>
+          <a
+            href="https://www.youtube.com"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="YouTube"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.35)]"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.13C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.57A3.02 3.02 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.13C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.57a3.02 3.02 0 0 0 2.12-2.13A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8ZM9.6 15.5V8.5l6.4 3.5-6.4 3.5Z"
+              />
+            </svg>
+          </a>
+        </footer>
       </div>
 
       {isWalletModalOpen ? (
