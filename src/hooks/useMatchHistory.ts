@@ -10,6 +10,14 @@ export interface MatchHistoryEntry {
   result?: 'win' | 'loss';
   stakeAmount?: number;
   profit?: number;
+  potAmount?: number;
+  totalPot?: number;
+  pot?: number;
+  payoutPot?: number;
+  stakeFee?: number;
+  platformFee?: number;
+  feeAmount?: number;
+  fee?: number;
   reactionTimeMs?: number;
   playerScore?: number;
   opponentScore?: number;

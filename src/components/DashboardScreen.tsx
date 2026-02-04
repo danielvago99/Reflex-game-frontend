@@ -10,6 +10,7 @@ import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
 import { useRealBalance } from '../hooks/useRealBalance';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
+import { getNetWinAmount } from '../utils/matchHistoryDisplay';
 
 interface DashboardScreenProps {
   onNavigate: (screen: string) => void;
@@ -59,10 +60,13 @@ export function DashboardScreen({
     return recentMatches.map((match) => {
       const isWin = match.result === 'win';
       const resultLabel = isWin ? 'Victory' : 'Defeat';
+      const winAmount = getNetWinAmount(match);
       const amount = isWin
-        ? match.profit != null
-          ? `+${match.profit.toFixed(4)} SOL`
-          : 'Won'
+        ? winAmount != null
+          ? `+${winAmount.toFixed(4)} SOL`
+          : match.stakeAmount != null && match.stakeAmount > 0
+            ? 'Won'
+            : 'Free Play'
         : match.stakeAmount != null
           ? `-${match.stakeAmount.toFixed(4)} SOL`
           : 'Lost';

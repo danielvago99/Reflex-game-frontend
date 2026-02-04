@@ -5,6 +5,7 @@ import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import type { PlayerStats } from '../features/auth/hooks/useUserDashboard';
 import type { MatchHistoryEntry } from '../hooks/useMatchHistory';
+import { getNetWinAmount } from '../utils/matchHistoryDisplay';
 
 interface ProfileScreenProps {
   onNavigate: (screen: string) => void;
@@ -47,9 +48,10 @@ export function ProfileScreen({
     const isWin = match.result === 'win' || match.result === 'Win';
     const opponentLabel = match.opponent ?? 'Unknown opponent';
     const stake = match.stakeAmount != null ? match.stakeAmount.toString() : '—';
+    const winAmount = getNetWinAmount(match);
     const earning = isWin
-      ? match.profit != null
-        ? `+${match.profit}`
+      ? winAmount != null
+        ? `+${winAmount.toFixed(4)}`
         : '+0'
       : match.stakeAmount != null
         ? `-${match.stakeAmount}`
