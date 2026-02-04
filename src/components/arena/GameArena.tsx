@@ -30,6 +30,7 @@ interface GameArenaProps {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
   opponentName?: string;
+  isDemo?: boolean;
 }
 
 type GameState = 'countdown' | 'playing' | 'result';
@@ -40,12 +41,27 @@ interface Target {
   colorName: string;
 }
 
+const TARGET_SHAPES: Target['shape'][] = ['circle', 'square', 'triangle'];
+const TARGET_COLORS = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
+const TARGET_COLOR_NAMES: Record<string, string> = {
+  '#FF0000': 'Red',
+  '#00FF00': 'Green',
+  '#0000FF': 'Blue',
+  '#FFFF00': 'Yellow',
+  '#9333EA': 'Purple',
+  '#06B6D4': 'Cyan',
+  '#FF6B00': 'Orange',
+  '#FF0099': 'Pink',
+};
+const DEMO_MAX_REACTION_MS = 1200;
+
 export function GameArena({
   onQuit,
   isRanked = false,
   stakeAmount = 0,
   matchType = 'bot',
   opponentName,
+  isDemo = false,
 }: GameArenaProps) {
   const { playerName } = useGame();
   // Game state
@@ -84,37 +100,29 @@ export function GameArena({
   const [readySecondsRemaining, setReadySecondsRemaining] = useState<number | null>(null);
 
   const isWaitingForTarget = currentTarget === null;
-
+  const isDemoMatch = isDemo;
   const targetShownTimestampRef = useRef<number | null>(null);
   const readyTimeoutTriggeredRef = useRef(false);
-
-  const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
-  const targetColors = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
-  const targetColorNames: Record<string, string> = {
-    '#FF0000': 'Red',
-    '#00FF00': 'Green',
-    '#0000FF': 'Blue',
-    '#FFFF00': 'Yellow',
-    '#9333EA': 'Purple',
-    '#06B6D4': 'Cyan',
-    '#FF6B00': 'Orange',
-    '#FF0099': 'Pink',
-  };
+  const demoRoundResolvedRef = useRef(false);
+  const demoTargetShownRef = useRef(false);
+  const demoBotTimeRef = useRef(600);
+  const demoTimersRef = useRef<number[]>([]);
 
   const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
   const [defaultTarget] = useState<Target>(() => {
-    const shape = targetShapes[Math.floor(Math.random() * targetShapes.length)];
-    const color = targetColors[Math.floor(Math.random() * targetColors.length)];
+    const shape = TARGET_SHAPES[Math.floor(Math.random() * TARGET_SHAPES.length)];
+    const color = TARGET_COLORS[Math.floor(Math.random() * TARGET_COLORS.length)];
 
     return {
       shape,
       color,
-      colorName: targetColorNames[color] ?? 'Target',
+      colorName: TARGET_COLOR_NAMES[color] ?? 'Target',
     };
   });
 
-  const { isConnected, send, connect } = useWebSocket({ autoConnect: true });
+  const { isConnected, send, connect } = useWebSocket({ autoConnect: !isDemoMatch });
+  const connectionReady = isDemoMatch ? true : isConnected;
 
   const MAX_PAUSES = 3;
   const READY_WAIT_SECONDS = 30;
@@ -123,7 +131,7 @@ export function GameArena({
     playerScore >= ROUNDS_TO_WIN ||
     opponentScore >= ROUNDS_TO_WIN ||
     currentRound >= MAX_ROUNDS;
-  const shouldShowReconnect = !isConnected && !showFinalResults && !showHowToPlay;
+  const shouldShowReconnect = !connectionReady && !showFinalResults && !showHowToPlay && !isDemoMatch;
 
   // Detect mobile
   const isMobile = window.innerWidth < 640;
@@ -220,10 +228,10 @@ export function GameArena({
   }, [readyDeadlineTs]);
 
   useEffect(() => {
-    if (isConnected) {
+    if (connectionReady) {
       setIsReconnecting(false);
     }
-  }, [isConnected]);
+  }, [connectionReady]);
 
   // Reset all game state for restart
   const handleRestart = () => {
@@ -264,6 +272,56 @@ export function GameArena({
     setReadySecondsRemaining(null);
   };
 
+  const clearDemoTimers = useCallback(() => {
+    demoTimersRef.current.forEach(timer => window.clearTimeout(timer));
+    demoTimersRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearDemoTimers();
+    };
+  }, [clearDemoTimers]);
+
+  useEffect(() => {
+    if (!isDemoMatch || !showFinalResults) return;
+    const returnTimer = window.setTimeout(() => {
+      onQuit();
+    }, 4000);
+
+    return () => window.clearTimeout(returnTimer);
+  }, [isDemoMatch, onQuit, showFinalResults]);
+
+  const resolveDemoRound = useCallback((result: {
+    playerTime: number;
+    opponentTime: number;
+    winner: 'player' | 'bot';
+    reason?: 'early-click' | 'no-reaction' | 'slower';
+  }) => {
+    if (!isDemoMatch || demoRoundResolvedRef.current) return;
+    demoRoundResolvedRef.current = true;
+    clearDemoTimers();
+    setRoundResolved(true);
+    setHasSentClick(false);
+    setPlayerReactionTime(result.playerTime);
+    setOpponentReactionTime(result.opponentTime);
+    setPlayerScore(prev => prev + (result.winner === 'player' ? 1 : 0));
+    setOpponentScore(prev => prev + (result.winner === 'player' ? 0 : 1));
+    setAllPlayerTimes(prev => {
+      const updated = [...prev];
+      updated[currentRound - 1] = result.playerTime;
+      return updated;
+    });
+    setAllOpponentTimes(prev => {
+      const updated = [...prev];
+      updated[currentRound - 1] = result.opponentTime;
+      return updated;
+    });
+    setRoundResult(result.winner === 'player' ? 'win' : 'lose');
+    setLossReason(result.reason ?? (result.winner === 'player' ? null : 'slower'));
+    setGameState('result');
+  }, [clearDemoTimers, currentRound, isDemoMatch]);
+
   const prepareRound = useCallback(
     (roundNumber: number) => {
       setPlayerReactionTime(null);
@@ -273,8 +331,42 @@ export function GameArena({
       setHasSentClick(false);
       setTargetShowSignal(0);
       setCurrentTarget(null);
+      demoRoundResolvedRef.current = false;
+      demoTargetShownRef.current = false;
 
-      if (!isConnected) {
+      if (isDemoMatch) {
+        const shape = TARGET_SHAPES[Math.floor(Math.random() * TARGET_SHAPES.length)];
+        const color = TARGET_COLORS[Math.floor(Math.random() * TARGET_COLORS.length)];
+        const demoTarget = {
+          shape,
+          color,
+          colorName: TARGET_COLOR_NAMES[color] ?? 'Target',
+        };
+        setCurrentTarget(demoTarget);
+
+        demoBotTimeRef.current = Math.round(420 + Math.random() * 380);
+        const showDelayMs = 700 + Math.random() * 1100;
+        clearDemoTimers();
+        const showTimer = window.setTimeout(() => {
+          demoTargetShownRef.current = true;
+          targetShownTimestampRef.current = Date.now();
+          setTargetShowSignal(signal => signal + 1);
+
+          const timeoutTimer = window.setTimeout(() => {
+            resolveDemoRound({
+              playerTime: DEMO_MAX_REACTION_MS,
+              opponentTime: demoBotTimeRef.current,
+              winner: 'bot',
+              reason: 'no-reaction',
+            });
+          }, DEMO_MAX_REACTION_MS);
+          demoTimersRef.current.push(timeoutTimer);
+        }, showDelayMs);
+        demoTimersRef.current.push(showTimer);
+        return;
+      }
+
+      if (!connectionReady) {
         toast.error('WebSocket disconnected', {
           description: 'Reconnecting to game server...'
         });
@@ -288,7 +380,18 @@ export function GameArena({
 
       send('round:ready', roundReadyPayload);
     },
-    [isConnected, send, stakeAmount]
+    [
+      DEMO_MAX_REACTION_MS,
+      clearDemoTimers,
+      connectionReady,
+      isDemoMatch,
+      resolveDemoRound,
+      send,
+      stakeAmount,
+      TARGET_COLORS,
+      TARGET_COLOR_NAMES,
+      TARGET_SHAPES,
+    ]
   );
 
   const handleTargetAppeared = () => {};
@@ -302,7 +405,30 @@ export function GameArena({
 
     setHasSentClick(true);
 
-    if (!isConnected) {
+    if (isDemoMatch) {
+      if (!demoTargetShownRef.current) {
+        resolveDemoRound({
+          playerTime: 0,
+          opponentTime: demoBotTimeRef.current,
+          winner: 'bot',
+          reason: 'early-click',
+        });
+        return;
+      }
+
+      const duration = Date.now() - (targetShownTimestampRef.current ?? Date.now());
+      const opponentTime = demoBotTimeRef.current;
+      const playerWon = duration <= opponentTime;
+      resolveDemoRound({
+        playerTime: duration,
+        opponentTime,
+        winner: playerWon ? 'player' : 'bot',
+        reason: playerWon ? undefined : 'slower',
+      });
+      return;
+    }
+
+    if (!connectionReady) {
       toast.error('Not connected to game server', {
         description: 'Attempting to reconnect...'
       });
@@ -321,7 +447,12 @@ export function GameArena({
 
   const handleReadyTimeout = useCallback(
     (mode: 'initial' | 'opponent') => {
-      if (!isConnected) {
+      if (isDemoMatch) {
+        onQuit();
+        return;
+      }
+
+      if (!connectionReady) {
         toast.error('WebSocket disconnected', {
           description: 'Unable to cancel match while offline.',
         });
@@ -343,7 +474,7 @@ export function GameArena({
       setShowHowToPlay(false);
       onQuit();
     },
-    [isConnected, onQuit, opponentProfile.name, send, stakeAmount]
+    [connectionReady, isDemoMatch, onQuit, opponentProfile.name, send, stakeAmount]
   );
 
   const handleRoundResult = useCallback((result: WSRoundResult) => {
@@ -512,7 +643,7 @@ export function GameArena({
   }, [handleReadyTimeout, readySecondsRemaining, readyTimerMode]);
 
   useEffect(() => {
-    if (!isConnected) {
+    if (!connectionReady) {
       setHasRequestedInitialRound(false);
       return;
     }
@@ -523,7 +654,7 @@ export function GameArena({
       prepareRound(currentRound);
       setHasRequestedInitialRound(true);
     }
-  }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+  }, [connectionReady, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
@@ -545,11 +676,19 @@ export function GameArena({
   };
 
   const handleReadyUp = () => {
+    if (isDemoMatch) {
+      setShowHowToPlay(false);
+      setWaitingForOpponent(false);
+      setIsPlayerReady(true);
+      setGameState('countdown');
+      return;
+    }
+
     setShowHowToPlay(false);
     setWaitingForOpponent(true);
     setIsPlayerReady(true);
 
-    if (!isConnected) {
+    if (!connectionReady) {
       toast.error('WebSocket disconnected', {
         description: 'Reconnecting to game server...'
       });
@@ -607,7 +746,12 @@ export function GameArena({
   };
 
   const handleConfirmForfeit = () => {
-    if (!isConnected) {
+    if (isDemoMatch) {
+      onQuit();
+      return;
+    }
+
+    if (!connectionReady) {
       toast.error('WebSocket disconnected', {
         description: 'Unable to forfeit match while offline.'
       });
@@ -666,7 +810,7 @@ export function GameArena({
         {/* Arena Canvas */}
         <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative">
           <ArenaCanvas
-            isActive={gameState === 'playing' && !isOpponentDisconnected && isConnected}
+            isActive={gameState === 'playing' && !isOpponentDisconnected && connectionReady}
             targetShape={(currentTarget || defaultTarget).shape}
             targetColor={(currentTarget || defaultTarget).color}
             onTargetAppeared={handleTargetAppeared}
@@ -691,12 +835,12 @@ export function GameArena({
         </div>
 
         {/* Bottom Bar */}
-        <BottomBar
-          onPause={handlePause}
-          onReact={handleReact}
-          isActive={gameState === 'playing' && playerReactionTime === null && !isOpponentDisconnected && isConnected}
-          reactionTime={playerReactionTime}
-        />
+      <BottomBar
+        onPause={handlePause}
+        onReact={handleReact}
+        isActive={gameState === 'playing' && playerReactionTime === null && !isOpponentDisconnected && connectionReady}
+        reactionTime={playerReactionTime}
+      />
       </div>
 
       {/* Overlays */}
@@ -745,7 +889,7 @@ export function GameArena({
           stakeAmount={stakeAmount}
           matchType={matchType}
           wasForfeit={wasForfeitResult}
-          onPlayAgain={handleRestart}
+          onPlayAgain={isDemoMatch ? onQuit : handleRestart}
           onBackToMenu={onQuit}
         />
       )}
