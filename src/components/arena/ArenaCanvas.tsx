@@ -639,11 +639,13 @@ export function ArenaCanvas({
       };
     };
 
-    const fadeTimeoutDuration = shouldBeTarget ? 7000 : 3200 + Math.random() * 2600;
-    shape.fadeTimeout = window.setTimeout(() => {
-      if (!isAppUsable(app)) return;
-      beginFadeOut();
-    }, fadeTimeoutDuration);
+    if (!shouldBeTarget) {
+      const fadeTimeoutDuration = 3200 + Math.random() * 2600;
+      shape.fadeTimeout = window.setTimeout(() => {
+        if (!isAppUsable(app)) return;
+        beginFadeOut();
+      }, fadeTimeoutDuration);
+    }
   };
 
   return (
