@@ -22,6 +22,7 @@ import type {
   WSGameStart,
   WSPlayerDisconnected,
   WSGameEnd,
+  WSGameState,
 } from '../../types/api';
 
 interface GameArenaProps {
@@ -446,6 +447,22 @@ export function GameArena({
     setLastDisconnectedSlot(null);
   }, []);
 
+  useWebSocketEvent<WSGameState>('game:state', payload => {
+    if (!payload) return;
+
+    setPlayerSlot(payload.playerSlot);
+    setCurrentRound(payload.round);
+    setPlayerScore(payload.scores[payload.playerSlot]);
+    setOpponentScore(payload.scores[payload.opponentSlot]);
+    setRoundResolved(payload.roundResolved);
+    setCurrentTarget(payload.target ?? null);
+    setTargetShowSignal(signal => (payload.target ? signal + 1 : signal));
+    targetShownTimestampRef.current = payload.targetShownAt ?? null;
+    if (payload.hasStarted) {
+      setGameState(payload.roundResolved ? 'result' : 'playing');
+    }
+  }, []);
+
   useWebSocketEvent<WSRoundResult>('round:result', handleRoundResult, [handleRoundResult]);
 
   useWebSocketEvent<{ count?: number }>('game:countdown', () => {
@@ -534,6 +551,23 @@ export function GameArena({
       setHasRequestedInitialRound(true);
     }
   }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!isConnected) return;
+
+      if (document.hidden) {
+        send('player:away', {});
+        return;
+      }
+
+      send('player:back', {});
+      send('game:request_sync', {});
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isConnected, send]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
