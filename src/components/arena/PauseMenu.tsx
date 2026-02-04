@@ -10,6 +10,7 @@ interface PauseMenuProps {
   onAutoResume?: () => void;
   pausesUsed?: number;
   maxPauses?: number;
+  canResume?: boolean;
 }
 
 export function PauseMenu({ 
@@ -19,7 +20,8 @@ export function PauseMenu({
   stakeAmount = 0, 
   onAutoResume,
   pausesUsed = 0,
-  maxPauses = 3
+  maxPauses = 3,
+  canResume = true,
 }: PauseMenuProps) {
   const hasStake = isRanked && stakeAmount > 0;
   const isPauseLimited = isRanked || stakeAmount > 0;
@@ -28,7 +30,7 @@ export function PauseMenu({
 
   // Auto-resume countdown for ranked/friend matches
   useEffect(() => {
-    if (!isPauseLimited) return;
+    if (!isPauseLimited || !canResume) return;
 
     const interval = setInterval(() => {
       setTimeRemaining(prev => {
@@ -46,7 +48,7 @@ export function PauseMenu({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPauseLimited, onResume, onAutoResume]);
+  }, [isPauseLimited, canResume, onResume, onAutoResume]);
 
   return (
     <motion.div
@@ -97,6 +99,11 @@ export function PauseMenu({
             <p className="text-center text-gray-400 mb-4 sm:mb-6 text-sm">
               Take a break or return to the lobby
             </p>
+            {!canResume && (
+              <p className="text-center text-xs sm:text-sm text-orange-300 mb-4 sm:mb-6">
+                Waiting for the player who paused to resume the match.
+              </p>
+            )}
 
             {/* Pause counter for ranked/friend matches */}
             {isPauseLimited && (
@@ -179,7 +186,8 @@ export function PauseMenu({
               {/* Resume button */}
               <button
                 onClick={onResume}
-                className="group relative w-full px-6 py-3.5 sm:py-4 rounded-xl overflow-hidden transition-all active:scale-95 sm:hover:scale-105 min-h-[52px]"
+                disabled={!canResume}
+                className="group relative w-full px-6 py-3.5 sm:py-4 rounded-xl overflow-hidden transition-all active:scale-95 sm:hover:scale-105 min-h-[52px] disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Resume game"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 opacity-90 sm:group-hover:opacity-100 transition-opacity"></div>

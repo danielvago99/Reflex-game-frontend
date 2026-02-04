@@ -82,11 +82,13 @@ export function GameArena({
   const [readyTimerMode, setReadyTimerMode] = useState<'initial' | 'opponent' | null>(null);
   const [readyDeadlineTs, setReadyDeadlineTs] = useState<number | null>(null);
   const [readySecondsRemaining, setReadySecondsRemaining] = useState<number | null>(null);
+  const [canResume, setCanResume] = useState(true);
 
   const isWaitingForTarget = currentTarget === null;
 
   const targetShownTimestampRef = useRef<number | null>(null);
   const readyTimeoutTriggeredRef = useRef(false);
+  const pauseRequestRef = useRef(false);
 
   const targetShapes: Target['shape'][] = ['circle', 'square', 'triangle'];
   const targetColors = ['#00FF00', '#FF0000', '#0000FF', '#FFFF00', '#9333EA', '#06B6D4', '#FF6B00', '#FF0099'];
@@ -262,6 +264,8 @@ export function GameArena({
     setReadyTimerMode(null);
     setReadyDeadlineTs(null);
     setReadySecondsRemaining(null);
+    setCanResume(true);
+    pauseRequestRef.current = false;
   };
 
   const prepareRound = useCallback(
@@ -452,6 +456,8 @@ export function GameArena({
 
   useWebSocketEvent('game:paused', () => {
     setShowPauseMenu(true);
+    setCanResume(pauseRequestRef.current);
+    pauseRequestRef.current = false;
   }, []);
 
   useWebSocketEvent('game:resumed', () => {
@@ -460,6 +466,8 @@ export function GameArena({
     setDisconnectDeadlineTs(null);
     setDisconnectSecondsRemaining(null);
     setLastDisconnectedSlot(null);
+    setCanResume(true);
+    pauseRequestRef.current = false;
   }, []);
 
   useWebSocketEvent<WSGameEnd>('game:end', payload => {
@@ -496,6 +504,8 @@ export function GameArena({
     setDisconnectDeadlineTs(null);
     setDisconnectSecondsRemaining(null);
     setLastDisconnectedSlot(null);
+    setCanResume(true);
+    pauseRequestRef.current = false;
   }, [playerSlot, lastDisconnectedSlot, didForfeit]);
 
   useEffect(() => {
@@ -572,6 +582,8 @@ export function GameArena({
     }
     
     setPauseCount(prev => prev + 1);
+    pauseRequestRef.current = true;
+    setCanResume(true);
     send('game:pause', {});
   };
 
@@ -719,6 +731,7 @@ export function GameArena({
           onAutoResume={handleAutoResume}
           pausesUsed={pauseCount}
           maxPauses={MAX_PAUSES}
+          canResume={canResume}
         />
       )}
 
