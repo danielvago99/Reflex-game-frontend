@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400 text-center px-2">
+        <p className="text-xs xs:text-xs text-gray-400 text-center px-2 gap-3">
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
@@ -127,7 +127,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           <button
             onClick={handleConnectWallet}
             disabled={isConnecting || isSigning}
-            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+            className="w-[80%] sm:w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             <Wallet className="w-5 h-5" />
             <span>{statusLabel ?? 'Connect Wallet'}</span>
@@ -135,7 +135,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           <button
             onClick={() => onNavigate('lobby')}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2"
+            className="w-[60%] sm:w-full rounded-xl border border-white/10 bg-white/5 py-3 text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2"
           >
             <Gamepad2 className="w-5 h-5 text-[#00FFA3]" />
             <span>Try Demo</span>
