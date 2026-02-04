@@ -116,7 +116,7 @@ export function GameArena({
     };
   });
 
-  const { isConnected, send, connect } = useWebSocket({ autoConnect: true });
+  const { isConnected, send, connect, disconnect } = useWebSocket({ autoConnect: true });
 
   const MAX_PAUSES = 3;
   const READY_WAIT_SECONDS = 30;
@@ -226,6 +226,24 @@ export function GameArena({
       setIsReconnecting(false);
     }
   }, [isConnected]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isCompetitiveMatch = matchType === 'ranked' || matchType === 'friend';
+      if (!isCompetitiveMatch) return;
+      if (document.hidden) {
+        disconnect();
+        return;
+      }
+
+      if (!isConnected) {
+        connect().catch(() => undefined);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [connect, disconnect, isConnected, matchType]);
 
   // Reset all game state for restart
   const handleRestart = () => {
