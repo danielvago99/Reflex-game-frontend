@@ -46,7 +46,7 @@ export function ProfileScreen({
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';
     const opponentLabel = match.opponent ?? 'Unknown opponent';
-    const stake = match.stakeAmount != null ? match.stakeAmount.toString() : '—';
+    const stakeAmount = match.stakeAmount ?? null;
     const earning = isWin
       ? match.profit != null
         ? `+${match.profit}`
@@ -74,7 +74,7 @@ export function ProfileScreen({
       id: match.id,
       opponent: opponentLabel,
       result: isWin ? 'Win' : 'Loss',
-      stake,
+      stakeAmount,
       earning,
       time: reaction,
       date: timeAgo,
@@ -253,7 +253,9 @@ export function ProfileScreen({
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span>Stake: {match.stake} SOL</span>
+                    <span>
+                      Stake: {match.stakeAmount != null ? match.stakeAmount.toFixed(4) : '—'} SOL
+                    </span>
                     <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
                     <span className={match.result === 'Win' ? 'text-[#00FFA3]' : 'text-red-400'}>
                       {match.result}
