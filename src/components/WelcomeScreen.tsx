@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
-import { Gamepad2, Key, RotateCcw, ShieldCheck, Trophy, UsersRound, Wallet, X, Zap } from 'lucide-react';
+import { Gamepad2, Key, Play, ShieldCheck, Trophy, UsersRound, Wallet, X, Zap } from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
 import { useAuth } from '../features/auth/hooks/useAuth';
@@ -137,7 +137,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             onClick={() => onNavigate('lobby')}
             className="mx-auto w-70 rounded-lg border border-white/10 bg-white/5 py-1 px-8 text-xs text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2 mb-2"
           >
-            <RotateCcw className="h-4 w-4 text-[#00FFA3]" />
+            <Play className="h-4 w-4 text-[#00FFA3]" />
             <span>Try Demo</span>
           </button>
 
