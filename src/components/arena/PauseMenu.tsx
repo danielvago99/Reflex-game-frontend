@@ -30,16 +30,18 @@ export function PauseMenu({
 
   // Auto-resume countdown for ranked/friend matches
   useEffect(() => {
-    if (!isPauseLimited || !canResume) return;
+    if (!isPauseLimited) return;
 
     const interval = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          if (onAutoResume) {
-            onAutoResume();
-          } else {
-            onResume();
+          if (canResume) {
+            if (onAutoResume) {
+              onAutoResume();
+            } else {
+              onResume();
+            }
           }
           return 0;
         }
