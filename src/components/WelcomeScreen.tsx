@@ -105,7 +105,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       <FuturisticBackground />
 
       {/* Content */}
-      <div className="relative z-10 flex w-full max-w-md flex-col items-center gap-6">
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center">
         {/* Logo */}
         <div className="mb-6 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
