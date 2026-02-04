@@ -448,6 +448,12 @@ export function GameArena({
     setIsOpponentDisconnected(true);
     setDisconnectDeadlineTs(payload?.deadlineTs ?? null);
     setLastDisconnectedSlot(payload?.disconnectedSlot ?? null);
+    setShowPauseMenu(false);
+    setRoundResult(null);
+    setCurrentTarget(null);
+    setRoundResolved(true);
+    setHasSentClick(false);
+    setGameState(prevState => (prevState === 'playing' ? 'countdown' : prevState));
     if (!playerSlot && payload?.disconnectedSlot) {
       setPlayerSlot(getOpponentSlot(payload.disconnectedSlot));
     }
@@ -552,6 +558,19 @@ export function GameArena({
       setHasRequestedInitialRound(true);
     }
   }, [isConnected, gameState, hasRequestedInitialRound, prepareRound, currentRound]);
+
+  useEffect(() => {
+    const isCompetitiveMatch = matchType === 'ranked' || matchType === 'friend';
+    if (!isCompetitiveMatch || isConnected) {
+      return;
+    }
+
+    setRoundResult(null);
+    setCurrentTarget(null);
+    setRoundResolved(true);
+    setHasSentClick(false);
+    setGameState(prevState => (prevState === 'playing' ? 'countdown' : prevState));
+  }, [isConnected, matchType]);
 
   const handleNextRound = () => {
     if (isMatchOver) {
