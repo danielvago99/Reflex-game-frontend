@@ -249,8 +249,12 @@ export type WSMessageType =
   | 'round:result'
   | 'round:ready'
   | 'player:click'
+  | 'player:away'
+  | 'player:back'
   | 'player:disconnected'
   | 'player:reconnected'
+  | 'game:request_sync'
+  | 'game:state'
   | 'match:find'
   | 'match:cancel'
   | 'match:cancel_stake'
@@ -333,6 +337,26 @@ export interface WSPlayerDisconnected {
   deadlineTs: number;
   timeoutSeconds: number;
   disconnectCountForThatPlayer: number;
+  reason?: 'tabbed_out' | 'ready-timeout' | 'socket_closed';
+}
+
+export interface WSGameState {
+  sessionId: string;
+  round: number;
+  scores: {
+    p1: number;
+    p2: number;
+  };
+  playerSlot: 'p1' | 'p2';
+  opponentSlot: 'p1' | 'p2';
+  roundResolved: boolean;
+  hasStarted: boolean;
+  target?: {
+    shape: 'circle' | 'square' | 'triangle';
+    color: string;
+    colorName: string;
+  };
+  targetShownAt?: number;
 }
 
 export interface WSGameEnd {
