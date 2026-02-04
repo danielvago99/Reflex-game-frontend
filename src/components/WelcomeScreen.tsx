@@ -3,10 +3,10 @@ import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
 import {
   Cpu,
-  Discord,
   Gamepad2,
   Globe,
   Key,
+  MessageCircle,
   Scale,
   Send,
   ShieldCheck,
@@ -278,7 +278,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               </a>
               <div className="h-4 w-px bg-white/10"></div>
               <a href="#" className="text-gray-400 hover:text-[#5865F2] hover:scale-110 transition-all">
-                <Discord className="w-5 h-5" />
+                <MessageCircle className="w-5 h-5" />
               </a>
               <div className="h-4 w-px bg-white/10"></div>
               <a href="#" className="text-gray-400 hover:text-[#0088cc] hover:scale-110 transition-all">
