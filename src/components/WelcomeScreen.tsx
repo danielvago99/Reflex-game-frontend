@@ -1,7 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { WalletReadyState } from '@solana/wallet-adapter-base';
 import { useWallet as useSolanaWallet } from '@solana/wallet-adapter-react';
-import { Gamepad2, Key, ShieldCheck, Trophy, UsersRound, Wallet, X, Zap } from 'lucide-react';
+import {
+  Cpu,
+  Discord,
+  Gamepad2,
+  Globe,
+  Key,
+  Scale,
+  Send,
+  ShieldCheck,
+  Twitter,
+  Wallet,
+  X,
+  Zap,
+} from 'lucide-react';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
 import { useAuth } from '../features/auth/hooks/useAuth';
@@ -122,53 +135,6 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
-        {/* Buttons */}
-        <div className="w-full max-w-sm flex flex-col gap-3">
-          <button
-            onClick={handleConnectWallet}
-            disabled={isConnecting || isSigning}
-            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            <span>{statusLabel ?? 'Connect Wallet'}</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('lobby')}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2"
-          >
-            <Gamepad2 className="w-5 h-5 text-[#00FFA3]" />
-            <span>Try Demo</span>
-          </button>
-
-          {statusLabel ? (
-            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
-          ) : null}
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
-              {errorMessage}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-          <button
-            onClick={() => onNavigate('create-wallet')}
-            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
-          >
-            <Zap className="h-4 w-4" />
-            <span>Create Wallet</span>
-          </button>
-          <button
-            onClick={() => onNavigate('unlock-wallet')}
-            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
-          >
-            <Key className="h-4 w-4" />
-            <span>Unlock Wallet</span>
-          </button>
-        </div>
-
         {/* Guaranteed Fair Play Section */}
         <div className="w-full max-w-sm mx-auto">
           {/* Neon Header with Decorations */}
@@ -194,121 +160,138 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           {/* 2x2 Grid */}
           <div className="grid grid-cols-2 gap-3">
             {/* Anti-Cheat */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#00FFA3]">Anti-Cheat</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Server-verified reaction times, identical targets, equal latency.</p>
+            <div className="group relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#00FFA3] to-transparent p-[1px] shadow-lg transition-all duration-500 hover:shadow-[0_0_30px_rgba(0,255,163,0.5)]">
+              <div className="relative h-full w-full rounded-[15px] bg-[#05070d]/90 p-4 backdrop-blur-xl">
+                <div className="relative flex flex-col items-center gap-2 text-center">
+                  <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+                    <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#00FFA3]">Anti-Cheat</h4>
+                    <p className="text-[10px] text-gray-400 leading-tight">Server-verified reaction times and identical targets.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Smart Contract */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                  <Trophy className="h-5 w-5" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#7C3AED]">Winner Gets Paid</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts on-chain with verification on solscan.io</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Practise Mode */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <Gamepad2 className="h-5 w-5" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#00FFA3]">Practise Mode</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">You can train without SOL stake against bot in practise mode.</p>
+            <div className="group relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#06B6D4] to-transparent p-[1px] shadow-lg transition-all duration-500 hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]">
+              <div className="relative h-full w-full rounded-[15px] bg-[#05070d]/90 p-4 backdrop-blur-xl">
+                <div className="relative flex flex-col items-center gap-2 text-center">
+                  <div className="rounded-full bg-[#06B6D4]/10 p-2 text-[#06B6D4] shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                    <Cpu className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#06B6D4]">Smart Contract</h4>
+                    <p className="text-[10px] text-gray-400 leading-tight">Auto-settled payouts verified by on-chain logic.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Matchmaking */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                  <UsersRound className="h-5 w-5" strokeWidth={2.5} />
+            {/* Equal Latency */}
+            <div className="group relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#7C3AED] to-transparent p-[1px] shadow-lg transition-all duration-500 hover:shadow-[0_0_30px_rgba(124,58,237,0.5)]">
+              <div className="relative h-full w-full rounded-[15px] bg-[#05070d]/90 p-4 backdrop-blur-xl">
+                <div className="relative flex flex-col items-center gap-2 text-center">
+                  <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                    <Zap className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#7C3AED]">Equal Latency</h4>
+                    <p className="text-[10px] text-gray-400 leading-tight">Balanced matchmaking for identical timing windows.</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#7C3AED]">Fair Matchmaking</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Stake your SOL to compete in 1v1 ranked or friend matches.</p>
+              </div>
+            </div>
+
+            {/* Unbiased RNG */}
+            <div className="group relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#F472B6] to-transparent p-[1px] shadow-lg transition-all duration-500 hover:shadow-[0_0_30px_rgba(244,114,182,0.5)]">
+              <div className="relative h-full w-full rounded-[15px] bg-[#05070d]/90 p-4 backdrop-blur-xl">
+                <div className="relative flex flex-col items-center gap-2 text-center">
+                  <div className="rounded-full bg-[#F472B6]/10 p-2 text-[#F472B6] shadow-[0_0_15px_rgba(244,114,182,0.2)]">
+                    <Scale className="h-5 w-5" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#F472B6]">Unbiased RNG</h4>
+                    <p className="text-[10px] text-gray-400 leading-tight">Provably fair randomness for every match outcome.</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <footer className="mt-8 flex items-center justify-center gap-4">
-          <a
-            href="https://x.com"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="X"
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.35)]"
+        {/* Buttons */}
+        <div className="w-full max-w-sm flex flex-col items-center gap-3">
+          <button
+            onClick={handleConnectWallet}
+            disabled={isConnecting || isSigning}
+            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M18.244 2H21l-6.573 7.51L22 22h-6.5l-4.15-5.64L6.204 22H3.448l7.063-8.083L2 2h6.662l3.75 5.104L18.244 2zm-.96 18.33h1.82L7.78 3.57H5.86l11.424 16.76z"
-              />
-            </svg>
-          </a>
-          <a
-            href="https://discord.com"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Discord"
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#06B6D4] transition hover:border-[#06B6D4]/60 hover:shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+            <Wallet className="w-5 h-5" />
+            <span>{statusLabel ?? 'Connect Wallet'}</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('lobby')}
+            className="w-auto px-8 text-sm rounded-xl border border-white/10 bg-white/5 py-3 text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M20.317 4.369a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.444.864-.608 1.249a18.264 18.264 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.249.077.077 0 0 0-.079-.037 19.736 19.736 0 0 0-4.885 1.515.069.069 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.083.083 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.04.077.077 0 0 0 .084-.026c.461-.63.873-1.295 1.226-1.994a.076.076 0 0 0-.041-.105 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.007-.128c.125-.094.251-.192.371-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.099.246.198.372.291a.077.077 0 0 1-.006.128 12.903 12.903 0 0 1-1.873.892.076.076 0 0 0-.04.105c.36.699.772 1.364 1.225 1.994a.076.076 0 0 0 .084.026 19.873 19.873 0 0 0 6.002-3.04.077.077 0 0 0 .031-.055c.5-5.177-.838-9.673-3.548-13.66a.061.061 0 0 0-.031-.028ZM8.02 15.331c-1.183 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.175 1.095 2.156 2.418 0 1.334-.955 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.175 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419Z"
-              />
-            </svg>
-          </a>
-          <a
-            href="https://www.tiktok.com"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="TikTok"
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#7C3AED] transition hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(124,58,237,0.35)]"
+            <Gamepad2 className="w-5 h-5 text-[#00FFA3]" />
+            <span>Try Demo Now</span>
+          </button>
+
+          {statusLabel ? (
+            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
+          ) : null}
+
+          {errorMessage ? (
+            <div className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
+              {errorMessage}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+          <button
+            onClick={() => onNavigate('create-wallet')}
+            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M21.41 7.588a6.93 6.93 0 0 1-4.012-1.278v7.078a5.97 5.97 0 1 1-5.988-5.97c.328 0 .646.027.956.077v3.287a2.68 2.68 0 1 0 1.783 2.523V2h3.249a6.92 6.92 0 0 0 4.012 3.338v2.25Z"
-              />
-            </svg>
-          </a>
-          <a
-            href="https://www.youtube.com"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="YouTube"
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.35)]"
+            <Zap className="h-4 w-4" />
+            <span>Create Wallet</span>
+          </button>
+          <button
+            onClick={() => onNavigate('unlock-wallet')}
+            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.13C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.57A3.02 3.02 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.13C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.57a3.02 3.02 0 0 0 2.12-2.13A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8ZM9.6 15.5V8.5l6.4 3.5-6.4 3.5Z"
-              />
-            </svg>
-          </a>
-        </footer>
+            <Key className="h-4 w-4" />
+            <span>Unlock Wallet</span>
+          </button>
+        </div>
+
+        {/* Social Media Section - Blurred Gradient Border */}
+        <div className="w-full max-w-sm mt-auto pt-8">
+          <div className="relative p-[1px] rounded-full bg-gradient-to-r from-[#00FFA3]/50 via-[#06B6D4]/50 to-[#7C3AED]/50 shadow-[0_0_20px_rgba(0,255,163,0.1)]">
+            <div className="relative rounded-full bg-[#05070d]/60 backdrop-blur-xl p-3 flex items-center justify-evenly">
+              {/* Icons (ensure lucide-react imports) */}
+              <a href="#" className="text-gray-400 hover:text-white hover:scale-110 transition-all">
+                <Twitter className="w-5 h-5" />
+              </a>
+              <div className="h-4 w-px bg-white/10"></div>
+              <a href="#" className="text-gray-400 hover:text-[#5865F2] hover:scale-110 transition-all">
+                <Discord className="w-5 h-5" />
+              </a>
+              <div className="h-4 w-px bg-white/10"></div>
+              <a href="#" className="text-gray-400 hover:text-[#0088cc] hover:scale-110 transition-all">
+                <Send className="w-5 h-5" />
+                {/* Telegram */}
+              </a>
+              <div className="h-4 w-px bg-white/10"></div>
+              <a href="#" className="text-gray-400 hover:text-white hover:scale-110 transition-all">
+                <Globe className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isWalletModalOpen ? (
