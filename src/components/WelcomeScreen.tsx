@@ -105,7 +105,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       <FuturisticBackground />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center max-w-md w-full">
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center gap-6">
         {/* Logo */}
         <div className="mb-6 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
@@ -118,11 +118,59 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400 mb-2 text-center px-2">Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.</p>
-        
+        <p className="text-xs xs:text-xs text-gray-400 text-center px-2">
+          Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
+        </p>
+
+        {/* Buttons */}
+        <div className="w-full max-w-sm flex flex-col gap-3">
+          <button
+            onClick={handleConnectWallet}
+            disabled={isConnecting || isSigning}
+            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+          >
+            <Wallet className="w-5 h-5" />
+            <span>{statusLabel ?? 'Connect Wallet'}</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('lobby')}
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2"
+          >
+            <Gamepad2 className="w-5 h-5 text-[#00FFA3]" />
+            <span>Try Demo</span>
+          </button>
+
+          {statusLabel ? (
+            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
+          ) : null}
+
+          {errorMessage ? (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
+              {errorMessage}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+          <button
+            onClick={() => onNavigate('create-wallet')}
+            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
+          >
+            <Zap className="h-4 w-4" />
+            <span>Create Wallet</span>
+          </button>
+          <button
+            onClick={() => onNavigate('unlock-wallet')}
+            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
+          >
+            <Key className="h-4 w-4" />
+            <span>Unlock Wallet</span>
+          </button>
+        </div>
+
         {/* Guaranteed Fair Play Section */}
-        <div className="w-full max-w-sm mx-auto mb-8">
-          
+        <div className="w-full max-w-sm mx-auto">
           {/* Neon Header with Decorations */}
           <div className="flex items-center justify-center gap-3 mb-5">
             {/* Left Decoration */}
@@ -130,7 +178,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
               <div className="h-1 w-1 rounded-full bg-[#00FFA3] shadow-[0_0_5px_#00FFA3]"></div>
             </div>
-            
+
             {/* Neon Text */}
             <span className="text-sm font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
               Guaranteed Fair Play
@@ -145,7 +193,6 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           {/* 2x2 Grid */}
           <div className="grid grid-cols-2 gap-3">
-            
             {/* Anti-Cheat */}
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
@@ -201,65 +248,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
               </div>
             </div>
-
           </div>
-          {/* Neon Header with Decorations */}
-          <div className="mt-6 flex items-center justify-center gap-3">
-            {/* Left Decoration */}
-            <div className="flex items-center gap-1 opacity-50">
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
-              <div className="h-1 w-1 rounded-full bg-[#00FFA3] shadow-[0_0_5px_#00FFA3]"></div>
-            </div>
-            
-            {/* Neon Text */}
-            <span className="inline-block text-sm font-black uppercase tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] drop-shadow-[0_0_10px_rgba(0,255,163,0.3)]">
-              Click here to show demo
-            </span>
-
-            {/* Right Decoration */}
-            <div className="flex items-center gap-1 opacity-50">
-              <div className="h-1 w-1 rounded-full bg-[#7C3AED] shadow-[0_0_5px_#06B6D4]"></div>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#7C3AED]"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="w-full space-y-3 max-w-xs mx-auto">
-          <button
-            onClick={handleConnectWallet}
-            disabled={isConnecting || isSigning}
-            className="w-full bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] hover:shadow-[0_0_30px_rgba(0,255,163,0.5)] text-[#0B0F1A] py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            <span>{statusLabel ?? 'Connect Wallet'}</span>
-          </button>
-
-          {statusLabel ? (
-            <p className="text-center text-xs text-[#00FFA3] uppercase tracking-widest">{statusLabel}</p>
-          ) : null}
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.25)]">
-              {errorMessage}
-            </div>
-          ) : null}
-          
-          <button
-            onClick={() => onNavigate('create-wallet')}
-            className="w-full bg-white/10 backdrop-blur-sm border border-[#06B6D4]/30 hover:bg-white/10 hover:border-[#7C3AED]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] text-white py-3 rounded-xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
-          >
-            <Zap className="w-5 h-5" />
-            <span>Create Wallet</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('unlock-wallet')}
-            className="w-full text-[#06B6D4] hover:text-[#7C3AED] py-2 text-center text-sm transition-all flex items-center justify-center gap-2"
-          >
-            <Key className="w-4 h-4" />
-            <span>Unlock Existing Wallet</span>
-          </button>
         </div>
 
         <footer className="mt-8 flex items-center justify-center gap-4">
