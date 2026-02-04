@@ -935,7 +935,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
     const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
-    const payoutAmount = totalPot > 0 ? totalPot * 0.85 : 0;
+    const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
+    const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
 
     const playerTimes = sharedState.history
       .map((round) => round.p1Time)
