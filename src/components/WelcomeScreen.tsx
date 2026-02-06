@@ -135,7 +135,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           <button
             onClick={() => onNavigate('create-wallet')}
-            className="mx-auto w-70 rounded-lg border border-white/10 bg-white/5 py-1 px-8 text-xs text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2 mb-6"
+            className="mx-auto w-70 rounded-lg border border-white/10 bg-[#05070d]/60 backdrop-blur-[3px] py-1 px-8 text-xs text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2 mb-6"
           >
             <Play className="h-4 w-4 text-[#00FFA3]" />
             <span>Quick Play</span>
