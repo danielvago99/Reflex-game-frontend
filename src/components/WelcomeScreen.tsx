@@ -107,7 +107,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       {/* Content */}
       <div className="relative z-10 flex w-full max-w-xs flex-col items-center">
         {/* Logo */}
-        <div className="mb-6 xs:mb-8 relative">
+        <div className="mb-4 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
           <div className="relative bg-gradient-to-br from-[#00FFA3] to-[#7C3AED] p-4 xs:p-5 sm:p-6 rounded-2xl xs:rounded-3xl shadow-2xl">
             <Zap className="w-12 xs:w-14 sm:w-16 h-12 xs:h-14 sm:h-16 text-[#0B0F1A]" strokeWidth={2.5} />
@@ -115,7 +115,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
+        <h1 className="text-2xl xs:text-2xl mb-6 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
         <p className="text-xs xs:text-xs text-gray-400  text-center px-2 gap-3 mb-4">
