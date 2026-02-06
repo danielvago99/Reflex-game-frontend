@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-6 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400  text-center px-2 gap-3 mb-4">
+        <p className="text-xs xs:text-xs text-gray-400  text-center px-2 gap-3 mb-6">
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
@@ -172,7 +172,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         {/* Guaranteed Fair Play Section */}
         <div className="w-full max-w-xs mx-auto">
           {/* Neon Header with Decorations */}
-          <div className="flex items-center justify-center gap-3 mb-5">
+          <div className="flex items-center justify-center gap-3 mb-6">
             {/* Left Decoration */}
             <div className="flex items-center gap-1 opacity-50">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00FFA3]"></div>
