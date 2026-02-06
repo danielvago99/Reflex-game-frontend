@@ -105,7 +105,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       <FuturisticBackground />
 
       {/* Content */}
-      <div className="relative z-10 flex w-full max-w-md flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-xs flex-col items-center">
         {/* Logo */}
         <div className="mb-6 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400 max-w-xs text-center px-2 gap-3 mb-4">
+        <p className="text-xs xs:text-xs text-gray-400  text-center px-2 gap-3 mb-4">
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
@@ -170,7 +170,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         </div>
 
         {/* Guaranteed Fair Play Section */}
-        <div className="w-full max-w-sm mx-auto">
+        <div className="w-full max-w-xs mx-auto">
           {/* Neon Header with Decorations */}
           <div className="flex items-center justify-center gap-3 mb-5">
             {/* Left Decoration */}
