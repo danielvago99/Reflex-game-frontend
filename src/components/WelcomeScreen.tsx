@@ -105,7 +105,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
       <FuturisticBackground />
 
       {/* Content */}
-      <div className="relative z-10 flex w-full max-w-xs flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
         {/* Logo */}
         <div className="mb-4 xs:mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] blur-xl opacity-50 rounded-full"></div>
@@ -170,7 +170,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         </div>
 
         {/* Guaranteed Fair Play Section */}
-        <div className="w-full max-w-xs mx-auto">
+        <div className="w-full max-w-sm mx-auto">
           {/* Neon Header with Decorations */}
           <div className="flex items-center justify-center gap-3 mb-6">
             {/* Left Decoration */}
@@ -197,8 +197,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <ShieldCheck className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#00FFA3]/10 p-1.5 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+                  <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#00FFA3]">Anti-Cheat</h4>
@@ -211,8 +211,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                  <Trophy className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#7C3AED]/10 p-1.5 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                  <Trophy className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#7C3AED]">Winner Gets Paid</h4>
@@ -225,8 +225,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#00FFA3]/10 p-2 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <Gamepad2 className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#00FFA3]/10 p-1.5 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+                  <Gamepad2 className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#00FFA3]">Practise Mode</h4>
@@ -239,12 +239,12 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="relative flex flex-col items-center gap-2 text-center">
-                <div className="rounded-full bg-[#7C3AED]/10 p-2 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                  <UsersRound className="h-5 w-5" strokeWidth={2.5} />
+                <div className="rounded-full bg-[#7C3AED]/10 p-1.5 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                  <UsersRound className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#7C3AED]">Fair Matchmaking</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Stake SOL to compete in 1v1 ranked & friend matches.</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Stake SOL in 1v1 ranked & friend match.</p>
                 </div>
               </div>
             </div>
