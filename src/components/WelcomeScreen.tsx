@@ -196,12 +196,12 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             {/* Anti-Cheat */}
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
+              <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-1.5 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <ShieldCheck className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#00FFA3]">Anti-Cheat</h4>
+                  <h4 className="text-xs font-bold text-[#00FFA3] mb-1">Anti-Cheat</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Equal latency & verified reaction times.</p>
                 </div>
               </div>
@@ -210,12 +210,12 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             {/* Smart Contract */}
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
+              <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-1.5 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
                   <Trophy className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#7C3AED]">Winner Gets Paid</h4>
+                  <h4 className="text-xs font-bold text-[#7C3AED] mb-1">Winner Gets Paid</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts verified on solscan.io</p>
                 </div>
               </div>
@@ -224,12 +224,12 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             {/* Practise Mode */}
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
+              <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-1.5 text-[#00FFA3] shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <Gamepad2 className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#00FFA3]">Practise Mode</h4>
+                  <h4 className="text-xs font-bold text-[#00FFA3] mb-1">Practise Mode</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Train without SOL stake against bot opponent.</p>
                 </div>
               </div>
@@ -238,12 +238,12 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             {/* Matchmaking */}
             <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 bg-[#05070d]/60 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#A855F7]/50 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="relative flex flex-col items-center gap-2 text-center">
+              <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-1.5 text-[#7C3AED] shadow-[0_0_15px_rgba(124,58,237,0.2)]">
                   <UsersRound className="h-4 w-4" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#7C3AED]">Fair Matchmaking</h4>
+                  <h4 className="text-xs font-bold text-[#7C3AED] mb-1">Fair Matchmaking</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Stake SOL in 1v1 ranked & friend match.</p>
                 </div>
               </div>
