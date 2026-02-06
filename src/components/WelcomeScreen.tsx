@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-2 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400 text-center px-2 gap-3 mb-4">
+        <p className="text-xs xs:text-xs text-gray-400 max-w-xs text-center px-2 gap-3 mb-4">
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
@@ -202,7 +202,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#00FFA3]">Anti-Cheat</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Server-verified reaction times, identical targets, equal latency.</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Equal latency & verified reaction times.</p>
                 </div>
               </div>
             </div>
@@ -216,7 +216,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#7C3AED]">Winner Gets Paid</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts on-chain with verification on solscan.io</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts verified on solscan.io</p>
                 </div>
               </div>
             </div>
@@ -230,7 +230,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#00FFA3]">Practise Mode</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">You can train without SOL stake against bot in practise mode.</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Train without SOL stake against bot opponent.</p>
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#7C3AED]">Fair Matchmaking</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Stake your SOL to compete in 1v1 ranked or friend matches.</p>
+                  <p className="text-[10px] text-gray-400 leading-tight">Stake SOL to compete in 1v1 ranked & friend matches.</p>
                 </div>
               </div>
             </div>
