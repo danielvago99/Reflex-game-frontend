@@ -196,8 +196,8 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             {/* Anti-Cheat */}
             <div className="group relative overflow-hidden rounded-xl border border-[#00FFA3]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/60 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute bottom-px left-7 right-7 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent z-10"></div>
-              <div className="pointer-events-none absolute bottom-px left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#00FFA3]/80 to-transparent blur-[1px] z-10"></div>
+              <div className="pointer-events-none absolute bottom-[1px] left-7 right-7 h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent z-10"></div>
+              <div className="pointer-events-none absolute bottom-[1px] left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#00FFA3]/80 to-transparent blur-[1px] z-10"></div>
               <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <ShieldCheck className="h-4 w-4 text-[#00FFA3]" strokeWidth={2.5} />
