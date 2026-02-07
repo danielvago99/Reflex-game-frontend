@@ -321,7 +321,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             <div className="absolute -inset-4 bg-gradient-to-br from-[#7C3AED]/20 via-[#06B6D4]/20 to-[#00FFA3]/20 blur-2xl opacity-60"></div>
 
             <div
-              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden"
+              className="relative bg-black/10 backdrop-blur-sm border-2 border-white/20 shadow-2xl overflow-hidden p-6"
               style={{
                 clipPath:
                   'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
@@ -332,7 +332,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="absolute bottom-0 right-0 h-px w-8 bg-gradient-to-l from-[#7C3AED] to-transparent"></div>
               <div className="absolute bottom-0 right-0 h-8 w-px bg-gradient-to-t from-[#7C3AED] to-transparent"></div>
 
-              <div className="flex items-start justify-between px-6 pt-6">
+              <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-lg text-white">Connect your wallet</h2>
                   <p className="text-xs text-gray-400">Choose a Solana wallet to enter the arena.</p>
@@ -346,7 +346,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </button>
               </div>
 
-              <div className="space-y-3 px-6 py-5">
+              <div className="space-y-3 py-5">
                 {walletOptions.length === 0 ? (
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-400">
                     No compatible wallets detected. Install Phantom or Solflare to continue.
@@ -394,7 +394,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               </div>
 
               {errorMessage ? (
-                <div className="mx-6 mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.2)]">
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200 shadow-[0_0_15px_rgba(248,113,113,0.2)]">
                   {errorMessage}
                 </div>
               ) : null}
