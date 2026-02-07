@@ -194,11 +194,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
           {/* 2x2 Grid */}
           <div className="grid grid-cols-2 gap-3">
             {/* Anti-Cheat */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#00FFA3]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/60 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute bottom-[1px] left-7 right-7 h-[1px] bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent z-10"></div>
-              <div className="pointer-events-none absolute bottom-[1px] left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#00FFA3]/80 to-transparent blur-[1px] z-10"></div>
-              <div className="relative flex flex-col items-center gap-1.5 text-center">
+            <div className="group relative isolate overflow-hidden rounded-xl border border-[#00FFA3]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#00FFA3]/60 hover:bg-white/5">
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-7 right-7 z-10 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-8 right-8 z-10 h-[3px] bg-gradient-to-r from-transparent via-[#00FFA3]/80 to-transparent blur-[2px]"></div>
+              <div className="relative z-20 flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <ShieldCheck className="h-4 w-4 text-[#00FFA3]" strokeWidth={2.5} />
                 </div>
@@ -210,11 +210,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Smart Contract */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#7C3AED]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/60 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute bottom-0 left-7 right-7 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
-              <div className="pointer-events-none absolute bottom-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#7C3AED]/80 to-transparent blur-[1px]"></div>
-              <div className="relative flex flex-col items-center gap-1.5 text-center">
+            <div className="group relative isolate overflow-hidden rounded-xl border border-[#7C3AED]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#7C3AED]/60 hover:bg-white/5">
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#7C3AED]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-7 right-7 z-10 h-px bg-gradient-to-r from-transparent via-[#7C3AED] to-transparent"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-8 right-8 z-10 h-[3px] bg-gradient-to-r from-transparent via-[#7C3AED]/80 to-transparent blur-[2px]"></div>
+              <div className="relative z-20 flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#7C3AED]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <Trophy className="h-4 w-4 text-[#7C3AED]" strokeWidth={2.5} />
                 </div>
@@ -226,11 +226,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Practise Mode */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#06B6D4]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#06B6D4]/60 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute bottom-0 left-7 right-7 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
-              <div className="pointer-events-none absolute bottom-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#06B6D4]/80 to-transparent blur-[1px]"></div>
-              <div className="relative flex flex-col items-center gap-1.5 text-center">
+            <div className="group relative isolate overflow-hidden rounded-xl border border-[#06B6D4]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#06B6D4]/60 hover:bg-white/5">
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-7 right-7 z-10 h-px bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-8 right-8 z-10 h-[3px] bg-gradient-to-r from-transparent via-[#06B6D4]/80 to-transparent blur-[2px]"></div>
+              <div className="relative z-20 flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#06B6D4]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <Gamepad2 className="h-4 w-4 text-[#06B6D4]" strokeWidth={2.5} />
                 </div>
@@ -242,11 +242,11 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Matchmaking */}
-            <div className="group relative overflow-hidden rounded-xl border border-fuchsia-400/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-fuchsia-400/60 hover:bg-white/5">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#ca33f8]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute bottom-0 left-7 right-7 h-px bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent"></div>
-              <div className="pointer-events-none absolute bottom-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-fuchsia-400/80 to-transparent blur-[1px]"></div>
-              <div className="relative flex flex-col items-center gap-1.5 text-center">
+            <div className="group relative isolate overflow-hidden rounded-xl border border-fuchsia-400/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-fuchsia-400/60 hover:bg-white/5">
+              <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#ca33f8]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-7 right-7 z-10 h-px bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent"></div>
+              <div className="pointer-events-none absolute bottom-[3px] left-8 right-8 z-10 h-[3px] bg-gradient-to-r from-transparent via-fuchsia-400/80 to-transparent blur-[2px]"></div>
+              <div className="relative z-20 flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-fuchsia-400/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <UsersRound className="h-4 w-4 text-fuchsia-400" strokeWidth={2.5} />
                 </div>
