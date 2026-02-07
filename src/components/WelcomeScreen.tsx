@@ -239,15 +239,15 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </div>
 
             {/* Matchmaking */}
-            <div className="group relative overflow-hidden rounded-xl border border-[#ca33f8]/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-[#ca33f8]/60 hover:bg-white/5">
+            <div className="group relative overflow-hidden rounded-xl border border-fuchsia-400/20 p-3 backdrop-blur-[3px] transition-all duration-300 hover:border-fuchsia-400/60 hover:bg-white/5">
               <div className="absolute inset-0 bg-gradient-to-br from-[#ca33f8]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#ca33f8] to-transparent"></div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent"></div>
               <div className="relative flex flex-col items-center gap-1.5 text-center">
-                <div className="rounded-full bg-[#ca33f8]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
-                  <UsersRound className="h-4 w-4 text-[#ca33f8]" strokeWidth={2.5} />
+                <div className="rounded-full bg-fuchsia-400/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
+                  <UsersRound className="h-4 w-4 text-fuchsia-400" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[#ca33f8] mb-1">Fair Matchmaking</h4>
+                  <h4 className="text-xs font-bold text-fuchsia-400 mb-1">Fair Matchmaking</h4>
                   <p className="text-[10px] text-gray-400 leading-tight">Stake SOL in 1v1 ranked & friend match.</p>
                 </div>
               </div>
