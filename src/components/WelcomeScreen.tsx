@@ -198,7 +198,6 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
               <div className="absolute inset-0 bg-gradient-to-br from-[#00FFA3]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
               <div className="pointer-events-none absolute inset-x-6 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#00FFA3]/60 to-transparent blur-[1px]"></div>
-              <div className="absolute bottom-0 left-7 right-7 h-px bg-gradient-to-r from-transparent via-[#00FFA3] to-transparent"></div>
               <div className="relative flex flex-col items-center gap-1.5 text-center">
                 <div className="rounded-full bg-[#00FFA3]/10 p-1.5 shadow-[0_0_15px_rgba(0,255,163,0.2)]">
                   <ShieldCheck className="h-4 w-4 text-[#00FFA3]" strokeWidth={2.5} />
