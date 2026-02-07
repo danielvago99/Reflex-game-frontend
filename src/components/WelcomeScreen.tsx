@@ -299,16 +299,16 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
             </svg>
           </a>
           <a
-            href="https://www.youtube.com"
+            href="https://t.me"
             target="_blank"
             rel="noreferrer"
-            aria-label="YouTube"
-            className="rounded-full border border-white/10 bg-white/5 p-2 text-[#00FFA3] transition hover:border-[#00FFA3]/60 hover:shadow-[0_0_20px_rgba(0,255,163,0.35)]"
+            aria-label="Telegram"
+            className="rounded-full border border-white/10 bg-white/5 p-2 text-fuchsia-400 transition hover:border-fuchsia-400/60 hover:shadow-[0_0_20px_rgba(232,121,249,0.35)]"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
               <path
                 fill="currentColor"
-                d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.13C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.57A3.02 3.02 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.13C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.57a3.02 3.02 0 0 0 2.12-2.13A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8ZM9.6 15.5V8.5l6.4 3.5-6.4 3.5Z"
+                d="M21.5 4.5 2.6 11.7c-.8.3-.8 1.4.1 1.6l4.6 1.5 1.8 5.6c.2.7 1.1.8 1.6.4l2.5-2 4.9 3.6c.6.4 1.4.1 1.6-.6l3.3-15.6c.2-.9-.6-1.6-1.5-1.2Zm-5.6 4.6-7.8 7.1-.3 3.2-1.3-4.1 9.4-8.5c.4-.4 1 0 .7.3Z"
               />
             </svg>
           </a>
