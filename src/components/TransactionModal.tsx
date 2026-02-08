@@ -10,16 +10,23 @@ type TransactionState =
   | 'error'            // Transaction failed
   | 'dao-funded';      // Free stake auto-approved
 
+type TransactionProgressState = 'broadcasting';
+
 interface TransactionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel?: () => void;
   onFailure?: (message: string) => void;
+  onSign?: (reportState: (state: TransactionProgressState) => void) => Promise<string>;
   stakeAmount: number;
   isFreeStake?: boolean;
   transactionType?: 'stake' | 'claim' | 'withdrawal';
   estimatedFee?: number;
+  recipientAddress?: string;
+  network?: 'devnet' | 'mainnet-beta' | 'testnet';
+  successActionLabel?: string;
+  successDescription?: string;
 }
 
 export function TransactionModal({
@@ -28,10 +35,15 @@ export function TransactionModal({
   onConfirm,
   onCancel,
   onFailure,
+  onSign,
   stakeAmount,
   isFreeStake = false,
   transactionType = 'stake',
   estimatedFee = 0.000005,
+  recipientAddress,
+  network = 'devnet',
+  successActionLabel = 'Continue to Game',
+  successDescription,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
@@ -75,6 +87,35 @@ export function TransactionModal({
       description: 'Please check your wallet',
     });
 
+    if (onSign) {
+      try {
+        const signature = await onSign((nextState) => {
+          if (nextState === 'broadcasting') {
+            setState('broadcasting');
+          }
+        });
+        setTxId(signature);
+        setState('success');
+        toast.dismiss(loadingToastId);
+        toast.success('Transaction confirmed', {
+          description: successDescription ?? 'Your transaction has been confirmed',
+          duration: 3000,
+        });
+        return;
+      } catch (error) {
+        const failureMessage = error instanceof Error ? error.message : 'Transaction failed';
+        setErrorMessage(failureMessage);
+        setState('error');
+        toast.dismiss(loadingToastId);
+        toast.error('Transaction failed', {
+          description: 'Please try again',
+          duration: 4000,
+        });
+        onFailure?.(failureMessage);
+        return;
+      }
+    }
+
     // Simulate wallet signing delay
     setTimeout(() => {
       setState('broadcasting');
@@ -106,7 +147,6 @@ export function TransactionModal({
             duration: 4000,
           });
           onFailure?.(failureMessage);
-          onOpenChange(false);
         }
       }, 2000);
     }, 1500);
@@ -141,9 +181,27 @@ export function TransactionModal({
   };
 
   const getRecipientAddress = () => {
+    if (recipientAddress) return recipientAddress;
     if (transactionType === 'stake') return 'GameContract...xyz';
     if (transactionType === 'claim') return 'YourWallet...abc';
     return 'DAO Treasury...def';
+  };
+
+  const getAmountLabel = () => {
+    if (transactionType === 'withdrawal') return 'Withdraw Amount';
+    if (transactionType === 'claim') return 'Claim Amount';
+    return 'Stake Amount';
+  };
+
+  const getSuccessAmountLabel = () => {
+    if (transactionType === 'withdrawal') return 'Amount Withdrawn';
+    if (transactionType === 'claim') return 'Amount Claimed';
+    return 'Amount Staked';
+  };
+
+  const getExplorerUrl = () => {
+    const clusterParam = network === 'devnet' ? '?cluster=devnet' : network === 'testnet' ? '?cluster=testnet' : '';
+    return `https://solscan.io/tx/${txId}${clusterParam}`;
   };
 
   const handleClose = () => {
@@ -193,7 +251,7 @@ export function TransactionModal({
                 {/* Stake Amount */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-gray-400">Stake Amount</span>
+                    <span className="text-sm text-gray-400">{getAmountLabel()}</span>
                     <span className="text-white">◎ {stakeAmount.toFixed(3)}</span>
                   </div>
                 </div>
@@ -315,14 +373,16 @@ export function TransactionModal({
                 </div>
 
                 <h2 className="text-2xl text-white mb-2">Transaction Successful!</h2>
-                <p className="text-sm text-gray-400">Your {transactionType} has been confirmed</p>
+                <p className="text-sm text-gray-400">
+                  {successDescription ?? `Your ${transactionType} has been confirmed`}
+                </p>
               </div>
 
               {/* Transaction Summary */}
               <div className="space-y-3 mb-6">
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">Amount Staked</span>
+                    <span className="text-sm text-gray-400">{getSuccessAmountLabel()}</span>
                     <span className="text-[#00FFA3]">◎ {stakeAmount.toFixed(3)}</span>
                   </div>
                 </div>
@@ -356,7 +416,7 @@ export function TransactionModal({
 
               {/* View on Explorer */}
               <a
-                href={`https://solscan.io/tx/${txId}`}
+                href={getExplorerUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#06B6D4]/50 text-[#06B6D4] rounded-lg transition-all mb-3"
@@ -373,7 +433,7 @@ export function TransactionModal({
                 }}
                 className="w-full px-4 py-3 bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)] text-[#0B0F1A] rounded-lg transition-all"
               >
-                Continue to Game
+                {successActionLabel}
               </button>
             </div>
           )}

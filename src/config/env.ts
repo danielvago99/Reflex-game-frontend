@@ -9,12 +9,16 @@
  * VITE_WS_URL=wss://your-backend-api.com/ws
  * VITE_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
  * VITE_SOLANA_NETWORK=mainnet-beta
+ * VITE_HELIUS_API_KEY=your-helius-api-key
+ * VITE_HELIUS_RPC_URL=https://rpc.helius.xyz/?api-key=your-helius-api-key
  * 
  * For development:
  * VITE_API_BASE_URL=http://localhost:3000/api
  * VITE_WS_URL=ws://localhost:3000/ws
  * VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
  * VITE_SOLANA_NETWORK=devnet
+ * VITE_HELIUS_API_KEY=your-helius-api-key
+ * VITE_HELIUS_RPC_URL=https://rpc-devnet.helius.xyz/?api-key=your-helius-api-key
  */
 
 const isFlagEnabled = (value: string | undefined, defaultValue: boolean) => {
@@ -37,6 +41,20 @@ const resolveSolanaNetwork = (rpcUrl: string) => {
 };
 
 const solanaRpcUrl = resolveSolanaRpcUrl();
+const solanaNetwork = resolveSolanaNetwork(solanaRpcUrl);
+
+const resolveHeliusRpcUrl = (network: string) => {
+  const directUrl = env.VITE_HELIUS_RPC_URL || env.HELIUS_RPC_URL;
+  if (directUrl) return directUrl;
+
+  const apiKey = env.VITE_HELIUS_API_KEY || env.HELIUS_API_KEY;
+  if (!apiKey) return '';
+
+  const baseUrl = network === 'devnet' ? 'https://rpc-devnet.helius.xyz' : 'https://rpc.helius.xyz';
+  return `${baseUrl}/?api-key=${apiKey}`;
+};
+
+const heliusRpcUrl = resolveHeliusRpcUrl(solanaNetwork);
 
 export const ENV = {
   // Backend API Configuration
@@ -47,7 +65,8 @@ export const ENV = {
 
   // Solana Configuration
   SOLANA_RPC_URL: solanaRpcUrl,
-  SOLANA_NETWORK: resolveSolanaNetwork(solanaRpcUrl),
+  SOLANA_NETWORK: solanaNetwork,
+  HELIUS_RPC_URL: heliusRpcUrl,
 
   // Platform Configuration
   PLATFORM_FEE_PERCENTAGE: 15, // 15% platform fee
