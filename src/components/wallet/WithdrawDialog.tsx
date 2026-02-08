@@ -38,11 +38,13 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     recipientAddress.length > 30 &&
     numAmount > 0 &&
     feeLamports != null &&
-    totalCost <= currentBalance;
+    totalCost <= currentBalance &&
+    !feeLoading;
 
   useEffect(() => {
     let active = true;
     let intervalId: number | undefined;
+    let timeoutId: number | undefined;
 
     const toBase64 = (data: Uint8Array) => {
       let binary = '';
@@ -130,16 +132,43 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
       }
     };
 
-    fetchFee();
-    intervalId = window.setInterval(fetchFee, 15000);
+    timeoutId = window.setTimeout(fetchFee, 300);
+    intervalId = window.setInterval(fetchFee, 5000);
 
     return () => {
       active = false;
       if (intervalId) {
         window.clearInterval(intervalId);
       }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, [open, publicKey, recipientAddress]);
+
+  useEffect(() => {
+    const nextErrors = { address: '', amount: '' };
+
+    if (recipientAddress.length > 0) {
+      try {
+        new PublicKey(recipientAddress);
+      } catch {
+        nextErrors.address = 'Invalid Solana address';
+      }
+    }
+
+    if (amount.length > 0) {
+      if (numAmount <= 0) {
+        nextErrors.amount = 'Amount must be greater than 0';
+      } else if (feeLamports == null) {
+        nextErrors.amount = 'Calculating network fee...';
+      } else if (totalCost > currentBalance) {
+        nextErrors.amount = 'Insufficient balance (including fees)';
+      }
+    }
+
+    setErrors(nextErrors);
+  }, [amount, currentBalance, feeLamports, numAmount, recipientAddress, totalCost]);
 
   const handleMaxAmount = () => {
     const maxAmount = Math.max(0, currentBalance - estimatedFee);
@@ -147,21 +176,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
   };
 
   const handleWithdraw = () => {
-    const newErrors = { address: '', amount: '' };
-    
-    if (recipientAddress.length < 32) {
-      newErrors.address = 'Invalid Solana address';
-    }
-    
-    if (numAmount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
-    } else if (totalCost > currentBalance) {
-      newErrors.amount = 'Insufficient balance (including fees)';
-    }
-    
-    setErrors(newErrors);
-    
-    if (!newErrors.address && !newErrors.amount) {
+    if (!errors.address && !errors.amount && canWithdraw) {
       setPendingWithdrawal({ amount: numAmount, recipient: recipientAddress });
       setShowTransactionModal(true);
     }
@@ -394,6 +409,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
         }}
         onFailure={(message) => toast.error(message)}
         onSign={handleTransactionSign}
+        autoStart
         stakeAmount={pendingWithdrawal?.amount ?? numAmount}
         estimatedFee={estimatedFee}
         transactionType="withdrawal"

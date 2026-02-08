@@ -1,5 +1,5 @@
 import { X, Shield, Copy, Check, AlertCircle, ExternalLink, Zap, Vault, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 type TransactionState = 
@@ -27,6 +27,7 @@ interface TransactionModalProps {
   network?: 'devnet' | 'mainnet-beta' | 'testnet';
   successActionLabel?: string;
   successDescription?: string;
+  autoStart?: boolean;
 }
 
 export function TransactionModal({
@@ -44,11 +45,13 @@ export function TransactionModal({
   network = 'devnet',
   successActionLabel = 'Continue to Game',
   successDescription,
+  autoStart = false,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const hasAutoStarted = useRef(false);
 
   useEffect(() => {
     if (!open) {
@@ -63,6 +66,7 @@ export function TransactionModal({
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
+      hasAutoStarted.current = false;
       if (isFreeStake) {
         setState('dao-funded');
         // Auto-proceed after 2 seconds
@@ -151,6 +155,13 @@ export function TransactionModal({
       }, 2000);
     }, 1500);
   };
+
+  useEffect(() => {
+    if (!open || isFreeStake || !autoStart) return;
+    if (hasAutoStarted.current) return;
+    hasAutoStarted.current = true;
+    handleSign();
+  }, [autoStart, isFreeStake, open]);
 
   const handleDaoFundedComplete = () => {
     toast.success('Free stake activated', {
