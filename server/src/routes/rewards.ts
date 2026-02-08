@@ -30,15 +30,59 @@ const getRewardsPayload = async (userId: string) => {
     }),
     prisma.weeklyStreak.findUnique({
       where: { userId },
-      select: { currentDailyStreak: true },
+      select: {
+        currentDailyStreak: true,
+        weekStartDate: true,
+        weekEndDate: true,
+        updatedAt: true,
+      },
     }),
   ]);
+
+  const normalizeDate = (value: Date) => {
+    const normalized = new Date(value);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  };
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  let resolvedWeeklyStreak = weeklyStreak;
+
+  if (weeklyStreak) {
+    const lastUpdate = normalizeDate(weeklyStreak.updatedAt);
+    const missedDay = lastUpdate.getTime() < yesterday.getTime();
+
+    if (missedDay) {
+      const weekEnded = today > normalizeDate(weeklyStreak.weekEndDate);
+      const nextWeekStart = weekEnded ? today : weeklyStreak.weekStartDate;
+      const nextWeekEnd = weekEnded
+        ? (() => {
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + 7);
+            return endDate;
+          })()
+        : weeklyStreak.weekEndDate;
+
+      resolvedWeeklyStreak = await prisma.weeklyStreak.update({
+        where: { userId },
+        data: {
+          currentDailyStreak: 0,
+          completed: false,
+          weekStartDate: nextWeekStart,
+          weekEndDate: nextWeekEnd,
+        },
+        select: { currentDailyStreak: true },
+      });
+    }
+  }
 
   return {
     reflexPoints: rewards?.reflexPoints ?? 0,
     dailyProgress: dailyProgress?.matchesPlayed ?? 0,
     dailyTarget: DAILY_TARGET,
-    streak: weeklyStreak?.currentDailyStreak ?? 0,
+    streak: resolvedWeeklyStreak?.currentDailyStreak ?? 0,
     freeStakes005: rewards?.freeStakes05Sol ?? 0,
     freeStakes010: rewards?.freeStakes01Sol ?? 0,
     freeStakes020: rewards?.freeStakes02Sol ?? 0,
