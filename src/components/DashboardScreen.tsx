@@ -207,7 +207,7 @@ export function DashboardScreen({
                       <button
                         type="button"
                         onClick={() => setShowJackpot(true)}
-                        className="relative flex items-center gap-3 rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-3 py-2 text-left text-[#0B0F1A] shadow-[0_0_20px_rgba(0,255,163,0.35)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,163,0.5)]"
+                        className="relative flex items-center gap-3 rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#7C3AED] px-3 py-2 text-left text-[#0B0F1A] shadow-[0_0_20px_rgba(0,255,163,0.35)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,163,0.5)]"
                       >
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/35">
                           <Trophy className="h-4 w-4 motion-safe:animate-bounce" />
