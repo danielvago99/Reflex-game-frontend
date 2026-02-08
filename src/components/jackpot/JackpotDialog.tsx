@@ -1,4 +1,4 @@
-import { Trophy, Wallet, Zap } from 'lucide-react';
+import { Trophy, Wallet, X, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 
 interface JackpotDialogProps {
@@ -8,7 +8,6 @@ interface JackpotDialogProps {
 
 const JACKPOT_VAULT_ADDRESS = '9oX2h8rVx8TzHnQZV9TQ1u1g8P7B1wTnQq2x9ZfJp1gA';
 const JACKPOT_POOL_SOL = 30.47;
-const JACKPOT_ENTRIES = 1843;
 const JACKPOT_REQUIRED_STREAK = 10;
 const JACKPOT_CURRENT_STREAK = 6;
 
@@ -19,6 +18,13 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] border-2 border-[#7C3AED]/40 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto shadow-[0_0_60px_rgba(124,58,237,0.3)]">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+          aria-label="Close dialog"
+        >
+          <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
+        </button>
         <div className="absolute inset-0 opacity-15" style={{
           backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(124,58,237,0.4) 0, transparent 45%), radial-gradient(circle at 80% 0%, rgba(0,255,163,0.3) 0, transparent 50%)'
         }}></div>
@@ -36,16 +42,11 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
         </DialogHeader>
 
         <div className="relative z-10 mt-6 space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Actual Prize Pool</p>
               <p className="text-2xl font-semibold text-[#00FFA3]">{JACKPOT_POOL_SOL.toFixed(2)} SOL</p>
               <p className="text-xs text-gray-400 mt-1">Pool grows until a winner is verified.</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Entries</p>
-              <p className="text-2xl font-semibold text-white">{JACKPOT_ENTRIES.toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-1">Across all staked matches</p>
             </div>
           </div>
 
