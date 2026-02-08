@@ -118,7 +118,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <h1 className="text-2xl xs:text-2xl mb-6 xs:mb-3 bg-gradient-to-r from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] bg-clip-text text-transparent">
           REFLEXMATCH.io
         </h1>
-        <p className="text-xs xs:text-xs text-gray-400  text-center px-2 gap-3 mb-6">
+        <p className="text-xs xs:text-xs text-gray-200  text-center px-2 gap-3 mb-6">
           Compete worldwide in live 1v1 reflex match for SOL. React faster than your opponent and win the pot.
         </p>
 
@@ -135,7 +135,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
 
           <button
             onClick={() => onNavigate('create-wallet')}
-            className="mx-auto w-70 rounded-lg border border-white/10 bg-[#05070d]/60 backdrop-blur-[3px] py-1 px-8 text-xs text-white/90 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2 mb-6"
+            className="mx-auto w-70 rounded-lg border border-[#7C3AED]/20 backdrop-blur-[3px] py-1 px-8 text-xs text-gray-200 shadow-lg transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white flex items-center justify-center gap-2 mb-6"
           >
             <Play className="h-4 w-4 text-[#00FFA3]" />
             <span>Quick Play</span>
@@ -155,14 +155,14 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
         <div className="flex flex-wrap items-center justify-center gap-4 text-sm mb-4">
           <button
             onClick={() => onNavigate('create-wallet')}
-            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
+            className="flex items-center gap-2 text-gray-200 transition hover:text-[#06B6D4]"
           >
             <Zap className="h-4 w-4" />
             <span>Create Wallet</span>
           </button>
           <button
             onClick={() => onNavigate('unlock-wallet')}
-            className="flex items-center gap-2 text-gray-400 transition hover:text-white"
+            className="flex items-center gap-2 text-gray-200 transition hover:text-[#06B6D4]"
           >
             <Key className="h-4 w-4" />
             <span>Unlock Wallet</span>
@@ -204,7 +204,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#00FFA3] mb-1">Anti-Cheat</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Equal latency & verified reaction times.</p>
+                  <p className="text-[10px] text-gray-300 leading-tight">Equal latency & verified reaction times.</p>
                 </div>
               </div>
             </div>
@@ -220,7 +220,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#7C3AED] mb-1">Winner Gets Paid</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Automatic payouts verified on solscan.io</p>
+                  <p className="text-[10px] text-gray-300 leading-tight">Automatic payouts verified on solscan.io</p>
                 </div>
               </div>
             </div>
@@ -236,7 +236,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#06B6D4] mb-1">Practise Mode</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Train without SOL stake against bot opponent.</p>
+                  <p className="text-[10px] text-gray-300 leading-tight">Train without SOL stake against bot opponent.</p>
                 </div>
               </div>
             </div>
@@ -252,7 +252,7 @@ export function WelcomeScreen({ onNavigate }: WelcomeScreenProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-fuchsia-400 mb-1">Fair Matchmaking</h4>
-                  <p className="text-[10px] text-gray-400 leading-tight">Stake SOL in 1v1 ranked & friend match.</p>
+                  <p className="text-[10px] text-gray-300 leading-tight">Stake SOL in 1v1 ranked & friend match.</p>
                 </div>
               </div>
             </div>
