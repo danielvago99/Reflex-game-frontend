@@ -37,7 +37,6 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
   const canWithdraw =
     recipientAddress.length > 30 &&
     numAmount > 0 &&
-    feeLamports != null &&
     totalCost <= currentBalance;
 
   useEffect(() => {
@@ -387,6 +386,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
             setPendingWithdrawal(null);
           }
         }}
+        autoStart
         onConfirm={handleTransactionSuccess}
         onCancel={() => {
           setShowTransactionModal(false);
