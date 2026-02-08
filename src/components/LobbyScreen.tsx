@@ -68,6 +68,13 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const freeStakeTotal = getFreeStakeTotal(freeStakes);
 
   useEffect(() => {
+    if (selectedMode !== 'ranked') {
+      setSelectedFreeStakeAmount(null);
+      setUseFreeStakeMode(false);
+    }
+  }, [selectedMode]);
+
+  useEffect(() => {
     const unsubscribeSearching = wsService.on('match:searching', (message: any) => {
       console.log('match:searching payload received:', message?.payload);
       setMatchStatus('searching');
@@ -286,7 +293,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       }
 
       // Skip transaction for free stakes (DAO treasury handles it)
-      if (useFreeStakeMode && selectedFreeStakeAmount) {
+      if (matchDetails.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
         try {
           await consumeFreeStake(selectedFreeStakeAmount);
         } catch (error) {
@@ -350,7 +357,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   };
 
   const handleTransactionConfirm = async () => {
-    if (useFreeStakeMode && selectedFreeStakeAmount) {
+    if (pendingMatch?.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
       try {
         await consumeFreeStake(selectedFreeStakeAmount);
       } catch (error) {
