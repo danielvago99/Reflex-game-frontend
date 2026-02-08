@@ -169,6 +169,7 @@ model GameSession {
   loser         User?         @relation("SessionLoser", fields: [loserId], references: [id])
   rounds        GameRound[]
   transactions  Transaction[]
+  reports       Report[]
 
   @@index([winnerId])
   @@index([loserId])
