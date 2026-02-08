@@ -1,4 +1,4 @@
-import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Zap } from 'lucide-react';
+import { Gamepad2, TrendingUp, Settings, Gift, ArrowDownToLine, ArrowUpFromLine, Trophy, Zap } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -210,7 +210,7 @@ export function DashboardScreen({
                         className="relative flex items-center gap-3 rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-3 py-2 text-left text-[#0B0F1A] shadow-[0_0_20px_rgba(0,255,163,0.35)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,163,0.5)]"
                       >
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/35">
-                          <Zap className="h-4 w-4" />
+                          <Trophy className="h-4 w-4 motion-safe:animate-bounce" />
                         </span>
                         <span className="flex flex-col leading-tight">
                           <span className="text-sm font-semibold">Jackpot</span>
