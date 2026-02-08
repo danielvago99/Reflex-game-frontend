@@ -183,6 +183,29 @@ CREATE TABLE "WeeklyStreak" (
     CONSTRAINT "WeeklyStreak_pkey" PRIMARY KEY ("userId")
 );
 
+-- CreateTable
+CREATE TABLE "JackpotProgress" (
+    "userId" TEXT NOT NULL,
+    "date" DATE NOT NULL,
+    "currentWinStreak" INTEGER NOT NULL DEFAULT 0,
+    "completed" BOOLEAN NOT NULL DEFAULT false,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JackpotProgress_pkey" PRIMARY KEY ("userId","date")
+);
+
+-- CreateTable
+CREATE TABLE "Report" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Report_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_walletAddress_key" ON "User"("walletAddress");
 
@@ -234,6 +257,15 @@ CREATE INDEX "Referral_referredId_idx" ON "Referral"("referredId");
 -- CreateIndex
 CREATE INDEX "WeeklyStreak_userId_idx" ON "WeeklyStreak"("userId");
 
+-- CreateIndex
+CREATE INDEX "JackpotProgress_userId_idx" ON "JackpotProgress"("userId");
+
+-- CreateIndex
+CREATE INDEX "Report_userId_idx" ON "Report"("userId");
+
+-- CreateIndex
+CREATE INDEX "Report_sessionId_idx" ON "Report"("sessionId");
+
 -- AddForeignKey
 ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -275,3 +307,12 @@ ALTER TABLE "DailyChallengeProgress" ADD CONSTRAINT "DailyChallengeProgress_user
 
 -- AddForeignKey
 ALTER TABLE "WeeklyStreak" ADD CONSTRAINT "WeeklyStreak_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JackpotProgress" ADD CONSTRAINT "JackpotProgress_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Report" ADD CONSTRAINT "Report_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Report" ADD CONSTRAINT "Report_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "GameSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
