@@ -100,6 +100,8 @@ model User {
   // Gamifikácia
   dailyChallengeProgress DailyChallengeProgress[]
   weeklyStreaks          WeeklyStreak[]
+  jackpotProgress        JackpotProgress[]
+  reports                Report[]
 
   @@index([walletAddress])
   @@index([username])
@@ -336,4 +338,32 @@ model WeeklyStreak {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model JackpotProgress {
+  userId           String
+  date             DateTime @db.Date
+  currentWinStreak Int      @default(0)
+  completed        Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([userId, date])
+  @@index([userId])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  userId    String
+  sessionId String
+  email     String
+  reason    String
+  createdAt DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id])
+  session GameSession @relation(fields: [sessionId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
 }
