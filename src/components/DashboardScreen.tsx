@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { DepositDialog } from './wallet/DepositDialog';
 import { WithdrawDialog } from './wallet/WithdrawDialog';
+import { JackpotDialog } from './jackpot/JackpotDialog';
 import { getAvatarData } from './AvatarSelector';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
@@ -34,6 +35,7 @@ export function DashboardScreen({
 }: DashboardScreenProps) {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showJackpot, setShowJackpot] = useState(false);
   const { data: rewardsData } = useRewardsData();
   const { balance, loading: balanceLoading } = useRealBalance();
   const toastShownRef = useRef(false);
@@ -204,10 +206,11 @@ export function DashboardScreen({
                       </div>
                       <button
                         type="button"
+                        onClick={() => setShowJackpot(true)}
                         className="flex items-center gap-2 rounded-full border border-[#7C3AED]/40 bg-[#0B0F1A]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#C4B5FD] shadow-[0_0_10px_rgba(124,58,237,0.2)] transition hover:border-[#7C3AED]/70 hover:text-white"
                       >
                         <span className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]"></span>
-                        Jackpot - actual prize pool : 30,47 SOL
+                        Jackpot - actual prize pool : 30.47 SOL
                       </button>
                     </div>
 
@@ -420,6 +423,10 @@ export function DashboardScreen({
         open={showWithdraw}
         onClose={() => setShowWithdraw(false)}
         currentBalance={walletBalance}
+      />
+      <JackpotDialog
+        open={showJackpot}
+        onClose={() => setShowJackpot(false)}
       />
     </div>
   );
