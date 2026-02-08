@@ -14,6 +14,7 @@ export interface RewardsData {
 }
 
 interface RedeemResponse extends RewardsData {}
+interface UseFreeStakeResponse extends RewardsData {}
 
 export function useRewardsData() {
   const [data, setData] = useState<RewardsData | null>(null);
@@ -104,6 +105,51 @@ export function useRewardsData() {
     }
   }, []);
 
+  const consumeFreeStake = useCallback(async (amount: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const response = await fetch(`${API_BASE_URL}/api/rewards/use-free-stake`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      if (response.status === 401) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('auth_token');
+        }
+        setData(null);
+        throw new Error('Please log in to use a free stake.');
+      }
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null);
+        const message =
+          errorPayload && typeof errorPayload.error === 'string'
+            ? errorPayload.error
+            : 'Failed to use free stake';
+        throw new Error(message);
+      }
+
+      const payload = (await response.json()) as UseFreeStakeResponse;
+      setData(payload);
+      return payload;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to use free stake';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void fetchRewards();
   }, [fetchRewards]);
@@ -114,6 +160,7 @@ export function useRewardsData() {
     error,
     refresh: fetchRewards,
     redeemStake,
+    consumeFreeStake,
   };
 }
 

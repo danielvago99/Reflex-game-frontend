@@ -129,4 +129,77 @@ router.post('/redeem', attachUser, requireAuth, async (req, res) => {
   }
 });
 
+router.post('/use-free-stake', attachUser, requireAuth, async (req, res) => {
+  const authUser = req.user;
+
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { amount } = req.body as { amount?: number };
+
+  if (typeof amount !== 'number') {
+    return res.status(400).json({ error: 'Invalid free stake request.' });
+  }
+
+  let stakeField: 'freeStakes05Sol' | 'freeStakes01Sol' | 'freeStakes02Sol' | null = null;
+
+  if (amount === 0.05) {
+    stakeField = 'freeStakes05Sol';
+  } else if (amount === 0.1) {
+    stakeField = 'freeStakes01Sol';
+  } else if (amount === 0.2) {
+    stakeField = 'freeStakes02Sol';
+  }
+
+  if (!stakeField) {
+    return res.status(400).json({ error: 'Invalid stake amount.' });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const rewards = await tx.playerRewards.findUnique({
+        where: { userId: authUser.id },
+        select: {
+          totalFreeStakes: true,
+          freeStakes05Sol: true,
+          freeStakes01Sol: true,
+          freeStakes02Sol: true,
+        },
+      });
+
+      if (!rewards) {
+        throw new Error('Rewards record not found');
+      }
+
+      if (rewards[stakeField] <= 0) {
+        throw new Error('No free stakes available');
+      }
+
+      await tx.playerRewards.update({
+        where: { userId: authUser.id },
+        data: {
+          totalFreeStakes: rewards.totalFreeStakes > 0 ? { decrement: 1 } : undefined,
+          [stakeField]: { decrement: 1 },
+        },
+      });
+    });
+
+    const payload = await getRewardsPayload(authUser.id);
+    return res.json(payload);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'No free stakes available') {
+        return res.status(400).json({ error: 'No free stakes available.' });
+      }
+
+      if (error.message === 'Rewards record not found') {
+        return res.status(404).json({ error: 'Rewards record not found.' });
+      }
+    }
+
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 export { router as rewardsRouter };
