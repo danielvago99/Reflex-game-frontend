@@ -46,7 +46,7 @@ export function CreateWalletScreen({ onContinue, onBack }: CreateWalletScreenPro
               {[
                 { icon: LockKeyhole, text: 'AES-256GCM encryption' },
                 { icon: KeyRound, text: 'BIP-39 Standard' },
-                { icon: Fingerprint, text: 'Biometric unlock' },
+                { icon: Fingerprint, text: 'Unlock with password' },
               ].map((feature, i) => (
                 <div
                   key={i}
