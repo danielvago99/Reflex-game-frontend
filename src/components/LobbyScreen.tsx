@@ -4,10 +4,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
 import { TransactionModal } from './TransactionModal';
-import { getFreeStakes, useFreeStake, FreeStake } from '../utils/reflexPoints';
 import { DailyChallengeCard } from './DailyChallengeCard';
 import { FuturisticBackground } from './FuturisticBackground';
 import { useRewardsData } from '../features/rewards/hooks/useRewardsData';
+import { getFreeStakeOptions, getFreeStakeTotal } from '../features/rewards/utils/freeStakes';
 import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
@@ -25,7 +25,7 @@ interface LobbyScreenProps {
 }
 
 export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
-  const { data } = useRewardsData();
+  const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(null);
   const [selectedStake, setSelectedStake] = useState('0.1');
@@ -33,8 +33,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [friendRoom, setFriendRoom] = useState<{ sessionId: string; roomCode: string; stakeAmount: number } | null>(null);
-  const [freeStakes, setFreeStakes] = useState<FreeStake[]>([]);
-  const [selectedFreeStake, setSelectedFreeStake] = useState<string | null>(null);
+  const [selectedFreeStakeAmount, setSelectedFreeStakeAmount] = useState<number | null>(null);
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
@@ -65,9 +64,8 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const dailyStreak = data?.dailyStreak ?? data?.streak ?? 0;
   const dailyChallengeCompleted = dailyMatchesPlayed >= dailyMatchesTarget;
 
-  useEffect(() => {
-    setFreeStakes(getFreeStakes());
-  }, []);
+  const freeStakes = getFreeStakeOptions(data);
+  const freeStakeTotal = getFreeStakeTotal(freeStakes);
 
   useEffect(() => {
     const unsubscribeSearching = wsService.on('match:searching', (message: any) => {
@@ -288,8 +286,14 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       }
 
       // Skip transaction for free stakes (DAO treasury handles it)
-      if (useFreeStakeMode && selectedFreeStake) {
-        useFreeStake(selectedFreeStake);
+      if (useFreeStakeMode && selectedFreeStakeAmount) {
+        try {
+          await consumeFreeStake(selectedFreeStakeAmount);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to use free stake.';
+          toast.error('Free stake unavailable', { description: message });
+          return;
+        }
 
         send('match:stake_confirmed', {
           sessionId: matchDetails.sessionId,
@@ -345,10 +349,15 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     }
   };
 
-  const handleTransactionConfirm = () => {
-    // If using free stake, consume it
-    if (useFreeStakeMode && selectedFreeStake) {
-      useFreeStake(selectedFreeStake);
+  const handleTransactionConfirm = async () => {
+    if (useFreeStakeMode && selectedFreeStakeAmount) {
+      try {
+        await consumeFreeStake(selectedFreeStakeAmount);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to use free stake.';
+        toast.error('Free stake unavailable', { description: message });
+        return;
+      }
     }
 
     if (!pendingMatch) {
@@ -596,7 +605,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                         key={amount}
                         onClick={() => {
                           setSelectedStake(amount);
-                          setSelectedFreeStake(null);
+                          setSelectedFreeStakeAmount(null);
                           setUseFreeStakeMode(false);
                         }}
                         className={`relative transition-all group ${selectedStake === amount ? 'scale-105' : 'hover:scale-105'}`}
@@ -687,123 +696,104 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
                           <p className="text-xs text-gray-400">Earned from Reflex Points</p>
                         </div>
                         <div className="px-3 py-1 bg-gradient-to-r from-[#7C3AED]/20 to-[#00FFA3]/20 rounded-full border border-[#7C3AED]/30">
-                          <span className="text-xs text-white font-medium">{freeStakes.length} available</span>
+                          <span className="text-xs text-white font-medium">{freeStakeTotal} available</span>
                         </div>
                       </div>
-                      
-                      {/* Group stakes by amount */}
-                      {(() => {
-                        const grouped = freeStakes.reduce((acc, stake) => {
-                          const key = stake.amount.toString();
-                          if (!acc[key]) acc[key] = [];
-                          acc[key].push(stake);
-                          return acc;
-                        }, {} as Record<string, typeof freeStakes>);
 
-                        return (
-                          <div className="grid grid-cols-3 gap-3">
-                            {Object.entries(grouped).map(([amount, stakes]) => {
-                              const stakeAmount = parseFloat(amount);
-                              const isSelected = stakes.some(s => s.id === selectedFreeStake);
-                              const selectedStakeInGroup = stakes.find(s => s.id === selectedFreeStake);
-                              
-                              // Color scheme based on amount
-                              const colors = stakeAmount === 0.05 
-                                ? { from: '#00FFA3', to: '#06B6D4', text: 'text-[#00FFA3]', bg: 'bg-[#00FFA3]' }
-                                : stakeAmount === 0.1 || stakeAmount === 0.10
-                                ? { from: '#7C3AED', to: '#00FFA3', text: 'text-[#7C3AED]', bg: 'bg-[#7C3AED]' }
-                                : { from: '#06B6D4', to: '#7C3AED', text: 'text-[#06B6D4]', bg: 'bg-[#06B6D4]' };
+                      <div className="grid grid-cols-3 gap-3">
+                        {freeStakes.map((stake) => {
+                          const stakeAmount = stake.amount;
+                          const isSelected = selectedFreeStakeAmount === stakeAmount;
 
-                              return (
-                                <button
-                                  key={amount}
-                                  onClick={() => {
-                                    if (selectedStakeInGroup) {
-                                      // Deselect if already selected
-                                      setSelectedStake('0.1');
-                                      setSelectedFreeStake(null);
-                                      setUseFreeStakeMode(false);
-                                    } else {
-                                      // Select the first stake in this group
-                                      setSelectedStake(stakes[0].amount.toString());
-                                      setSelectedFreeStake(stakes[0].id);
-                                      setUseFreeStakeMode(true);
-                                    }
-                                  }}
-                                  className="relative group"
-                                >
-                                  {isSelected ? (
-                                    <>
-                                      {/* Selected state - Enhanced glow */}
-                                      <div 
-                                        className="absolute -inset-1 blur-lg opacity-60 animate-pulse"
-                                        style={{ background: `linear-gradient(135deg, ${colors.from}, ${colors.to})` }}
-                                      ></div>
-                                      
-                                      <div 
-                                        className="relative border-2 rounded-xl p-4 shadow-xl"
-                                        style={{ 
-                                          background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
-                                          borderColor: colors.from
-                                        }}
-                                      >
-                                        <div className="flex flex-col items-center gap-2">
-                                          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                                            <Ticket className="w-5 h-5 text-white" />
-                                          </div>
-                                          <div className="text-center">
-                                            <div className="text-lg text-white font-bold">{stakeAmount}</div>
-                                            <div className="text-[10px] text-white/90 uppercase tracking-wide">SOL</div>
-                                          </div>
-                                          <div className="px-2 py-0.5 bg-white/30 backdrop-blur-sm rounded-full">
-                                            <span className="text-[10px] text-white font-medium">×{stakes.length}</span>
-                                          </div>
-                                        </div>
+                          const colors = stakeAmount === 0.05
+                            ? { from: '#00FFA3', to: '#06B6D4', text: 'text-[#00FFA3]', bg: 'bg-[#00FFA3]' }
+                            : stakeAmount === 0.1 || stakeAmount === 0.10
+                            ? { from: '#7C3AED', to: '#00FFA3', text: 'text-[#7C3AED]', bg: 'bg-[#7C3AED]' }
+                            : { from: '#06B6D4', to: '#7C3AED', text: 'text-[#06B6D4]', bg: 'bg-[#06B6D4]' };
+
+                          return (
+                            <button
+                              key={stakeAmount}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedStake('0.1');
+                                  setSelectedFreeStakeAmount(null);
+                                  setUseFreeStakeMode(false);
+                                } else {
+                                  setSelectedStake(stakeAmount.toString());
+                                  setSelectedFreeStakeAmount(stakeAmount);
+                                  setUseFreeStakeMode(true);
+                                }
+                              }}
+                              className="relative group"
+                            >
+                              {isSelected ? (
+                                <>
+                                  <div
+                                    className="absolute -inset-1 blur-lg opacity-60 animate-pulse"
+                                    style={{ background: `linear-gradient(135deg, ${colors.from}, ${colors.to})` }}
+                                  ></div>
+
+                                  <div
+                                    className="relative border-2 rounded-xl p-4 shadow-xl"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
+                                      borderColor: colors.from
+                                    }}
+                                  >
+                                    <div className="flex flex-col items-center gap-2">
+                                      <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                                        <Ticket className="w-5 h-5 text-white" />
                                       </div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      {/* Unselected state */}
-                                      <div 
-                                        className="absolute -inset-1 opacity-0 group-hover:opacity-100 blur-md transition-all duration-300"
-                                        style={{ background: `linear-gradient(135deg, ${colors.from}20, ${colors.to}20)` }}
-                                      ></div>
-                                      
-                                      <div 
-                                        className="relative backdrop-blur-sm border rounded-xl p-4 transition-all duration-300 group-hover:scale-105"
-                                        style={{ 
-                                          background: `linear-gradient(135deg, ${colors.from}10, ${colors.to}10)`,
-                                          borderColor: `${colors.from}30`
-                                        }}
-                                      >
-                                        <div className="flex flex-col items-center gap-2">
-                                          <div 
-                                            className="p-2 backdrop-blur-sm rounded-lg"
-                                            style={{ backgroundColor: `${colors.from}20` }}
-                                          >
-                                            <Ticket className="w-5 h-5" style={{ color: colors.from }} />
-                                          </div>
-                                          <div className="text-center">
-                                            <div className="text-lg text-white">{stakeAmount}</div>
-                                            <div className="text-[10px] text-gray-400 uppercase tracking-wide">SOL</div>
-                                          </div>
-                                          <div 
-                                            className="px-2 py-0.5 backdrop-blur-sm rounded-full"
-                                            style={{ backgroundColor: `${colors.from}20` }}
-                                          >
-                                            <span className="text-[10px] font-medium" style={{ color: colors.from }}>×{stakes.length}</span>
-                                          </div>
-                                        </div>
+                                      <div className="text-center">
+                                        <div className="text-lg text-white font-bold">{stakeAmount}</div>
+                                        <div className="text-[10px] text-white/90 uppercase tracking-wide">SOL</div>
                                       </div>
-                                    </>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
-                      
+                                      <div className="px-2 py-0.5 bg-white/30 backdrop-blur-sm rounded-full">
+                                        <span className="text-[10px] text-white font-medium">×{stake.count}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div
+                                    className="absolute -inset-1 opacity-0 group-hover:opacity-100 blur-md transition-all duration-300"
+                                    style={{ background: `linear-gradient(135deg, ${colors.from}20, ${colors.to}20)` }}
+                                  ></div>
+
+                                  <div
+                                    className="relative backdrop-blur-sm border rounded-xl p-4 transition-all duration-300 group-hover:scale-105"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${colors.from}10, ${colors.to}10)`,
+                                      borderColor: `${colors.from}30`
+                                    }}
+                                  >
+                                    <div className="flex flex-col items-center gap-2">
+                                      <div
+                                        className="p-2 backdrop-blur-sm rounded-lg"
+                                        style={{ backgroundColor: `${colors.from}20` }}
+                                      >
+                                        <Ticket className="w-5 h-5" style={{ color: colors.from }} />
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="text-lg text-white">{stakeAmount}</div>
+                                        <div className="text-[10px] text-gray-400 uppercase tracking-wide">SOL</div>
+                                      </div>
+                                      <div
+                                        className="px-2 py-0.5 backdrop-blur-sm rounded-full"
+                                        style={{ backgroundColor: `${colors.from}20` }}
+                                      >
+                                        <span className="text-[10px] font-medium" style={{ color: colors.from }}>×{stake.count}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
