@@ -35,14 +35,25 @@ export function getDailyChallengeState(): DailyChallengeState {
 
     const state: DailyChallengeState = JSON.parse(stored);
     
-    // Check if it's a new day
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
     const lastDate = state.lastCompletedDate.split('T')[0];
-    
+    const lastMatchAt = state.lastCompletedDate ? new Date(state.lastCompletedDate) : null;
+    const hoursSinceLastMatch = lastMatchAt ? now.getTime() - lastMatchAt.getTime() : 0;
+
+    if (lastMatchAt && hoursSinceLastMatch >= 24 * 60 * 60 * 1000) {
+      return {
+        ...state,
+        matchesCompleted: 0,
+        currentStreak: 0
+      };
+    }
+
+    // Check if it's a new day
     if (lastDate && lastDate !== today) {
       // Check if they completed yesterday's challenge
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      
+
       if (lastDate === yesterday && state.matchesCompleted >= MATCHES_TARGET) {
         // Streak continues - reset matches but keep streak
         return {
@@ -50,21 +61,14 @@ export function getDailyChallengeState(): DailyChallengeState {
           matchesCompleted: 0,
           currentStreak: state.currentStreak
         };
-      } else if (state.matchesCompleted >= MATCHES_TARGET) {
-        // They completed last day but it wasn't yesterday - reset streak
-        return {
-          ...state,
-          matchesCompleted: 0,
-          currentStreak: 0
-        };
-      } else {
-        // Didn't complete yesterday - break streak
-        return {
-          ...state,
-          matchesCompleted: 0,
-          currentStreak: 0
-        };
       }
+
+      // Didn't complete yesterday or missed the day - break streak
+      return {
+        ...state,
+        matchesCompleted: 0,
+        currentStreak: 0
+      };
     }
 
     return state;
