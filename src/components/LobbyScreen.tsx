@@ -230,7 +230,10 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
     }
 
     setMatchStatus('searching');
-    send('match:find', { stake: parseFloat(selectedStake) });
+    send('match:find', {
+      stake: parseFloat(selectedStake),
+      useFreeStake: useFreeStakeMode && Boolean(selectedFreeStakeAmount),
+    });
   };
 
   const handleStartMatch = async () => {

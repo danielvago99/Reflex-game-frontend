@@ -1722,6 +1722,7 @@ export function createWsServer(server: Server) {
     server,
     path: '/ws',
   });
+  const freeStakeBotTimers = new Map<string, NodeJS.Timeout>();
 
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
@@ -2461,6 +2462,26 @@ export function createWsServer(server: Server) {
 
                   // Ensure stake is a number
                   const requestedStake = Number(message.payload?.stake) || 0;
+                  const useFreeStake = Boolean(message.payload?.useFreeStake);
+
+                  if (useFreeStake) {
+                    const existingTimer = freeStakeBotTimers.get(userId!);
+                    if (existingTimer) {
+                      clearTimeout(existingTimer);
+                    }
+
+                    const waitMs = Math.floor(Math.random() * 4000) + 3000;
+                    const timer = setTimeout(() => {
+                      freeStakeBotTimers.delete(userId!);
+                      if (!userActiveSessions.has(userId!)) {
+                        matchmakingEvents.emit('bot_match', { userId, stake: requestedStake });
+                      }
+                    }, waitMs);
+
+                    freeStakeBotTimers.set(userId!, timer);
+                    sendMessage(socket, 'match:searching', { stake: requestedStake });
+                    return;
+                  }
 
                   await matchmakingService.addToQueue(userId!, requestedStake, reaction);
                   sendMessage(socket, 'match:searching', { stake: requestedStake });
@@ -2475,6 +2496,13 @@ export function createWsServer(server: Server) {
             const stakeValue = Number(message.payload?.stake);
             if (userId && Number.isFinite(stakeValue)) {
               await matchmakingService.removeFromQueue(userId, stakeValue);
+            }
+            if (userId) {
+              const timer = freeStakeBotTimers.get(userId);
+              if (timer) {
+                clearTimeout(timer);
+                freeStakeBotTimers.delete(userId);
+              }
             }
 
             if (userId) {
@@ -2755,6 +2783,11 @@ export function createWsServer(server: Server) {
       if (sessionRef) {
         if (sessionRef.userId) {
           activeUsers.delete(sessionRef.userId);
+          const timer = freeStakeBotTimers.get(sessionRef.userId);
+          if (timer) {
+            clearTimeout(timer);
+            freeStakeBotTimers.delete(sessionRef.userId);
+          }
         }
         const sessionState = sessionStates.get(sessionRef.sessionId);
         const sockets = sessionSockets.get(sessionRef.sessionId);
