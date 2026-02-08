@@ -47,11 +47,9 @@ export function DashboardScreen({
     return getAvatarData(storedAvatar);
   }, [avatarUrl]);
 
-  const wins = stats?.totalWins ?? 0;
   const walletBalance = useMemo(() => balance ?? 0, [balance]);
   const isBalanceLoading = Boolean(isLoading || balanceLoading);
   const balanceDisplay = isBalanceLoading ? '...' : balance == null ? '—' : walletBalance.toFixed(4);
-  const displayedWins = isLoading && !stats ? '—' : wins;
 
   const formattedMatches = useMemo(() => {
     const now = Date.now();
@@ -204,10 +202,13 @@ export function DashboardScreen({
                         </div>
                         <h3 className="text-white text-sm">Wallet Balance</h3>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-[#7C3AED] rounded-full"></div>
-                        <span className="text-xs text-gray-400">{displayedWins} Wins</span>
-                      </div>
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 rounded-full border border-[#7C3AED]/40 bg-[#0B0F1A]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#C4B5FD] shadow-[0_0_10px_rgba(124,58,237,0.2)] transition hover:border-[#7C3AED]/70 hover:text-white"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]"></span>
+                        Jackpot - actual prize pool : 30,47 SOL
+                      </button>
                     </div>
 
                     <div className="mb-3">
