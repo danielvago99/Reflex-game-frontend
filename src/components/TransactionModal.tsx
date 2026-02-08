@@ -1,5 +1,5 @@
 import { X, Shield, Copy, Check, AlertCircle, ExternalLink, Zap, Vault, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 type TransactionState = 
@@ -27,6 +27,7 @@ interface TransactionModalProps {
   network?: 'devnet' | 'mainnet-beta' | 'testnet';
   successActionLabel?: string;
   successDescription?: string;
+  autoStart?: boolean;
 }
 
 export function TransactionModal({
@@ -44,11 +45,13 @@ export function TransactionModal({
   network = 'devnet',
   successActionLabel = 'Continue to Game',
   successDescription,
+  autoStart = false,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const autoStartedRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
@@ -61,23 +64,6 @@ export function TransactionModal({
   }, [open]);
 
   // Reset state when modal opens
-  useEffect(() => {
-    if (open) {
-      if (isFreeStake) {
-        setState('dao-funded');
-        // Auto-proceed after 2 seconds
-        setTimeout(() => {
-          handleDaoFundedComplete();
-        }, 2000);
-      } else {
-        setState('review');
-      }
-      setTxId('');
-      setCopied(false);
-      setErrorMessage('');
-    }
-  }, [open, isFreeStake]);
-
   const handleSign = async () => {
     setState('signing');
     const loadingToastId = toast.loading('Processing transaction...', {
@@ -151,6 +137,33 @@ export function TransactionModal({
       }, 2000);
     }, 1500);
   };
+
+  useEffect(() => {
+    if (open) {
+      if (isFreeStake) {
+        setState('dao-funded');
+        // Auto-proceed after 2 seconds
+        setTimeout(() => {
+          handleDaoFundedComplete();
+        }, 2000);
+      } else {
+        setState('review');
+      }
+      setTxId('');
+      setCopied(false);
+      setErrorMessage('');
+      autoStartedRef.current = false;
+    }
+  }, [open, isFreeStake]);
+
+  useEffect(() => {
+    if (open && autoStart && !isFreeStake && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      setTimeout(() => {
+        handleSign();
+      }, 0);
+    }
+  }, [open, autoStart, isFreeStake]);
 
   const handleDaoFundedComplete = () => {
     toast.success('Free stake activated', {
