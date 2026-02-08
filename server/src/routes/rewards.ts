@@ -73,7 +73,12 @@ const getRewardsPayload = async (userId: string) => {
           weekStartDate: nextWeekStart,
           weekEndDate: nextWeekEnd,
         },
-        select: { currentDailyStreak: true },
+        select: {
+          currentDailyStreak: true,
+          weekStartDate: true,
+          weekEndDate: true,
+          updatedAt: true,
+        },
       });
     }
   }
