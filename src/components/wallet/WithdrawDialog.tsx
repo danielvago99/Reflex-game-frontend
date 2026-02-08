@@ -7,7 +7,9 @@ import { WalletInput } from './WalletInput';
 import { WalletButton } from './WalletButton';
 import { WalletAlert } from './WalletAlert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { TransactionModal } from '../TransactionModal';
 import { useActiveWallet } from '../../hooks/useActiveWallet';
+import { ENV } from '../../config/env';
 import { connection } from '../../utils/solana';
 
 interface WithdrawDialogProps {
@@ -20,10 +22,14 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
   const { publicKey, sendTransaction } = useActiveWallet();
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
-  const [network, setNetwork] = useState<'devnet' | 'mainnet'>('devnet');
+  const [network] = useState<'devnet' | 'mainnet'>(
+    ENV.SOLANA_NETWORK === 'mainnet-beta' ? 'mainnet' : 'devnet'
+  );
   const [errors, setErrors] = useState({ address: '', amount: '' });
   const [feeLamports, setFeeLamports] = useState<number | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [pendingWithdrawal, setPendingWithdrawal] = useState<{ amount: number; recipient: string } | null>(null);
 
   const estimatedFee = feeLamports != null ? feeLamports / LAMPORTS_PER_SOL : 0;
   const numAmount = parseFloat(amount) || 0;
@@ -36,6 +42,23 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
 
   useEffect(() => {
     let active = true;
+    let intervalId: number | undefined;
+
+    const toBase64 = (data: Uint8Array) => {
+      let binary = '';
+      data.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      return btoa(binary);
+    };
+
+    const getRecipientKey = () => {
+      try {
+        return new PublicKey(recipientAddress);
+      } catch {
+        return publicKey ?? null;
+      }
+    };
 
     const fetchFee = async () => {
       if (!open) {
@@ -50,6 +73,11 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
 
       try {
         setFeeLoading(true);
+        const recipientKey = getRecipientKey();
+        if (!recipientKey) {
+          setFeeLamports(null);
+          return;
+        }
         const latestBlockhash = await connection.getLatestBlockhash();
         const transaction = new Transaction({
           feePayer: publicKey,
@@ -57,13 +85,39 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
         }).add(
           SystemProgram.transfer({
             fromPubkey: publicKey,
-            toPubkey: publicKey,
+            toPubkey: recipientKey,
             lamports: 1,
           })
         );
-        const feeInfo = await connection.getFeeForMessage(transaction.compileMessage());
+        const message = transaction.compileMessage();
+        let feeValue: number | null = null;
+
+        if (ENV.HELIUS_RPC_URL) {
+          const response = await fetch(ENV.HELIUS_RPC_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 'helius-fee',
+              method: 'getFeeForMessage',
+              params: [toBase64(message.serialize()), { commitment: 'processed' }],
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            feeValue = typeof data?.result?.value === 'number' ? data.result.value : null;
+          }
+        }
+
+        if (feeValue == null) {
+          const feeInfo = await connection.getFeeForMessage(message);
+          feeValue = feeInfo.value ?? null;
+        }
+
         if (active) {
-          setFeeLamports(feeInfo.value ?? null);
+          setFeeLamports(feeValue);
         }
       } catch {
         if (active) {
@@ -77,26 +131,23 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     };
 
     fetchFee();
+    intervalId = window.setInterval(fetchFee, 15000);
 
     return () => {
       active = false;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
     };
-  }, [open, publicKey]);
+  }, [open, publicKey, recipientAddress]);
 
   const handleMaxAmount = () => {
     const maxAmount = Math.max(0, currentBalance - estimatedFee);
     setAmount(maxAmount.toFixed(6));
   };
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     const newErrors = { address: '', amount: '' };
-
-    if (network !== 'devnet') {
-      toast.error('Devnet only', {
-        description: 'Switch to devnet to send SOL from this app.',
-      });
-      return;
-    }
     
     if (recipientAddress.length < 32) {
       newErrors.address = 'Invalid Solana address';
@@ -111,123 +162,127 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     setErrors(newErrors);
     
     if (!newErrors.address && !newErrors.amount) {
-      if (!publicKey || !sendTransaction) {
-        toast.error('Wallet not connected', {
-          description: 'Connect your wallet before sending SOL.',
-        });
-        return;
-      }
-
-      let recipientPublicKey: PublicKey;
-      try {
-        recipientPublicKey = new PublicKey(recipientAddress);
-      } catch {
-        setErrors({ ...newErrors, address: 'Invalid Solana address' });
-        return;
-      }
-
-      const toastId = toast.loading('Processing withdrawal...');
-      try {
-        const latestBlockhash = await connection.getLatestBlockhash();
-        const transaction = new Transaction({
-          feePayer: publicKey,
-          recentBlockhash: latestBlockhash.blockhash,
-        }).add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: recipientPublicKey,
-            lamports: Math.round(numAmount * LAMPORTS_PER_SOL),
-          })
-        );
-
-        const signature = await sendTransaction(transaction, connection);
-        await connection.confirmTransaction(
-          {
-            signature,
-            ...latestBlockhash,
-          },
-          'finalized'
-        );
-
-        toast.success('Withdrawal sent', {
-          id: toastId,
-          description: 'Your transaction has been confirmed on devnet.',
-        });
-        setAmount('');
-        setRecipientAddress('');
-        onClose();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to send transaction';
-        toast.error('Withdrawal failed', {
-          id: toastId,
-          description: message,
-        });
-      }
+      setPendingWithdrawal({ amount: numAmount, recipient: recipientAddress });
+      setShowTransactionModal(true);
     }
   };
 
+  const handleTransactionSign = async (reportState: (state: 'broadcasting') => void) => {
+    if (!publicKey || !sendTransaction) {
+      throw new Error('Connect your wallet before sending SOL.');
+    }
+
+    if (!pendingWithdrawal) {
+      throw new Error('Missing withdrawal details.');
+    }
+
+    const { amount: pendingAmount, recipient } = pendingWithdrawal;
+
+    let recipientPublicKey: PublicKey;
+    try {
+      recipientPublicKey = new PublicKey(recipient);
+    } catch {
+      throw new Error('Invalid Solana address');
+    }
+
+    const latestBlockhash = await connection.getLatestBlockhash();
+    const transaction = new Transaction({
+      feePayer: publicKey,
+      recentBlockhash: latestBlockhash.blockhash,
+    }).add(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: recipientPublicKey,
+        lamports: Math.round(pendingAmount * LAMPORTS_PER_SOL),
+      })
+    );
+
+    const signature = await sendTransaction(transaction, connection);
+    reportState('broadcasting');
+    await connection.confirmTransaction(
+      {
+        signature,
+        ...latestBlockhash,
+      },
+      'finalized'
+    );
+    return signature;
+  };
+
+  const handleTransactionSuccess = () => {
+    toast.success('Withdrawal sent', {
+      description: `Your transaction has been confirmed on ${network}.`,
+    });
+    setAmount('');
+    setRecipientAddress('');
+    setPendingWithdrawal(null);
+    setShowTransactionModal(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="bg-gradient-to-br from-[#1a1f2e] to-[#0f1419] border-2 border-[#06B6D4]/20 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Custom Close Button - More Visible */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
-          aria-label="Close dialog"
-        >
-          <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
-        </button>
+    <>
+      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+        <DialogContent className="bg-gradient-to-br from-[#1a1f2e] to-[#0f1419] border-2 border-[#06B6D4]/20 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
+          {/* Custom Close Button - More Visible */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+            aria-label="Close dialog"
+          >
+            <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
+          </button>
 
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-white text-xl">
-            <div className="p-2 bg-[#06B6D4]/20 rounded-lg">
-              <ArrowUpFromLine className="w-5 h-5 text-[#06B6D4]" />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="p-2 bg-[#06B6D4]/20 rounded-lg">
+                <ArrowUpFromLine className="w-5 h-5 text-[#06B6D4]" />
+              </div>
+              Withdraw SOL
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Withdraw SOL from your wallet to another Solana address
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Current Balance */}
+            <div className="relative">
+              <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm rounded-lg"></div>
+              <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
+                <p className="text-sm text-gray-400 mb-1">Available Balance</p>
+                <p className="text-2xl text-[#00FFA3]">{currentBalance.toFixed(6)} SOL</p>
+              </div>
             </div>
-            Withdraw SOL
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Withdraw SOL from your wallet to another Solana address
-          </DialogDescription>
-        </DialogHeader>
 
-        <div className="space-y-6 mt-4">
-          {/* Current Balance */}
-          <div className="relative">
-            <div className="absolute -inset-px bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 blur-sm rounded-lg"></div>
-            <div className="relative bg-white/5 backdrop-blur-lg border border-white/10 rounded-lg p-4">
-              <p className="text-sm text-gray-400 mb-1">Available Balance</p>
-              <p className="text-2xl text-[#00FFA3]">{currentBalance.toFixed(6)} SOL</p>
+            {/* Network selector */}
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300 uppercase tracking-wider">Network</label>
+              <Select value={network} disabled>
+                <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1f2e] border-white/10">
+                  <SelectItem value="devnet" className="text-white hover:bg-white/10">
+                    Devnet (Testing)
+                  </SelectItem>
+                  <SelectItem value="mainnet" className="text-white hover:bg-white/10">
+                    Mainnet (Real SOL)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* Network selector */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-300 uppercase tracking-wider">Network</label>
-            <Select value={network} onValueChange={(val) => setNetwork(val as 'devnet' | 'mainnet')}>
-              <SelectTrigger className="w-full bg-white/5 border-white/10 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a1f2e] border-white/10">
-                <SelectItem value="devnet" className="text-white hover:bg-white/10">
-                  Devnet (Testing)
-                </SelectItem>
-                <SelectItem value="mainnet" className="text-white hover:bg-white/10">
-                  Mainnet (Real SOL)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Recipient Address */}
-          <WalletInput
-            label="Recipient Address"
-            type="text"
-            value={recipientAddress}
-            onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder="Enter Solana address"
-            error={errors.address}
-            required
-          />
+            {/* Recipient Address */}
+            <WalletInput
+              label="Recipient Address"
+              type="text"
+              value={recipientAddress}
+              onChange={(e) => setRecipientAddress(e.target.value)}
+              placeholder="Enter Solana address"
+              error={errors.address}
+              required
+            />
 
           {/* Amount */}
           <div className="space-y-2">
@@ -306,22 +361,47 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
             </ul>
           </WalletAlert>
 
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <WalletButton onClick={onClose} variant="secondary">
-              Cancel
-            </WalletButton>
-            <WalletButton 
-              onClick={handleWithdraw} 
-              variant="primary"
-              disabled={!canWithdraw}
-              icon={Send}
-            >
-              Send
-            </WalletButton>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <WalletButton onClick={onClose} variant="secondary">
+                Cancel
+              </WalletButton>
+              <WalletButton 
+                onClick={handleWithdraw} 
+                variant="primary"
+                disabled={!canWithdraw}
+                icon={Send}
+              >
+                Send
+              </WalletButton>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <TransactionModal
+        open={showTransactionModal}
+        onOpenChange={(isOpen) => {
+          setShowTransactionModal(isOpen);
+          if (!isOpen) {
+            setPendingWithdrawal(null);
+          }
+        }}
+        onConfirm={handleTransactionSuccess}
+        onCancel={() => {
+          setShowTransactionModal(false);
+          setPendingWithdrawal(null);
+        }}
+        onFailure={(message) => toast.error(message)}
+        onSign={handleTransactionSign}
+        stakeAmount={pendingWithdrawal?.amount ?? numAmount}
+        estimatedFee={estimatedFee}
+        transactionType="withdrawal"
+        recipientAddress={pendingWithdrawal?.recipient ?? recipientAddress}
+        network={network === 'mainnet' ? 'mainnet-beta' : 'devnet'}
+        successActionLabel="Close"
+        successDescription="Your withdrawal has been confirmed."
+      />
+    </>
   );
 }
