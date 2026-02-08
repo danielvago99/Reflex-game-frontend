@@ -1,5 +1,7 @@
-import { Trophy, Wallet, X, Zap } from 'lucide-react';
+import { Play, Trophy, Wallet, X, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { WalletButton } from '../wallet/WalletButton';
 
 interface JackpotDialogProps {
   open: boolean;
@@ -12,6 +14,7 @@ const JACKPOT_REQUIRED_STREAK = 10;
 const JACKPOT_CURRENT_STREAK = 6;
 
 export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
+  const navigate = useNavigate();
   const progressPercent = Math.min((JACKPOT_CURRENT_STREAK / JACKPOT_REQUIRED_STREAK) * 100, 100);
   const vaultLink = `https://solscan.io/account/${JACKPOT_VAULT_ADDRESS}`;
 
@@ -106,6 +109,19 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
               </ul>
             </div>
           </div>
+        </div>
+
+        <div className="relative z-10 mt-6">
+          <WalletButton
+            onClick={() => {
+              onClose();
+              navigate('/lobby');
+            }}
+            variant="primary"
+            icon={Play}
+          >
+            Play Game
+          </WalletButton>
         </div>
       </DialogContent>
     </Dialog>
