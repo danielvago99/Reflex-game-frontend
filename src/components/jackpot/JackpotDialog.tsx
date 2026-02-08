@@ -8,12 +8,12 @@ interface JackpotDialogProps {
 
 const JACKPOT_VAULT_ADDRESS = '9oX2h8rVx8TzHnQZV9TQ1u1g8P7B1wTnQq2x9ZfJp1gA';
 const JACKPOT_POOL_SOL = 30.47;
-const JACKPOT_TARGET_SOL = 50;
 const JACKPOT_ENTRIES = 1843;
-const JACKPOT_WIN_STREAK = 5;
+const JACKPOT_REQUIRED_STREAK = 10;
+const JACKPOT_CURRENT_STREAK = 6;
 
 export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
-  const progressPercent = Math.min((JACKPOT_POOL_SOL / JACKPOT_TARGET_SOL) * 100, 100);
+  const progressPercent = Math.min((JACKPOT_CURRENT_STREAK / JACKPOT_REQUIRED_STREAK) * 100, 100);
   const vaultLink = `https://solscan.io/account/${JACKPOT_VAULT_ADDRESS}`;
 
   return (
@@ -31,7 +31,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
             <DialogTitle className="text-white text-2xl">Jackpot Details</DialogTitle>
           </div>
           <DialogDescription className="text-gray-400 text-sm mt-2">
-            Track the live prize pool, winning conditions, and progress toward the next jackpot draw.
+            Track the live prize pool, win-streak progress, and verification steps for the skill-based jackpot.
           </DialogDescription>
         </DialogHeader>
 
@@ -40,7 +40,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Actual Prize Pool</p>
               <p className="text-2xl font-semibold text-[#00FFA3]">{JACKPOT_POOL_SOL.toFixed(2)} SOL</p>
-              <p className="text-xs text-gray-400 mt-1">Target: {JACKPOT_TARGET_SOL} SOL</p>
+              <p className="text-xs text-gray-400 mt-1">Pool grows until a winner is verified.</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Entries</p>
@@ -53,9 +53,11 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-white">
                 <Zap className="w-4 h-4 text-[#00FFA3]" />
-                Progress to next draw
+                Win streak progress
               </div>
-              <span className="text-xs text-gray-400">{progressPercent.toFixed(0)}%</span>
+              <span className="text-xs text-gray-400">
+                {JACKPOT_CURRENT_STREAK}/{JACKPOT_REQUIRED_STREAK} wins
+              </span>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden">
               <div
@@ -64,7 +66,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
               ></div>
             </div>
             <div className="mt-2 text-xs text-gray-400">
-              {JACKPOT_POOL_SOL.toFixed(2)} SOL funded · {Math.max(JACKPOT_TARGET_SOL - JACKPOT_POOL_SOL, 0).toFixed(2)} SOL to go
+              {JACKPOT_CURRENT_STREAK} consecutive wins so far · {Math.max(JACKPOT_REQUIRED_STREAK - JACKPOT_CURRENT_STREAK, 0)} to jackpot
             </div>
           </div>
 
@@ -90,15 +92,15 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
               <ul className="space-y-2 text-sm text-gray-200">
                 <li className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#00FFA3]"></span>
-                  Win {JACKPOT_WIN_STREAK} consecutive staked matches in a single session.
+                  Win {JACKPOT_REQUIRED_STREAK} consecutive staked matches with a 0.2 SOL stake.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#7C3AED]"></span>
-                  Rank top 1 in daily reflex score during the jackpot window.
+                  Matches are manually verified and backchecked before payout.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#06B6D4]"></span>
-                  Jackpot draws once the pool reaches the target and a qualifying winner is found.
+                  Prize pool keeps growing until a verified winner claims it.
                 </li>
               </ul>
             </div>
