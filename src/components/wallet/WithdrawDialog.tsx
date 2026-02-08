@@ -198,6 +198,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
 
     const signature = await sendTransaction(transaction, connection);
     reportState('broadcasting');
+    onClose();
     await connection.confirmTransaction(
       {
         signature,
