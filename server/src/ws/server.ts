@@ -1181,8 +1181,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           }
         };
 
-        await updateJackpotProgress(winnerId, true);
-        await updateJackpotProgress(loserId, false);
+        await updateJackpotProgress(winnerId ?? null, true);
+        await updateJackpotProgress(loserId ?? null, false);
       }
 
       const persistableUserIds = hasBotOpponent
