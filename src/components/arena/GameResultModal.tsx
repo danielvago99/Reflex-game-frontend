@@ -94,6 +94,12 @@ export function GameResultModal({
       }
 
       if (matchType === 'ranked' || matchType === 'friend') {
+        const currentChallenge = getDailyChallengeInfo();
+
+        if (currentChallenge.isCompleted) {
+          return;
+        }
+
         const result = recordMatchCompletion();
         setChallengeUpdate(result);
 
