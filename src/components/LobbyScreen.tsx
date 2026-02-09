@@ -51,6 +51,7 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const stakeConfirmationTimeoutRef = useRef<number | null>(null);
+  const botReadyDelayTimeoutRef = useRef<number | null>(null);
   const pendingMatchRef = useRef<{
     sessionId: string;
     stake: number;
@@ -89,11 +90,12 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
           : payload.isBot
             ? 'bot'
             : 'ranked';
+      const isBotOpponent = Boolean(payload.isBot) || matchType === 'bot';
       const resolvedStake = payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake);
       const matchDetails = {
         sessionId: payload.sessionId as string,
         stake: resolvedStake,
-        isBot: matchType === 'bot',
+        isBot: isBotOpponent,
         matchType,
         roomCode: payload.roomCode,
         opponentName: payload.opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Unknown Opponent'),
@@ -128,22 +130,41 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
       console.log('game:enter_arena received');
-      setWaitingForStakeConfirmation(false);
-      setFriendIntroOpen(false);
-      if (pendingMatchRef.current) {
-        if (onStartMatch) {
-          onStartMatch(
-            pendingMatchRef.current.matchType === 'ranked',
-            pendingMatchRef.current.stake,
-            pendingMatchRef.current.matchType,
-            pendingMatchRef.current.opponentName
-          );
-        } else {
-          onNavigate('arena');
+      const matchToStart = pendingMatchRef.current;
+      const shouldDelayBotReady =
+        matchToStart?.matchType === 'ranked' && matchToStart.isBot && Math.random() < 0.65;
+      const botReadyDelayMs = shouldDelayBotReady ? 1200 + Math.floor(Math.random() * 2800) : 0;
+      const proceedToArena = () => {
+        setWaitingForStakeConfirmation(false);
+        setFriendIntroOpen(false);
+        if (matchToStart) {
+          if (onStartMatch) {
+            onStartMatch(
+              matchToStart.matchType === 'ranked',
+              matchToStart.stake,
+              matchToStart.matchType,
+              matchToStart.opponentName
+            );
+          } else {
+            onNavigate('arena');
+          }
         }
+        setShowTransactionModal(false);
+        setMatchStatus('idle');
+      };
+
+      if (botReadyDelayMs > 0) {
+        if (botReadyDelayTimeoutRef.current) {
+          window.clearTimeout(botReadyDelayTimeoutRef.current);
+        }
+        botReadyDelayTimeoutRef.current = window.setTimeout(() => {
+          botReadyDelayTimeoutRef.current = null;
+          proceedToArena();
+        }, botReadyDelayMs);
+        return;
       }
-      setShowTransactionModal(false);
-      setMatchStatus('idle');
+
+      proceedToArena();
     });
 
       const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
@@ -181,6 +202,10 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       if (stakeConfirmationTimeoutRef.current) {
         window.clearTimeout(stakeConfirmationTimeoutRef.current);
         stakeConfirmationTimeoutRef.current = null;
+      }
+      if (botReadyDelayTimeoutRef.current) {
+        window.clearTimeout(botReadyDelayTimeoutRef.current);
+        botReadyDelayTimeoutRef.current = null;
       }
     };
   }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
