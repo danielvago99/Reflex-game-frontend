@@ -1,9 +1,10 @@
-import { ArrowLeft, Copy, Share2, Gift, Users, Trophy, Check, Zap, Target } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Gift, Users, Trophy, Check, Zap, Target, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 import { copyToClipboard } from '../utils/clipboard';
 import { FuturisticBackground } from './FuturisticBackground';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface AmbassadorScreenProps {
   onNavigate: (screen: string) => void;
@@ -24,6 +25,7 @@ export function AmbassadorScreen({
 }: AmbassadorScreenProps) {
   const { data } = useAmbassadorData();
   const [copied, setCopied] = useState(false);
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
   const resolvedReferralLink = data?.referralLink ?? referralLink;
   const resolvedActivePlayers = data?.activeReferrals ?? initialActivePlayers;
   const resolvedTotalInvited = data?.totalReferrals ?? initialTotalInvited;
@@ -346,162 +348,192 @@ export function AmbassadorScreen({
           </div>
         </div>
 
-        {/* Combined Info Box - How It Works & Rewards (Dynamic Tier Colors) */}
         <div className="relative mb-6">
-          {/* Dynamic glow based on current tier */}
-          <div 
-            className="absolute -inset-1 blur-md rounded-xl" 
-            style={{
-              background: currentTier === 'Gold'
-                ? 'linear-gradient(to right, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3))'
-                : currentTier === 'Silver'
-                ? 'linear-gradient(to right, rgba(192, 192, 192, 0.3), rgba(0, 255, 163, 0.3))'
-                : 'linear-gradient(to right, rgba(205, 127, 50, 0.3), rgba(124, 58, 237, 0.3))'
-            }}
-          ></div>
-          
-          <div 
-            className="relative backdrop-blur-sm border-2 shadow-xl rounded-xl p-4"
-            style={{
-              background: currentTier === 'Gold'
-                ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05))'
-                : currentTier === 'Silver'
-                ? 'linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(0, 255, 163, 0.05))'
-                : 'linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(124, 58, 237, 0.05))',
-              borderColor: currentTier === 'Gold'
-                ? 'rgba(255, 215, 0, 0.4)'
-                : currentTier === 'Silver'
-                ? 'rgba(192, 192, 192, 0.4)'
-                : 'rgba(205, 127, 50, 0.4)'
-            }}
+          <button
+            onClick={() => setIsHowItWorksOpen(true)}
+            className="w-full bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 hover:from-[#00FFA3]/30 hover:to-[#06B6D4]/30 border border-[#00FFA3]/30 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
           >
-            {/* Header with dynamic icon color */}
-            <div className="flex items-center gap-2 mb-3">
-              <div 
-                className="p-2 rounded-lg"
-                style={{
-                  backgroundColor: currentTier === 'Gold'
-                    ? 'rgba(255, 215, 0, 0.2)'
-                    : currentTier === 'Silver'
-                    ? 'rgba(192, 192, 192, 0.2)'
-                    : 'rgba(205, 127, 50, 0.2)'
-                }}
-              >
-                <Trophy className="w-5 h-5" style={{ color: tierInfo.color }} />
-              </div>
-              <h3 className="text-white font-semibold">How Rewards & Tiers Work</h3>
-            </div>
-
-            {/* Key Points */}
-            <div className="space-y-2.5 mb-3">
-              {/* Point 1: Active Players */}
-              <div className="flex items-start gap-2.5">
-                <div 
-                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[#0B0F1A] text-xs font-bold mt-0.5"
-                  style={{ backgroundColor: '#00FFA3' }}
-                >
-                  1
-                </div>
-                <div>
-                  <p className="text-xs text-white leading-relaxed">
-                    <span className="text-[#00FFA3] font-semibold">Active Player:</span> A player becomes "active" after completing <span className="text-[#00FFA3]">10 matches</span>. Until then, they don't count toward your tier.
-                  </p>
-                </div>
-              </div>
-
-              {/* Point 2: Rewards Trigger */}
-              <div className="flex items-start gap-2.5">
-                <div 
-                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[#0B0F1A] text-xs font-bold mt-0.5"
-                  style={{ backgroundColor: tierInfo.color }}
-                >
-                  2
-                </div>
-                <div>
-                  <p className="text-xs text-white leading-relaxed">
-                    <span style={{ color: tierInfo.color }} className="font-semibold">Rewards Trigger:</span> When a player hits <span style={{ color: tierInfo.color }}>10 matches</span>, you earn <span style={{ color: tierInfo.color }}>{tierInfo.currentPoints} pts</span> (your current {currentTier} tier rate).
-                  </p>
-                </div>
-              </div>
-
-              {/* Point 3: Tier Progression */}
-              <div className="flex items-start gap-2.5">
-                <div 
-                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5"
-                  style={{ backgroundColor: '#06B6D4' }}
-                >
-                  3
-                </div>
-                <div>
-                  <p className="text-xs text-white leading-relaxed">
-                    <span className="text-[#06B6D4] font-semibold">Tier Unlock:</span> Tiers are based on <span className="text-[#06B6D4]">active players</span> (not total invited). You need {tierInfo.needed} active for {tierInfo.next}.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Tier Rewards Table */}
-            <div className="relative mb-3">
-              <div 
-                className="absolute -inset-px rounded-lg"
-                style={{
-                  background: currentTier === 'Gold'
-                    ? 'linear-gradient(to right, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1))'
-                    : currentTier === 'Silver'
-                    ? 'linear-gradient(to right, rgba(192, 192, 192, 0.2), rgba(0, 255, 163, 0.1))'
-                    : 'linear-gradient(to right, rgba(205, 127, 50, 0.2), rgba(124, 58, 237, 0.1))'
-                }}
-              ></div>
-              <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
-                <p className="text-xs text-white mb-1.5">Reward Points (per active player):</p>
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-[#CD7F32]" />
-                    <span className={currentTier === 'Bronze' ? 'text-[#CD7F32] font-semibold' : 'text-gray-400'}>Bronze: 90</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-[#C0C0C0]" />
-                    <span className={currentTier === 'Silver' ? 'text-[#C0C0C0] font-semibold' : 'text-gray-400'}>Silver: 100</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-[#FFD700]" />
-                    <span className={currentTier === 'Gold' ? 'text-[#FFD700] font-semibold' : 'text-gray-400'}>Gold: 110</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Tier Motivation */}
-            {currentTier !== 'Gold' && (
-              <div 
-                className="relative mb-3"
-                style={{
-                  background: currentTier === 'Silver'
-                    ? 'linear-gradient(to right, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05))'
-                    : 'linear-gradient(to right, rgba(192, 192, 192, 0.1), rgba(0, 255, 163, 0.05))',
-                  border: '1px solid',
-                  borderColor: currentTier === 'Silver'
-                    ? 'rgba(255, 215, 0, 0.3)'
-                    : 'rgba(192, 192, 192, 0.3)',
-                  borderRadius: '8px',
-                  padding: '10px'
-                }}
-              >
-                <p className="text-xs text-white">
-                  <Zap className="w-3 h-3 inline mr-1" style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }} />
-                  Reach <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.needed} active players</span> to unlock <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.next}</span> tier and earn <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.nextPoints} pts</span> per player!
-                </p>
-              </div>
-            )}
-
-            {/* Visual Example */}
-            <div className="pt-3 border-t border-white/10">
-              <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                <span style={{ color: tierInfo.color }}>Example:</span> Invite 20 players → 8 complete 10 matches → You have <span className="text-[#00FFA3]">8 active</span> + earned <span style={{ color: tierInfo.color }}>{8 * tierInfo.currentPoints} pts</span> → Still {currentTier} (need {tierInfo.needed} for {tierInfo.next})
-              </p>
-            </div>
-          </div>
+            <Trophy className="w-4 h-4 text-[#00FFA3]" />
+            <span className="text-sm font-semibold">How it works</span>
+          </button>
         </div>
+        <Dialog open={isHowItWorksOpen} onOpenChange={setIsHowItWorksOpen}>
+          <DialogContent className="bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] border border-white/10 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,255,163,0.2)]">
+            <button
+              onClick={() => setIsHowItWorksOpen(false)}
+              className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
+            </button>
+            <DialogHeader className="relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-[#00FFA3]/20 border border-[#00FFA3]/40">
+                  <Trophy className="w-5 h-5 text-white" />
+                </div>
+                <DialogTitle className="text-white text-2xl">How Rewards & Tiers Work</DialogTitle>
+              </div>
+            </DialogHeader>
+            <div className="relative z-10 mt-5">
+              {/* Combined Info Box - How It Works & Rewards (Dynamic Tier Colors) */}
+              <div className="relative mb-2">
+                {/* Dynamic glow based on current tier */}
+                <div 
+                  className="absolute -inset-1 blur-md rounded-xl" 
+                  style={{
+                    background: currentTier === 'Gold'
+                      ? 'linear-gradient(to right, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3))'
+                      : currentTier === 'Silver'
+                      ? 'linear-gradient(to right, rgba(192, 192, 192, 0.3), rgba(0, 255, 163, 0.3))'
+                      : 'linear-gradient(to right, rgba(205, 127, 50, 0.3), rgba(124, 58, 237, 0.3))'
+                  }}
+                ></div>
+                
+                <div 
+                  className="relative backdrop-blur-sm border-2 shadow-xl rounded-xl p-4"
+                  style={{
+                    background: currentTier === 'Gold'
+                      ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05))'
+                      : currentTier === 'Silver'
+                      ? 'linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(0, 255, 163, 0.05))'
+                      : 'linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(124, 58, 237, 0.05))',
+                    borderColor: currentTier === 'Gold'
+                      ? 'rgba(255, 215, 0, 0.4)'
+                      : currentTier === 'Silver'
+                      ? 'rgba(192, 192, 192, 0.4)'
+                      : 'rgba(205, 127, 50, 0.4)'
+                  }}
+                >
+                  {/* Header with dynamic icon color */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div 
+                      className="p-2 rounded-lg"
+                      style={{
+                        backgroundColor: currentTier === 'Gold'
+                          ? 'rgba(255, 215, 0, 0.2)'
+                          : currentTier === 'Silver'
+                          ? 'rgba(192, 192, 192, 0.2)'
+                          : 'rgba(205, 127, 50, 0.2)'
+                      }}
+                    >
+                      <Trophy className="w-5 h-5" style={{ color: tierInfo.color }} />
+                    </div>
+                    <h3 className="text-white font-semibold">How Rewards & Tiers Work</h3>
+                  </div>
+
+                  {/* Key Points */}
+                  <div className="space-y-2.5 mb-3">
+                    {/* Point 1: Active Players */}
+                    <div className="flex items-start gap-2.5">
+                      <div 
+                        className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[#0B0F1A] text-xs font-bold mt-0.5"
+                        style={{ backgroundColor: '#00FFA3' }}
+                      >
+                        1
+                      </div>
+                      <div>
+                        <p className="text-xs text-white leading-relaxed">
+                          <span className="text-[#00FFA3] font-semibold">Active Player:</span> A player becomes "active" after completing <span className="text-[#00FFA3]">10 matches</span>. Until then, they don't count toward your tier.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Point 2: Rewards Trigger */}
+                    <div className="flex items-start gap-2.5">
+                      <div 
+                        className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[#0B0F1A] text-xs font-bold mt-0.5"
+                        style={{ backgroundColor: tierInfo.color }}
+                      >
+                        2
+                      </div>
+                      <div>
+                        <p className="text-xs text-white leading-relaxed">
+                          <span style={{ color: tierInfo.color }} className="font-semibold">Rewards Trigger:</span> When a player hits <span style={{ color: tierInfo.color }}>10 matches</span>, you earn <span style={{ color: tierInfo.color }}>{tierInfo.currentPoints} pts</span> (your current {currentTier} tier rate).
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Point 3: Tier Progression */}
+                    <div className="flex items-start gap-2.5">
+                      <div 
+                        className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5"
+                        style={{ backgroundColor: '#06B6D4' }}
+                      >
+                        3
+                      </div>
+                      <div>
+                        <p className="text-xs text-white leading-relaxed">
+                          <span className="text-[#06B6D4] font-semibold">Tier Unlock:</span> Tiers are based on <span className="text-[#06B6D4]">active players</span> (not total invited). You need {tierInfo.needed} active for {tierInfo.next}.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tier Rewards Table */}
+                  <div className="relative mb-3">
+                    <div 
+                      className="absolute -inset-px rounded-lg"
+                      style={{
+                        background: currentTier === 'Gold'
+                          ? 'linear-gradient(to right, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1))'
+                          : currentTier === 'Silver'
+                          ? 'linear-gradient(to right, rgba(192, 192, 192, 0.2), rgba(0, 255, 163, 0.1))'
+                          : 'linear-gradient(to right, rgba(205, 127, 50, 0.2), rgba(124, 58, 237, 0.1))'
+                      }}
+                    ></div>
+                    <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-lg p-2.5">
+                      <p className="text-xs text-white mb-1.5">Reward Points (per active player):</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1">
+                          <Trophy className="w-3 h-3 text-[#CD7F32]" />
+                          <span className={currentTier === 'Bronze' ? 'text-[#CD7F32] font-semibold' : 'text-gray-400'}>Bronze: 90</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="w-3 h-3 text-[#C0C0C0]" />
+                          <span className={currentTier === 'Silver' ? 'text-[#C0C0C0] font-semibold' : 'text-gray-400'}>Silver: 100</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="w-3 h-3 text-[#FFD700]" />
+                          <span className={currentTier === 'Gold' ? 'text-[#FFD700] font-semibold' : 'text-gray-400'}>Gold: 110</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Next Tier Motivation */}
+                  {currentTier !== 'Gold' && (
+                    <div 
+                      className="relative mb-3"
+                      style={{
+                        background: currentTier === 'Silver'
+                          ? 'linear-gradient(to right, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05))'
+                          : 'linear-gradient(to right, rgba(192, 192, 192, 0.1), rgba(0, 255, 163, 0.05))',
+                        border: '1px solid',
+                        borderColor: currentTier === 'Silver'
+                          ? 'rgba(255, 215, 0, 0.3)'
+                          : 'rgba(192, 192, 192, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px'
+                      }}
+                    >
+                      <p className="text-xs text-white">
+                        <Zap className="w-3 h-3 inline mr-1" style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }} />
+                        Reach <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.needed} active players</span> to unlock <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.next}</span> tier and earn <span style={{ color: currentTier === 'Silver' ? '#FFD700' : '#C0C0C0' }}>{tierInfo.nextPoints} pts</span> per player!
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Visual Example */}
+                  <div className="pt-3 border-t border-white/10">
+                    <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+                      <span style={{ color: tierInfo.color }}>Example:</span> Invite 20 players → 8 complete 10 matches → You have <span className="text-[#00FFA3]">8 active</span> + earned <span style={{ color: tierInfo.color }}>{8 * tierInfo.currentPoints} pts</span> → Still {currentTier} (need {tierInfo.needed} for {tierInfo.next})
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Referred Players List */}
         <div className="relative">
           <div className="absolute -inset-px bg-gradient-to-br from-[#00FFA3]/10 to-[#06B6D4]/10" style={{ clipPath: 'polygon(0 8px, 8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)' }}></div>
