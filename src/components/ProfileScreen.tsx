@@ -46,9 +46,8 @@ export function ProfileScreen({
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';
     const opponentLabel = match.opponent ?? 'Unknown opponent';
-    const stakeAmount = isWin
-      ? match.stakeWinner ?? match.stakeAmount ?? null
-      : match.stakeLoser ?? match.stakeAmount ?? null;
+    const stakeAmount =
+      match.stakeAmount ?? (isWin ? match.stakeWinner ?? null : match.stakeLoser ?? null);
     const earning = isWin
       ? match.profit != null
         ? `+${match.profit}`
