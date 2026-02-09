@@ -16,6 +16,13 @@ export interface MatchHistoryEntry {
   createdAt?: string;
 }
 
+type RawMatchHistoryEntry = MatchHistoryEntry & {
+  stake?: number | string | null;
+  stake_amount?: number | string | null;
+  wager?: number | string | null;
+  amount?: number | string | null;
+};
+
 interface HistoryResponse {
   history?: MatchHistoryEntry[];
   matches?: MatchHistoryEntry[];
@@ -51,12 +58,30 @@ export function useMatchHistory(limit = 5) {
         throw new Error(message || 'Failed to load match history');
       }
 
-      const data = (await response.json()) as HistoryResponse | MatchHistoryEntry[];
+      const data = (await response.json()) as HistoryResponse | RawMatchHistoryEntry[];
       const historyArray = Array.isArray(data)
         ? data
         : data.history ?? data.matches ?? data.data ?? [];
+      const toNumber = (value?: number | string | null) => {
+        if (value == null) return undefined;
+        const parsed = typeof value === 'string' ? Number(value) : value;
+        return Number.isFinite(parsed) ? parsed : undefined;
+      };
 
-      setMatches(historyArray.slice(0, limit));
+      const normalizedHistory = historyArray.map((match) => {
+        const stakeAmount = toNumber(
+          match.stake ?? match.stake_amount ?? match.wager ?? match.amount ?? match.stakeAmount
+        );
+        const profit = toNumber(match.profit);
+
+        return {
+          ...match,
+          stakeAmount,
+          profit,
+        };
+      });
+
+      setMatches(normalizedHistory.slice(0, limit));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to fetch history';
       setError(message);
