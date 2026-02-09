@@ -371,7 +371,7 @@ export function AmbassadorScreen({
                 <div className="p-2 rounded-xl bg-[#00FFA3]/20 border border-[#00FFA3]/40">
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <DialogTitle className="text-white text-2xl">How Rewards & Tiers Work</DialogTitle>
+                <DialogTitle className="text-white text-xl">How Rewards & Tiers Work</DialogTitle>
               </div>
             </DialogHeader>
             <div className="relative z-10 mt-5">
