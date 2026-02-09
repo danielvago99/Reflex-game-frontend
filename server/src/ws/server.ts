@@ -1240,17 +1240,38 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const daily = await tx.dailyChallengeProgress.upsert({
+        const daily = await tx.dailyChallengeProgress.findUnique({
           where: { userId_date: { userId, date: today } },
-          update: { matchesPlayed: { increment: 1 } },
-          create: { userId, date: today, matchesPlayed: 1 },
         });
 
-        if (!daily.completed && daily.matchesPlayed === 5) {
-          await tx.dailyChallengeProgress.update({
-            where: { userId_date: { userId, date: today } },
-            data: { completed: true },
+        let dailyProgress = daily;
+        let dailyJustCompleted = false;
+
+        if (!daily) {
+          dailyProgress = await tx.dailyChallengeProgress.create({
+            data: { userId, date: today, matchesPlayed: 1 },
           });
+        } else if (daily.matchesPlayed >= 5) {
+          if (!daily.completed || daily.matchesPlayed > 5) {
+            dailyProgress = await tx.dailyChallengeProgress.update({
+              where: { userId_date: { userId, date: today } },
+              data: { completed: true, matchesPlayed: 5 },
+            });
+            dailyJustCompleted = !daily.completed;
+          }
+        } else {
+          const nextMatchesPlayed = daily.matchesPlayed + 1;
+          dailyJustCompleted = nextMatchesPlayed >= 5 && !daily.completed;
+          dailyProgress = await tx.dailyChallengeProgress.update({
+            where: { userId_date: { userId, date: today } },
+            data: {
+              matchesPlayed: nextMatchesPlayed,
+              completed: nextMatchesPlayed >= 5 ? true : daily.completed,
+            },
+          });
+        }
+
+        if (dailyProgress && dailyJustCompleted) {
 
           await tx.playerRewards.update({
             where: { userId },
