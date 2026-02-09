@@ -204,17 +204,104 @@ export function DashboardScreen({
                         </div>
                         <h3 className="text-white text-sm">Wallet Balance</h3>
                       </div>
+                      {/* Jackpot CTA matches Rewards Access styling with a fixed height to preserve layout */}
                       <button
                         type="button"
                         onClick={() => setShowJackpot(true)}
-                        className="relative flex items-center gap-3 rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#7C3AED] px-3 py-2 text-left text-[#0B0F1A] shadow-[0_0_20px_rgba(0,255,163,0.35)] transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,163,0.5)]"
+                        className="group relative h-[44px] overflow-hidden transition-all duration-300"
+                        style={{
+                          clipPath:
+                            'polygon(0 6px, 6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px))',
+                        }}
                       >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/35">
-                          <Trophy className="h-4 w-4 motion-safe:animate-bounce" />
+                        <span
+                          className="absolute inset-0 bg-gradient-to-br from-[#00FFA3] via-[#06B6D4] to-[#7C3AED] p-[2px]"
+                          style={{
+                            clipPath:
+                              'polygon(0 6px, 6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px))',
+                          }}
+                        >
+                          <span className="block h-full bg-gradient-to-br from-[#00FFA3]/30 via-[#06B6D4]/30 to-[#7C3AED]/30 backdrop-blur-md"></span>
                         </span>
-                        <span className="flex flex-col leading-tight">
-                          <span className="text-sm font-semibold">Jackpot</span>
-                          <span className="text-[11px] text-[#0B0F1A]/70">Prize pool 30.47 SOL</span>
+
+                        <span className="absolute inset-0">
+                          <span className="absolute inset-0 bg-gradient-to-br from-[#00A876] via-[#0582A8] to-[#5A28B0] group-hover:from-[#0582A8] group-hover:via-[#00A876] group-hover:to-[#5A28B0] transition-all duration-500"></span>
+                          <span
+                            className="absolute inset-0 opacity-10"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0l6 10h8l-6 10 6 10h-8l-6 10-6-10H6l6-10-6-10h8z' fill='%23ffffff' fill-opacity='1'/%3E%3C/svg%3E")`,
+                              backgroundSize: '20px 20px',
+                            }}
+                          ></span>
+                          <span
+                            className="absolute inset-0 opacity-20"
+                            style={{
+                              backgroundImage:
+                                'linear-gradient(0deg, transparent 24%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,0.3) 75%, rgba(255,255,255,0.3) 76%, transparent 77%), linear-gradient(90deg, transparent 24%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 26%, transparent 27%, transparent 74%, rgba(255,255,255,0.3) 75%, rgba(255,255,255,0.3) 76%, transparent 77%)',
+                              backgroundSize: '8px 8px',
+                            }}
+                          ></span>
+                          <span
+                            className="absolute inset-0 opacity-30"
+                            style={{
+                              backgroundImage:
+                                'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)',
+                            }}
+                          ></span>
+                          <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full transition-transform duration-700 group-hover:translate-x-full"></span>
+                          <span className="absolute inset-0 bg-radial-gradient from-white/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></span>
+                        </span>
+
+                        <span className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-white/80"></span>
+                        <span className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-white/80"></span>
+                        <span className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-white/80"></span>
+                        <span className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-white/80"></span>
+                        <span className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white to-transparent"></span>
+                        <span className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white to-transparent"></span>
+                        <span className="absolute left-0 top-1/2 h-6 w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-white to-transparent"></span>
+                        <span className="absolute right-0 top-1/2 h-6 w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-white to-transparent"></span>
+
+                        <span className="relative flex h-full flex-col items-center justify-center px-4 py-2 text-center">
+                          <span className="relative mb-1.5">
+                            <span className="absolute inset-0 -m-2 rounded-full border-2 border-white/30 transition-all duration-300 group-hover:scale-125 group-hover:border-white/60"></span>
+                            <span className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-white/30 backdrop-blur-sm transition-all group-hover:bg-white/40">
+                              <Trophy className="h-4 w-4 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" fill="white" />
+                            </span>
+                            <span className="absolute top-0 right-0 h-1 w-1 rounded-full bg-white opacity-0 transition-opacity group-hover:animate-ping group-hover:opacity-100"></span>
+                            <span
+                              className="absolute bottom-0 left-0 h-1 w-1 rounded-full bg-white opacity-0 transition-opacity group-hover:animate-ping group-hover:opacity-100"
+                              style={{ animationDelay: '150ms' }}
+                            ></span>
+                          </span>
+                          <span className="relative">
+                            <span
+                              className="mb-0.5 block text-xs uppercase tracking-[0.2em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                              style={{ textShadow: '0 0 10px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
+                            >
+                              Jackpot
+                            </span>
+                            <span className="mb-1 block h-px bg-gradient-to-r from-transparent via-white/70 to-transparent transition-all group-hover:via-white"></span>
+                            <span className="flex items-center justify-center gap-0.5">
+                              <span
+                                className="text-[10px] uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                                style={{ textShadow: '0 0 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
+                              >
+                                Access
+                              </span>
+                              <svg
+                                className="h-3 w-3 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-transform duration-300 group-hover:translate-x-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
+                          </span>
+                          <span className="absolute bottom-1 left-2 right-2 h-0.5 overflow-hidden rounded-full bg-black/20">
+                            <span className="block h-full w-0 bg-white/60 transition-all duration-500 group-hover:w-full"></span>
+                          </span>
                         </span>
                       </button>
                     </div>
