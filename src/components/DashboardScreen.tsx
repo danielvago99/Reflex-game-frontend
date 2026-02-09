@@ -246,7 +246,7 @@ export function DashboardScreen({
                     <button
                       type="button"
                       onClick={() => setShowJackpot(true)}
-                      className="group relative h-[44px] overflow-hidden transition-all duration-300 self-start shrink-0"
+                      className="group relative h-[48px] overflow-hidden transition-all duration-300 self-start shrink-0"
                       style={{
                         clipPath:
                           'polygon(0 6px, 6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px))',
