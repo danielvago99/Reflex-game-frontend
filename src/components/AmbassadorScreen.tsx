@@ -351,7 +351,7 @@ export function AmbassadorScreen({
         <div className="relative mb-6">
           <button
             onClick={() => setIsHowItWorksOpen(true)}
-            className="w-full bg-gradient-to-r from-[#CD7F32]/25 to-[#8B5E34]/25 hover:from-[#CD7F32]/35 hover:to-[#8B5E34]/35 border border-[#CD7F32]/40 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full bg-bronze-gradient bg-bronze-gradient-hover border border-[#CD7F32]/40 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
           >
             <Trophy className="w-4 h-4 text-[#CD7F32]" />
             <span className="text-sm font-semibold">How it works</span>
@@ -366,14 +366,6 @@ export function AmbassadorScreen({
             >
               <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
             </button>
-            <DialogHeader className="relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#00FFA3]/20 border border-[#00FFA3]/40">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
-                <DialogTitle className="text-white text-xl">How Rewards & Tiers Work</DialogTitle>
-              </div>
-            </DialogHeader>
             <div className="relative z-10 mt-5">
               {/* Combined Info Box - How It Works & Rewards (Dynamic Tier Colors) */}
               <div className="relative mb-2">
@@ -405,22 +397,6 @@ export function AmbassadorScreen({
                   }}
                 >
                   {/* Header with dynamic icon color */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div 
-                      className="p-2 rounded-lg"
-                      style={{
-                        backgroundColor: currentTier === 'Gold'
-                          ? 'rgba(255, 215, 0, 0.2)'
-                          : currentTier === 'Silver'
-                          ? 'rgba(192, 192, 192, 0.2)'
-                          : 'rgba(205, 127, 50, 0.2)'
-                      }}
-                    >
-                      <Trophy className="w-5 h-5" style={{ color: tierInfo.color }} />
-                    </div>
-                    <h3 className="text-white font-semibold">How Rewards & Tiers Work</h3>
-                  </div>
-
                   {/* Key Points */}
                   <div className="space-y-2.5 mb-3">
                     {/* Point 1: Active Players */}

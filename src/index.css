@@ -519,6 +519,16 @@
 }
 
 @layer utilities {
+  .bg-bronze-gradient {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.25), rgba(139, 94, 52, 0.25));
+  }
+
+  .bg-bronze-gradient-hover:hover {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.35), rgba(139, 94, 52, 0.35));
+  }
+}
+
+@layer utilities {
   .pointer-events-none {
     pointer-events: none;
   }
