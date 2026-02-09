@@ -351,9 +351,9 @@ export function AmbassadorScreen({
         <div className="relative mb-6">
           <button
             onClick={() => setIsHowItWorksOpen(true)}
-            className="w-full bg-gradient-to-r from-[#00FFA3]/20 to-[#06B6D4]/20 hover:from-[#00FFA3]/30 hover:to-[#06B6D4]/30 border border-[#00FFA3]/30 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-[#CD7F32]/25 to-[#8B5E34]/25 hover:from-[#CD7F32]/35 hover:to-[#8B5E34]/35 border border-[#CD7F32]/40 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
           >
-            <Trophy className="w-4 h-4 text-[#00FFA3]" />
+            <Trophy className="w-4 h-4 text-[#CD7F32]" />
             <span className="text-sm font-semibold">How it works</span>
           </button>
         </div>
@@ -371,7 +371,7 @@ export function AmbassadorScreen({
                 <div className="p-2 rounded-xl bg-[#00FFA3]/20 border border-[#00FFA3]/40">
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <DialogTitle className="text-white text-2xl">How Rewards & Tiers Work</DialogTitle>
+                <DialogTitle className="text-white text-xl">How Rewards & Tiers Work</DialogTitle>
               </div>
             </DialogHeader>
             <div className="relative z-10 mt-5">
