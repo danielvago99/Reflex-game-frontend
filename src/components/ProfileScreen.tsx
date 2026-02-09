@@ -46,8 +46,18 @@ export function ProfileScreen({
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';
     const opponentLabel = match.opponent ?? 'Unknown opponent';
-    const stakeAmount =
-      match.stakeAmount ?? (isWin ? match.stakeWinner ?? null : match.stakeLoser ?? null);
+    const fallbackStake = match.stakeLoser ?? match.stakeWinner ?? null;
+    let stakeAmount = fallbackStake ?? match.stakeAmount ?? null;
+
+    if (fallbackStake == null && isWin && match.stakeAmount != null && match.profit != null && match.profit > 0) {
+      const ratio = match.stakeAmount / match.profit;
+      if (ratio >= 1.5) {
+        const derivedStake = match.stakeAmount - match.profit;
+        if (derivedStake > 0) {
+          stakeAmount = derivedStake;
+        }
+      }
+    }
     const earning = isWin
       ? match.profit != null
         ? `+${match.profit}`
