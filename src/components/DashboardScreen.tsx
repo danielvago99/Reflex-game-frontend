@@ -99,7 +99,7 @@ export function DashboardScreen({
       return;
     }
 
-    const hasRefPoints = (rewardsData.reflexPoints ?? 0) >= 30;
+    const hasRefPoints = (rewardsData.reflexPoints ?? 0) >= 50;
     const pendingToast =
       typeof localStorage !== 'undefined'
         ? localStorage.getItem('referral_toast_pending') === 'true'
@@ -131,7 +131,7 @@ export function DashboardScreen({
               </p>
               <div className="flex items-center gap-1.5 mt-2 bg-[#00FFA3]/10 border border-[#00FFA3]/20 px-3 py-1.5 rounded-lg w-fit">
                 <Zap className="w-3.5 h-3.5 text-[#00FFA3]" fill="#00FFA3" />
-                <span className="text-xs font-bold text-[#00FFA3]">+30 Reflex Points</span>
+                <span className="text-xs font-bold text-[#00FFA3]">+50 Reflex Points</span>
               </div>
             </div>
           </div>

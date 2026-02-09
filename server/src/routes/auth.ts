@@ -236,11 +236,22 @@ router.post('/login', async (req, res) => {
         await tx.playerRewards.create({
           data: {
             userId: createdUser.id,
-            reflexPoints: hasReferrer ? 30 : 0,
+            reflexPoints: hasReferrer ? 50 : 0,
             totalFreeStakes: 0,
             dailyStreak: 0,
           },
         });
+
+        if (hasReferrer) {
+          await tx.transaction.create({
+            data: {
+              userId: createdUser.id,
+              amount: 50,
+              type: 'referral_bonus',
+              status: 'confirmed',
+            },
+          });
+        }
 
         return createdUser;
       });
