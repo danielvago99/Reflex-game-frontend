@@ -351,9 +351,9 @@ export function AmbassadorScreen({
         <div className="relative mb-6">
           <button
             onClick={() => setIsHowItWorksOpen(true)}
-            className="w-full bg-gradient-to-r from-[#CD7F32]/25 to-[#8B5E34]/25 hover:from-[#CD7F32]/35 hover:to-[#8B5E34]/35 border border-[#CD7F32]/40 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-[#7C3AED]/20 to-[#A855F7]/20 hover:from-[#7C3AED]/30 hover:to-[#A855F7]/30 border border-[#7C3AED]/30 text-white py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
           >
-            <Trophy className="w-4 h-4 text-[#CD7F32]" />
+            <Trophy className="w-4 h-4 text-[#7C3AED]" />
             <span className="text-sm font-semibold">How it works</span>
           </button>
         </div>
