@@ -48,7 +48,9 @@ router.get('/history', attachUser, requireAuth, async (req, res) => {
     const payout = session.payout !== null && session.payout !== undefined ? Number(session.payout) : 0;
     const stakeLoss =
       session.stakeLoser !== null && session.stakeLoser !== undefined ? Number(session.stakeLoser) : 0;
-    const stakeAmount = playerWon ? payout : stakeLoss;
+    const stakeWin =
+      session.stakeWinner !== null && session.stakeWinner !== undefined ? Number(session.stakeWinner) : 0;
+    const stakeAmount = stakeLoss || stakeWin || 0;
 
     const winnerScore = session.winnerScore ?? 0;
     const loserScore = session.loserScore ?? 0;
@@ -65,7 +67,7 @@ router.get('/history', attachUser, requireAuth, async (req, res) => {
       result: playerWon ? 'win' : 'loss',
       opponent: opponentName,
       stakeAmount,
-      profit: playerWon ? stakeAmount : undefined,
+      profit: playerWon ? payout : undefined,
       reactionTimeMs,
       playerScore,
       opponentScore,
