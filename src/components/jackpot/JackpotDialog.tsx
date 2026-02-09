@@ -2,6 +2,7 @@ import { Play, Trophy, Wallet, X, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { WalletButton } from '../wallet/WalletButton';
+import { useJackpotProgress } from '../../hooks/useJackpotProgress';
 
 interface JackpotDialogProps {
   open: boolean;
@@ -11,11 +12,12 @@ interface JackpotDialogProps {
 const JACKPOT_VAULT_ADDRESS = '9oX2h8rVx8TzHnQZV9TQ1u1g8P7B1wTnQq2x9ZfJp1gA';
 const JACKPOT_POOL_SOL = 30.47;
 const JACKPOT_REQUIRED_STREAK = 10;
-const JACKPOT_CURRENT_STREAK = 6;
 
 export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
   const navigate = useNavigate();
-  const progressPercent = Math.min((JACKPOT_CURRENT_STREAK / JACKPOT_REQUIRED_STREAK) * 100, 100);
+  const { data: jackpotProgress } = useJackpotProgress(open);
+  const currentWinStreak = jackpotProgress?.currentWinStreak ?? 0;
+  const progressPercent = Math.min((currentWinStreak / JACKPOT_REQUIRED_STREAK) * 100, 100);
   const vaultLink = `https://solscan.io/account/${JACKPOT_VAULT_ADDRESS}`;
 
   return (
@@ -60,7 +62,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
                 Win streak progress
               </div>
               <span className="text-xs text-gray-400">
-                {JACKPOT_CURRENT_STREAK}/{JACKPOT_REQUIRED_STREAK} wins
+                {currentWinStreak}/{JACKPOT_REQUIRED_STREAK} wins
               </span>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden">
@@ -70,7 +72,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
               ></div>
             </div>
             <div className="mt-2 text-xs text-gray-400">
-              {JACKPOT_CURRENT_STREAK} consecutive wins so far · {Math.max(JACKPOT_REQUIRED_STREAK - JACKPOT_CURRENT_STREAK, 0)} to jackpot
+              {currentWinStreak} consecutive wins so far · {Math.max(JACKPOT_REQUIRED_STREAK - currentWinStreak, 0)} to jackpot
             </div>
           </div>
 
