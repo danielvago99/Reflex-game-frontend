@@ -937,6 +937,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
     const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
     const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
+    const shouldTrackJackpot =
+      persistedMatchType === 'ranked' && Number.isFinite(stakeAmount) && Math.abs(stakeAmount - 0.2) < 1e-9;
 
     const playerTimes = sharedState.history
       .map((round) => round.p1Time)
@@ -1145,6 +1147,42 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               : { bestReaction: playerBestReaction, averageReaction: playerAverageReaction };
           await updatePlayerStats(loserId, 'loss', loserStats);
         }
+      }
+
+      if (shouldTrackJackpot) {
+        const jackpotDate = new Date();
+        jackpotDate.setHours(0, 0, 0, 0);
+
+        const updateJackpotProgress = async (userId: string | null, didWin: boolean) => {
+          if (!userId) {
+            return;
+          }
+
+          const existingProgress = await tx.jackpotProgress.findUnique({
+            where: { userId_date: { userId, date: jackpotDate } },
+          });
+
+          if (didWin) {
+            if (existingProgress) {
+              await tx.jackpotProgress.update({
+                where: { userId_date: { userId, date: jackpotDate } },
+                data: { currentWinStreak: existingProgress.currentWinStreak + 1 },
+              });
+            } else {
+              await tx.jackpotProgress.create({
+                data: { userId, date: jackpotDate, currentWinStreak: 1 },
+              });
+            }
+          } else if (existingProgress) {
+            await tx.jackpotProgress.update({
+              where: { userId_date: { userId, date: jackpotDate } },
+              data: { currentWinStreak: 0 },
+            });
+          }
+        };
+
+        await updateJackpotProgress(winnerId, true);
+        await updateJackpotProgress(loserId, false);
       }
 
       const persistableUserIds = hasBotOpponent
