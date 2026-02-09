@@ -324,7 +324,7 @@ export function DashboardScreen({
                               className="text-[10px] uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                               style={{ textShadow: '0 0 8px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
                             >
-                              Access
+                              30.47 SOL
                             </span>
                             <svg
                               className="h-3 w-3 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-transform duration-300 group-hover:translate-x-1"

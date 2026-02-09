@@ -37,7 +37,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
         <DialogHeader className="relative z-10">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-[#7C3AED]/20 border border-[#7C3AED]/40">
-              <Trophy className="w-5 h-5 text-[#C4B5FD]" />
+              <Trophy className="w-5 h-5 text-white" />
             </div>
             <DialogTitle className="text-white text-2xl">Jackpot Details</DialogTitle>
           </div>
