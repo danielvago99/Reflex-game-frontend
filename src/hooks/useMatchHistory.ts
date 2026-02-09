@@ -9,6 +9,8 @@ export interface MatchHistoryEntry {
   opponent?: string;
   result?: 'win' | 'loss';
   stakeAmount?: number;
+  stakeWinner?: number;
+  stakeLoser?: number;
   profit?: number;
   reactionTimeMs?: number;
   playerScore?: number;

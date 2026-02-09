@@ -46,13 +46,15 @@ export function ProfileScreen({
   const formattedHistory = (matchHistory ?? []).map((match) => {
     const isWin = match.result === 'win' || match.result === 'Win';
     const opponentLabel = match.opponent ?? 'Unknown opponent';
-    const stakeAmount = match.stakeAmount ?? null;
+    const stakeAmount = isWin
+      ? match.stakeWinner ?? match.stakeAmount ?? null
+      : match.stakeLoser ?? match.stakeAmount ?? null;
     const earning = isWin
       ? match.profit != null
         ? `+${match.profit}`
         : '+0'
-      : match.stakeAmount != null
-        ? `-${match.stakeAmount}`
+      : stakeAmount != null
+        ? `-${stakeAmount}`
         : '-';
     const reaction = match.reactionTimeMs != null ? `${match.reactionTimeMs}ms` : '—';
 
