@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useAmbassadorData } from '../features/auth/hooks/useAmbassadorData';
 import { copyToClipboard } from '../utils/clipboard';
 import { FuturisticBackground } from './FuturisticBackground';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent } from './ui/dialog';
 
 interface AmbassadorScreenProps {
   onNavigate: (screen: string) => void;
@@ -366,14 +366,6 @@ export function AmbassadorScreen({
             >
               <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
             </button>
-            <DialogHeader className="relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#00FFA3]/20 border border-[#00FFA3]/40">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
-                <DialogTitle className="text-white text-xl">How Rewards & Tiers Work</DialogTitle>
-              </div>
-            </DialogHeader>
             <div className="relative z-10 mt-5">
               {/* Combined Info Box - How It Works & Rewards (Dynamic Tier Colors) */}
               <div className="relative mb-2">
