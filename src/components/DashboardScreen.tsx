@@ -197,13 +197,14 @@ export function DashboardScreen({
                   </div>
                   
                   <div className="relative">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg">
-                          <Zap className="w-4 h-4 text-[#00FFA3]" />
-                        </div>
-                        <h3 className="text-white text-sm">Wallet Balance</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-gradient-to-br from-[#00FFA3]/20 to-[#06B6D4]/20 rounded-lg">
+                        <Zap className="w-4 h-4 text-[#00FFA3]" />
                       </div>
+                      <h3 className="text-white text-sm">Wallet Balance</h3>
+                    </div>
+
+                    <div className="flex justify-end mb-3">
                       {/* Jackpot CTA matches Rewards Access styling with a fixed height to preserve layout */}
                       <button
                         type="button"
