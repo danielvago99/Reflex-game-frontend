@@ -9,6 +9,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
   SOLANA_RPC_URL: z.string().url().default('https://api.devnet.solana.com'),
+  BOT_PRIVATE_KEYS: z.string().optional(),
+  BOT_USERNAMES: z.string().optional(),
+  GAME_TREASURY_WALLET: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
 });
 

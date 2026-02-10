@@ -19,6 +19,10 @@ const BOT_USERNAMES = [
   'NFTNomad',
   'BlockBlitz',
   'GaslessGuru',
+  'PhantomPulse',
+  'LamportLion',
+  'AnchorAce',
+  'SatoshiSprint',
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,6 +55,7 @@ const parseBotKeypair = (entry: unknown): Keypair | null => {
 class BotWalletService {
   private connection: Connection;
   private botKeypairs: Keypair[] = [];
+  private botUsernames: string[] = BOT_USERNAMES;
   private treasuryWallet: PublicKey | null = null;
   private simulationMode = false;
 
@@ -71,12 +76,25 @@ class BotWalletService {
   }
 
   private initialize() {
-    const rawKeys = process.env.BOT_PRIVATE_KEYS;
-    const treasuryWallet = process.env.GAME_TREASURY_WALLET;
+    const rawKeys = env.BOT_PRIVATE_KEYS;
+    const treasuryWallet = env.GAME_TREASURY_WALLET;
+    const rawUsernames = env.BOT_USERNAMES;
 
     if (!rawKeys || !treasuryWallet) {
       this.enableSimulationMode();
       return;
+    }
+
+    if (rawUsernames) {
+      try {
+        const parsedUsernames = JSON.parse(rawUsernames);
+        if (!Array.isArray(parsedUsernames) || parsedUsernames.some((entry) => typeof entry !== 'string' || !entry.trim())) {
+          throw new Error('BOT_USERNAMES must be a JSON array of non-empty strings.');
+        }
+        this.botUsernames = parsedUsernames;
+      } catch (error) {
+        logger.warn({ error }, 'Failed to parse BOT_USERNAMES env var. Falling back to default bot usernames.');
+      }
     }
 
     let parsedKeys: unknown;
@@ -129,7 +147,7 @@ class BotWalletService {
       const balance = await this.connection.getBalance(keypair.publicKey);
       if (balance >= requiredLamports) {
         return {
-          username: BOT_USERNAMES[index % BOT_USERNAMES.length] ?? 'Ranked Bot',
+          username: this.botUsernames[index % this.botUsernames.length] ?? 'Ranked Bot',
           publicKey: keypair.publicKey.toBase58(),
           keypair,
         };
