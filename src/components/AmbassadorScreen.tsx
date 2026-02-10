@@ -440,7 +440,7 @@ export function AmbassadorScreen({
                       </div>
                       <div>
                         <p className="text-xs text-white leading-relaxed">
-                          <span style={{ color: tierInfo.color }} className="font-semibold">Rewards Trigger:</span> When a player hits <span style={{ color: tierInfo.color }}>10 matches</span>, you earn <span style={{ color: tierInfo.color }}>{tierInfo.currentPoints} pts</span> (your current {currentTier} tier rate).
+                          <span style={{ color: tierInfo.color }} className="font-semibold">Rewards Trigger:</span> For every <span style={{ color: tierInfo.color }}>10 matches played</span> by your referred player, you earn <span style={{ color: tierInfo.color }}>{tierInfo.currentPoints} pts</span> (your current {currentTier} tier rate).
                         </p>
                       </div>
                     </div>

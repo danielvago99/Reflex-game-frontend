@@ -98,7 +98,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
               <ul className="space-y-2 text-sm text-gray-200">
                 <li className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#00FFA3]"></span>
-                  Win {JACKPOT_REQUIRED_STREAK} consecutive staked matches with a 0.2 SOL stake.
+                  Win {JACKPOT_REQUIRED_STREAK} consecutive ranked matches with a 0.2 SOL stake.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#7C3AED]"></span>
@@ -122,7 +122,7 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
             variant="primary"
             icon={Play}
           >
-            Play Game
+            Play Game (0.2 SOL stake)
           </WalletButton>
         </div>
       </DialogContent>
