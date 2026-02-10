@@ -361,7 +361,7 @@ export function AmbassadorScreen({
           <DialogContent className="bg-gradient-to-br from-[#0B0F1A] via-[#101522] to-[#1a0f2e] border border-white/10 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,255,163,0.2)]">
             <button
               onClick={() => setIsHowItWorksOpen(false)}
-              className="absolute top-3 right-3 md:top-4 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
+              className="absolute top-2 right-3 md:top-3 md:right-4 z-50 bg-white/10 hover:bg-red-500/80 border border-white/20 hover:border-red-500 rounded-lg p-2 transition-all duration-300 group"
               aria-label="Close dialog"
             >
               <X className="w-5 h-5 text-white group-hover:text-white transition-colors" />
@@ -445,7 +445,7 @@ export function AmbassadorScreen({
                       </div>
                     </div>
 
-                    {/* Point 3: Tier Progression */}
+                    {/* Point 3: Referral Reward */}
                     <div className="flex items-start gap-2.5">
                       <div 
                         className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold mt-0.5"
@@ -455,7 +455,7 @@ export function AmbassadorScreen({
                       </div>
                       <div>
                         <p className="text-xs text-white leading-relaxed">
-                          <span className="text-[#06B6D4] font-semibold">Tier Unlock:</span> Tiers are based on <span className="text-[#06B6D4]">active players</span> (not total invited). You need {tierInfo.needed} active for {tierInfo.next}.
+                          <span className="text-[#06B6D4] font-semibold">Referral reward:</span> Every player who register via referral link will get <span className="text-[#06B6D4]">50 reflex points</span> for free as a welcome bonus.
                         </p>
                       </div>
                     </div>
