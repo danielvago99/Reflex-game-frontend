@@ -2,8 +2,8 @@ import { redisClient } from '../db/redis';
 import { matchmakingEvents } from '../utils/events';
 import { logger } from '../utils/logger';
 
-const MATCH_CHECK_INTERVAL = 2000;
-const MAX_WAIT_TIME_MS = 10000;
+const MATCH_CHECK_INTERVAL = 4000;
+const MAX_WAIT_TIME_MS = 9000;
 const REACTION_TOLERANCE_MS = 5000;
 
 interface RankedPlayer {
