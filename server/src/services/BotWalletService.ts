@@ -1,10 +1,8 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
-
-dotenv.config();
 
 export interface RankedBotIdentity {
   username: string;
@@ -76,9 +74,9 @@ class BotWalletService {
   }
 
   private initialize() {
-    const rawKeys = env.BOT_PRIVATE_KEYS;
-    const treasuryWallet = env.GAME_TREASURY_WALLET;
-    const rawUsernames = env.BOT_USERNAMES;
+    const rawKeys = process.env.BOT_PRIVATE_KEYS;
+    const treasuryWallet = process.env.GAME_TREASURY_WALLET;
+    const rawUsernames = process.env.BOT_USERNAMES;
 
     if (!rawKeys || !treasuryWallet) {
       this.enableSimulationMode();
