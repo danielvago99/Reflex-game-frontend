@@ -14,6 +14,8 @@ import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 
 interface LobbyScreenProps {
+  preselectMode?: 'bot' | 'ranked';
+  preselectStake?: string;
   onNavigate: (screen: string) => void;
   onStartMatch?: (
     isRanked: boolean,
@@ -24,11 +26,11 @@ interface LobbyScreenProps {
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
 
-export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
+export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
-  const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(null);
-  const [selectedStake, setSelectedStake] = useState('0.1');
+  const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
+  const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
@@ -74,6 +76,22 @@ export function LobbyScreen({ onNavigate, onStartMatch, walletProvider }: LobbyS
       setUseFreeStakeMode(false);
     }
   }, [selectedMode]);
+
+  useEffect(() => {
+    if (!preselectMode && !preselectStake) {
+      return;
+    }
+
+    if (preselectMode) {
+      setSelectedMode(preselectMode);
+    }
+
+    if (preselectStake) {
+      setSelectedStake(preselectStake);
+      setSelectedFreeStakeAmount(null);
+      setUseFreeStakeMode(false);
+    }
+  }, [preselectMode, preselectStake]);
 
   useEffect(() => {
     const unsubscribeSearching = wsService.on('match:searching', (message: any) => {

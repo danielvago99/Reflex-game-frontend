@@ -117,7 +117,12 @@ export function JackpotDialog({ open, onClose }: JackpotDialogProps) {
           <WalletButton
             onClick={() => {
               onClose();
-              navigate('/lobby');
+              navigate('/lobby', {
+                state: {
+                  preselectMode: 'ranked',
+                  preselectStake: '0.2',
+                },
+              });
             }}
             variant="primary"
             icon={Play}
