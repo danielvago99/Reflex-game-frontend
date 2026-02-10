@@ -3,7 +3,7 @@ import { matchmakingEvents } from '../utils/events';
 import { logger } from '../utils/logger';
 
 const MATCH_CHECK_INTERVAL = 2000;
-const MAX_WAIT_TIME_MS = 15000;
+const MAX_WAIT_TIME_MS = 10000;
 const REACTION_TOLERANCE_MS = 5000;
 
 interface RankedPlayer {
