@@ -201,6 +201,22 @@ class BotWalletService {
           },
         });
 
+        const existingRewards = await prisma.playerRewards.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!existingRewards) {
+          await prisma.playerRewards.create({
+            data: {
+              userId: user.id,
+              reflexPoints: 0,
+              totalFreeStakes: 0,
+              dailyStreak: 0,
+            },
+          });
+          logger.info({ userId: user.id }, 'Initialized PlayerRewards for bot');
+        }
+
         this.botProfilesByWallet.set(walletAddress, {
           userId: user.id,
           username: user.username ?? username,
