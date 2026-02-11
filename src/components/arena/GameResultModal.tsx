@@ -7,6 +7,32 @@ import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
 
+const GAME_WIN_MESSAGES = [
+  'Champion of the Arena! 🥇',
+  'Legendary performance! 🌟',
+  'Victory is yours! 🏆',
+  'Unstoppable force! 🚀',
+  'Master of reflexes! ⚡',
+  'Glory awaits! 👑',
+  'Simply the best! 🐐',
+  'Flawless victory! ✨',
+  'You crushed it! 💪',
+  'History is made! 📜'
+];
+
+const GAME_LOSE_MESSAGES = [
+  'Reset, refocus and strike back! ⚔️',
+  'Defeat is just a lesson. 📚',
+  'Come back stronger! 💪',
+  'Not your match, but try again! 🌅',
+  'The arena waits for your return. 🏟️',
+  'So close! Try again. 🤏',
+  'Keep your head up! 👊',
+  'Dust yourself off and go again. 🌪️',
+  'A minor setback for a major comeback. 📈',
+  'Your comeback starts now. 🔥'
+];
+
 interface GameResultModalProps {
   playerScore: number;
   opponentScore: number;
@@ -41,7 +67,6 @@ export function GameResultModal({
       accent: 'text-cyan-400',
       border: 'border-cyan-400/40',
       icon: Trophy,
-      message: 'You dominated the match !',
     },
     lose: {
       title: 'DEFEAT',
@@ -50,7 +75,6 @@ export function GameResultModal({
       accent: 'text-pink-400',
       border: 'border-pink-400/40',
       icon: X,
-      message: 'Reset, refocus, and strike back !',
     },
   };
   const config = playerWon ? resultConfig.win : resultConfig.lose;
@@ -174,6 +198,17 @@ export function GameResultModal({
   };
   const showReportButton = isRanked || matchType === 'ranked';
 
+  const message = useMemo(() => {
+    if (wasForfeit) {
+      return playerWon
+        ? 'Opponent disconnected! Victory by default. 🏳️'
+        : 'You abandoned the match. 🏃‍♂️';
+    }
+
+    const messages = playerWon ? GAME_WIN_MESSAGES : GAME_LOSE_MESSAGES;
+    return messages[Math.floor(Math.random() * messages.length)];
+  }, [playerWon, wasForfeit]);
+
   const coinParticles = useMemo(
     () =>
       Array.from({ length: 18 }, (_, index) => ({
@@ -244,11 +279,7 @@ export function GameResultModal({
                     {config.title}
                   </h2>
                   <p className="text-sm sm:text-base text-gray-400 mt-1">
-                    {wasForfeit
-                      ? playerWon
-                        ? 'Opponent forfeited the match'
-                        : 'You forfeited the match'
-                      : config.message}
+                    {message}
                   </p>
                 </div>
               </div>
