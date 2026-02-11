@@ -1,6 +1,36 @@
 import { Trophy, Zap, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const WIN_MESSAGES = [
+  'Lightning fast! ⚡',
+  'Unstoppable! 🚀',
+  'Pure speed! 💨',
+  'Reflexes like a cat! 🐱',
+  'Too easy! 😎',
+  'Laser focus! 🎯',
+  'Godlike timing! ⚡',
+  'Crushing it! 🔥',
+  'Blink and you miss it! 👀',
+  'Speed demon! 😈',
+];
+
+const LOSE_MESSAGES = [
+  'Close one! Try again 💪',
+  'Too slow! 🐌',
+  'Wake up! ⏰',
+  'Close call! 😬',
+  'Shake it off! 🤷‍♂️',
+  'Focus up! 🧠',
+  'Need coffee? ☕',
+  'They were faster! 🏎️',
+  'Comeback time? 🔄',
+  'Oof, that hurt! 💔',
+];
+
+function getRandomMessage(messages: string[]) {
+  return messages[Math.floor(Math.random() * messages.length)];
+}
 
 interface RoundResultModalProps {
   result: 'win' | 'lose';
@@ -54,29 +84,41 @@ export function RoundResultModal({
       color: 'from-cyan-400 to-blue-400',
       glow: 'from-cyan-500 to-blue-500',
       icon: Trophy,
-      message: 'Lightning fast! ⚡',
     },
     lose: {
       title: 'ROUND LOST',
       color: 'from-pink-400 to-purple-400',
       glow: 'from-pink-500 to-purple-500',
       icon: Zap,
-      message: 'Close one! Try again 💪',
     },
   };
 
   const config = resultConfig[result];
   const Icon = config.icon;
 
-  let message = config.message;
+  const message = useMemo(() => {
+    if (result === 'win') {
+      if (lossReason === 'early-click') {
+        return 'Opponent clicked too early! ⚠️';
+      }
 
-  if (result === 'lose') {
-    if (lossReason === 'early-click') {
-      message = 'Round lost: you clicked before the target appeared.';
-    } else if (lossReason === 'no-reaction') {
-      message = 'Round lost: you did not react in time.';
+      if (lossReason === 'no-reaction') {
+        return 'Opponent fell asleep! 💤';
+      }
+
+      return getRandomMessage(WIN_MESSAGES);
     }
-  }
+
+    if (lossReason === 'early-click') {
+      return 'You clicked before the target appeared! ⚠️';
+    }
+
+    if (lossReason === 'no-reaction') {
+      return "Time's up! You missed the target. 💤";
+    }
+
+    return getRandomMessage(LOSE_MESSAGES);
+  }, [result, lossReason]);
 
   return (
     <motion.div
@@ -149,7 +191,7 @@ export function RoundResultModal({
                   <div className="flex items-center gap-2">
                     <Clock className={`w-4 h-4 ${isWin ? 'text-cyan-400' : 'text-gray-400'}`} />
                     <span className={`text-2xl font-bold font-mono ${isWin ? 'text-cyan-400' : 'text-white'}`}>
-                      {playerReactionTime}ms
+                      {playerReactionTime != null ? `${playerReactionTime}ms` : '---'}
                     </span>
                   </div>
                 </div>
@@ -168,7 +210,7 @@ export function RoundResultModal({
                   <div className="flex items-center gap-2">
                     <Clock className={`w-4 h-4 ${!isWin ? 'text-pink-400' : 'text-gray-400'}`} />
                     <span className={`text-2xl font-bold font-mono ${!isWin ? 'text-pink-400' : 'text-white'}`}>
-                      {opponentReactionTime}ms
+                      {opponentReactionTime != null ? `${opponentReactionTime}ms` : '---'}
                     </span>
                   </div>
                 </div>
@@ -176,7 +218,7 @@ export function RoundResultModal({
             </div>
 
             {/* Time difference */}
-            {playerReactionTime && opponentReactionTime && (
+            {playerReactionTime != null && opponentReactionTime != null && (
               <div className="text-center pt-2">
                 <span className="text-sm text-gray-400">
                   Difference: <span className={`font-mono font-bold ${isWin ? 'text-cyan-400' : 'text-pink-400'}`}>
