@@ -168,6 +168,9 @@ export function GameResultModal({
   const avgPlayerTime = validPlayerTimes.length > 0
     ? Math.round(validPlayerTimes.reduce((a, b) => a + b, 0) / validPlayerTimes.length)
     : 0;
+  const bestReactionTime = validPlayerTimes.length > 0
+    ? Math.min(...validPlayerTimes)
+    : 0;
 
   const handleShare = async () => {
     try {
@@ -335,23 +338,23 @@ export function GameResultModal({
                       </p>
                       {(isRanked || stakeAmount > 0) && (
                         <p className="text-[10px] text-gray-500 mt-1">
-                          Pot {totalPot.toFixed(2)} · Fee {platformFee.toFixed(2)}
+                          Pot {totalPot.toFixed(2)}
                         </p>
                       )}
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
-                      <div className="text-xs text-gray-400">Final Score</div>
+                      <div className="text-xs text-gray-400">Your Best Reaction</div>
                       <p className="mt-2 text-lg font-semibold text-white">
-                        {playerScore}-{opponentScore}
+                        {bestReactionTime > 0 ? `${bestReactionTime}ms` : '--'}
                       </p>
                       <p className="text-[10px] text-gray-500 mt-1">
-                        {playerWon ? 'Dominant finish' : 'Close the gap'}
+                        {bestReactionTime > 0 ? 'Fastest single click' : 'No data'}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
                       <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
                         <Clock className="w-3.5 h-3.5 text-[#06B6D4]" />
-                        Avg RT
+                        Average reaction
                       </div>
                       <p className="mt-2 text-lg font-semibold text-white">{avgPlayerTime}ms</p>
                       <p className="text-[10px] text-gray-500 mt-1">
