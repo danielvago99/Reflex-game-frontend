@@ -973,22 +973,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       return;
     }
 
-    const winnerId =
-      hasBotOpponent
-        ? winnerSlot === humanSlot
-          ? humanId ?? null
-          : null
-        : winnerSlot === 'p1'
-          ? toPersistableUserId(player1Id)
-          : toPersistableUserId(player2Id);
-    const loserId =
-      hasBotOpponent
-        ? winnerSlot === humanSlot
-          ? null
-          : humanId ?? null
-        : winnerSlot === 'p1'
-          ? toPersistableUserId(player2Id)
-          : toPersistableUserId(player1Id);
+    const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
+    const loserId = winnerSlot === 'p1' ? toPersistableUserId(player2Id) : toPersistableUserId(player1Id);
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -1091,23 +1077,15 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         const roundWinnerId =
           round.winner === 'none'
             ? null
-            : hasBotOpponent
-              ? round.winner === humanSlot
-                ? humanId ?? null
-                : null
-              : round.winner === 'p1'
-                ? toPersistableUserId(player1Id)
-                : toPersistableUserId(player2Id);
+            : round.winner === 'p1'
+              ? toPersistableUserId(player1Id)
+              : toPersistableUserId(player2Id);
         const roundLoserId =
           round.winner === 'none'
             ? null
-            : hasBotOpponent
-              ? round.winner === humanSlot
-                ? null
-                : humanId ?? null
-              : round.winner === 'p1'
-                ? toPersistableUserId(player2Id)
-                : toPersistableUserId(player1Id);
+            : round.winner === 'p1'
+              ? toPersistableUserId(player2Id)
+              : toPersistableUserId(player1Id);
 
         await tx.gameRound.create({
           data: {
@@ -1123,30 +1101,20 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         });
       }
 
-      if (hasBotOpponent) {
-        const humanStats =
-          humanSlot === 'p2'
+      if (winnerId) {
+        const winnerStats =
+          winnerSlot === 'p1'
+            ? { bestReaction: playerBestReaction, averageReaction: playerAverageReaction }
+            : { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction };
+        await updatePlayerStats(winnerId, 'win', winnerStats);
+      }
+
+      if (loserId) {
+        const loserStats =
+          winnerSlot === 'p1'
             ? { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction }
             : { bestReaction: playerBestReaction, averageReaction: playerAverageReaction };
-        if (humanId) {
-          await updatePlayerStats(humanId, winnerSlot === humanSlot ? 'win' : 'loss', humanStats);
-        }
-      } else {
-        if (winnerId) {
-          const winnerStats =
-            winnerSlot === 'p1'
-              ? { bestReaction: playerBestReaction, averageReaction: playerAverageReaction }
-              : { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction };
-          await updatePlayerStats(winnerId, 'win', winnerStats);
-        }
-
-        if (loserId) {
-          const loserStats =
-            winnerSlot === 'p1'
-              ? { bestReaction: opponentBestReaction, averageReaction: opponentAverageReaction }
-              : { bestReaction: playerBestReaction, averageReaction: playerAverageReaction };
-          await updatePlayerStats(loserId, 'loss', loserStats);
-        }
+        await updatePlayerStats(loserId, 'loss', loserStats);
       }
 
       if (shouldTrackJackpot) {
@@ -1185,11 +1153,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         await updateJackpotProgress(loserId ?? null, false);
       }
 
-      const persistableUserIds = hasBotOpponent
-        ? [humanId].filter((userId): userId is string => !!userId && !userId.startsWith('guest'))
-        : Array.from(new Set([player1Id, player2Id])).filter(
-            (userId): userId is string => !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest')
-          );
+      const persistableUserIds = Array.from(new Set([player1Id, player2Id])).filter(
+        (userId): userId is string => !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest')
+      );
 
       for (const userId of persistableUserIds) {
         const referral = await tx.referral.findFirst({
