@@ -1885,7 +1885,7 @@ export function createWsServer(server: Server) {
 
     try {
       const rankedBot = await botWalletService.getRankedBot(stake);
-      const opponentId = rankedBot.publicKey;
+      const opponentId = rankedBot.userId;
       const opponentName = rankedBot.username;
 
       const sessionState: SessionState = {

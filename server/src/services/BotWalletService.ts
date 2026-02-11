@@ -1,12 +1,23 @@
-import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
+} from '@solana/web3.js';
 import bs58 from 'bs58';
 import 'dotenv/config';
 import { env } from '../config/env';
+import prisma from '../db/prisma';
 import { logger } from '../utils/logger';
 
 export interface RankedBotIdentity {
+  userId: string;
   username: string;
   publicKey: string;
+  avatar: string;
   keypair: Keypair | null;
 }
 
@@ -22,6 +33,25 @@ const BOT_USERNAMES = [
   'AnchorAce',
   'SatoshiSprint',
 ];
+
+const BOT_AVATARS = [
+  'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Atlas',
+  'https://api.dicebear.com/7.x/personas/svg?seed=Kai',
+  'https://api.dicebear.com/7.x/adventurer/svg?seed=Sophie',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Aurora',
+  'https://api.dicebear.com/7.x/personas/svg?seed=River',
+  'https://api.dicebear.com/7.x/adventurer/svg?seed=Max',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Leo',
+];
+
+interface RankedBotProfile {
+  userId: string;
+  username: string;
+  avatar: string;
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,8 +84,10 @@ class BotWalletService {
   private connection: Connection;
   private botKeypairs: Keypair[] = [];
   private botUsernames: string[] = BOT_USERNAMES;
+  private botProfilesByWallet = new Map<string, RankedBotProfile>();
   private treasuryWallet: PublicKey | null = null;
   private simulationMode = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor() {
     this.connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
@@ -74,6 +106,10 @@ class BotWalletService {
   }
 
   private initialize() {
+    this.initializationPromise = this.initializeInternal();
+  }
+
+  private async initializeInternal() {
     const rawKeys = process.env.BOT_PRIVATE_KEYS;
     const treasuryWallet = process.env.GAME_TREASURY_WALLET;
     const rawUsernames = process.env.BOT_USERNAMES;
@@ -86,12 +122,18 @@ class BotWalletService {
     if (rawUsernames) {
       try {
         const parsedUsernames = JSON.parse(rawUsernames);
-        if (!Array.isArray(parsedUsernames) || parsedUsernames.some((entry) => typeof entry !== 'string' || !entry.trim())) {
+        if (
+          !Array.isArray(parsedUsernames) ||
+          parsedUsernames.some((entry) => typeof entry !== 'string' || !entry.trim())
+        ) {
           throw new Error('BOT_USERNAMES must be a JSON array of non-empty strings.');
         }
         this.botUsernames = parsedUsernames;
       } catch (error) {
-        logger.warn({ error }, 'Failed to parse BOT_USERNAMES env var. Falling back to default bot usernames.');
+        logger.warn(
+          { error },
+          'Failed to parse BOT_USERNAMES env var. Falling back to default bot usernames.',
+        );
       }
     }
 
@@ -128,13 +170,61 @@ class BotWalletService {
     }
 
     this.botKeypairs = keypairs;
+    await this.syncBotsAsUsers();
+  }
+
+  private async syncBotsAsUsers() {
+    this.botProfilesByWallet.clear();
+
+    for (const [index, keypair] of this.botKeypairs.entries()) {
+      const walletAddress = keypair.publicKey.toBase58();
+      const username =
+        this.botUsernames[index % this.botUsernames.length] ?? `RankedBot${index + 1}`;
+      const avatar = BOT_AVATARS[index % BOT_AVATARS.length];
+
+      try {
+        const user = await prisma.user.upsert({
+          where: { walletAddress },
+          update: {
+            username,
+            avatar,
+          },
+          create: {
+            walletAddress,
+            username,
+            avatar,
+          },
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        });
+
+        this.botProfilesByWallet.set(walletAddress, {
+          userId: user.id,
+          username: user.username ?? username,
+          avatar: user.avatar ?? avatar,
+        });
+      } catch (error) {
+        logger.error({ error, walletAddress, username }, 'Failed to upsert ranked bot user');
+      }
+    }
+
+    logger.info({ count: this.botProfilesByWallet.size }, 'Ranked bot users synced in database');
   }
 
   async getRankedBot(requiredStake: number): Promise<RankedBotIdentity> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+
     if (this.simulationMode) {
       return {
+        userId: 'bot_opponent',
         username: 'SimulatedBot',
         publicKey: '11111111111111111111111111111111',
+        avatar: BOT_AVATARS[0],
         keypair: null,
       };
     }
@@ -144,9 +234,16 @@ class BotWalletService {
     for (const [index, keypair] of this.botKeypairs.entries()) {
       const balance = await this.connection.getBalance(keypair.publicKey);
       if (balance >= requiredLamports) {
+        const walletAddress = keypair.publicKey.toBase58();
+        const profile = this.botProfilesByWallet.get(walletAddress);
+        const username = this.botUsernames[index % this.botUsernames.length] ?? 'Ranked Bot';
+        const avatar = BOT_AVATARS[index % BOT_AVATARS.length];
+
         return {
-          username: this.botUsernames[index % this.botUsernames.length] ?? 'Ranked Bot',
-          publicKey: keypair.publicKey.toBase58(),
+          userId: profile?.userId ?? walletAddress,
+          username: profile?.username ?? username,
+          publicKey: walletAddress,
+          avatar: profile?.avatar ?? avatar,
           keypair,
         };
       }
