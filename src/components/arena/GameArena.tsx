@@ -88,6 +88,7 @@ export function GameArena({
   const [readyDeadlineTs, setReadyDeadlineTs] = useState<number | null>(null);
   const [readySecondsRemaining, setReadySecondsRemaining] = useState<number | null>(null);
   const [canResume, setCanResume] = useState(true);
+  const [sessionId, setSessionId] = useState('');
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -454,6 +455,7 @@ export function GameArena({
   useWebSocketEvent<WSGameState>('game:state', payload => {
     if (!payload) return;
 
+    setSessionId(payload.sessionId ?? '');
     setPlayerSlot(payload.playerSlot);
     setCurrentRound(payload.round);
     setPlayerScore(payload.scores[payload.playerSlot]);
@@ -706,6 +708,7 @@ export function GameArena({
         <HUD
           player={playerProfile}
           opponent={opponentProfile}
+          sessionId={sessionId}
           playerScore={playerScore}
           opponentScore={opponentScore}
           currentRound={currentRound}
@@ -788,6 +791,7 @@ export function GameArena({
 
       {showFinalResults && (
         <GameResultModal
+          sessionId={sessionId}
           playerScore={playerScore}
           opponentScore={opponentScore}
           playerTimes={allPlayerTimes}
