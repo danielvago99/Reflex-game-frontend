@@ -27,6 +27,8 @@ import type {
 
 interface GameArenaProps {
   onQuit: () => void;
+  onPlayAgain?: () => void;
+  onGoToDashboard?: () => void;
   isRanked?: boolean;
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
@@ -43,6 +45,8 @@ interface Target {
 
 export function GameArena({
   onQuit,
+  onPlayAgain,
+  onGoToDashboard,
   isRanked = false,
   stakeAmount = 0,
   matchType = 'bot',
@@ -792,8 +796,9 @@ export function GameArena({
           stakeAmount={stakeAmount}
           matchType={matchType}
           wasForfeit={wasForfeitResult}
-          onPlayAgain={handleRestart}
-          onBackToMenu={onQuit}
+          onPlayAgain={matchType === 'ranked' ? (onPlayAgain ?? handleRestart) : handleRestart}
+          onBackToMenu={onGoToDashboard ?? onQuit}
+          playAgainLabel={matchType === 'friend' ? 'Rematch' : 'Play Again'}
         />
       )}
 

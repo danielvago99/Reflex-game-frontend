@@ -19,9 +19,19 @@ export function GameArenaScreen({
     onNavigate('lobby');
   };
 
+  const handlePlayAgain = () => {
+    onNavigate('lobby:ranked-rematch');
+  };
+
+  const handleGoToDashboard = () => {
+    onNavigate('dashboard');
+  };
+
   return (
     <GameArena
       onQuit={handleQuit}
+      onPlayAgain={handlePlayAgain}
+      onGoToDashboard={handleGoToDashboard}
       isRanked={isRanked}
       stakeAmount={stakeAmount}
       matchType={matchType}

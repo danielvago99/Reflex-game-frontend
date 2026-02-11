@@ -10,6 +10,16 @@ export default function ArenaRoute() {
   const { matchDetails, setMatchDetails } = useGame();
 
   const handleNavigate = (screen: string) => {
+    if (screen === 'lobby:ranked-rematch') {
+      setMatchDetails({ ...matchDetails, isRanked: true, matchType: 'ranked', stakeAmount: 0 });
+      navigate('/lobby', {
+        state: {
+          preselectMode: 'ranked',
+        },
+      });
+      return;
+    }
+
     if (isScreen(screen)) {
       if (screen === 'dashboard' || screen === 'lobby') {
         setMatchDetails({ ...matchDetails, stakeAmount: 0 });
