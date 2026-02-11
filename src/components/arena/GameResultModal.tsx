@@ -1,11 +1,12 @@
 import { motion } from 'motion/react';
-import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2, ShieldAlert, Zap } from 'lucide-react';
+import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2, ShieldAlert, Zap, Send, Mail, MessageSquare } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
 import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const GAME_WIN_MESSAGES = [
   'Champion of the Arena! 🥇',
@@ -96,6 +97,10 @@ export function GameResultModal({
     weeklyBonusEarned: boolean;
     weeklyBonus: number;
   } | null>(null);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportEmail, setReportEmail] = useState('');
+  const [reportReason, setReportReason] = useState('');
+  const [reportErrors, setReportErrors] = useState({ email: '', reason: '' });
 
   // Record match completion for daily challenge and match history
   useEffect(() => {
@@ -198,8 +203,44 @@ export function GameResultModal({
     }
   };
 
-  const handleReport = () => {
-    toast.info('Report submitted. Our team will review the match.');
+  const handleOpenReportDialog = () => {
+    setIsReportDialogOpen(true);
+  };
+
+  const handleCloseReportDialog = () => {
+    setIsReportDialogOpen(false);
+    setReportErrors({ email: '', reason: '' });
+  };
+
+  const handleSendReport = () => {
+    const trimmedEmail = reportEmail.trim();
+    const trimmedReason = reportReason.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const nextErrors = {
+      email: '',
+      reason: ''
+    };
+
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      nextErrors.email = 'Please enter a valid email address.';
+    }
+
+    if (!trimmedReason) {
+      nextErrors.reason = 'Please provide a reason for the report.';
+    }
+
+    setReportErrors(nextErrors);
+
+    if (nextErrors.email || nextErrors.reason) {
+      return;
+    }
+
+    setIsReportDialogOpen(false);
+    setReportEmail('');
+    setReportReason('');
+    setReportErrors({ email: '', reason: '' });
+    toast.success('Report sent successfully. Our team will review it shortly.');
   };
   const showReportButton = isRanked || matchType === 'ranked';
 
@@ -399,7 +440,7 @@ export function GameResultModal({
 
                 {showReportButton && (
                   <button
-                    onClick={handleReport}
+                    onClick={handleOpenReportDialog}
                     className="bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-[0_0_35px_rgba(239,68,68,0.5)] text-white py-3 sm:py-4 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2.5 font-semibold text-base"
 >
                     <ShieldAlert className="w-5 h-5" />
@@ -411,6 +452,84 @@ export function GameResultModal({
           </div>
         </div>
       </motion.div>
+
+      <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleCloseReportDialog()}>
+        <DialogContent className="bg-gradient-to-br from-[#160b12] via-[#1a0f1a] to-[#0B0F1A] border-2 border-red-500/40 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(239,68,68,0.25)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="p-2 bg-red-500/20 rounded-lg border border-red-500/30">
+                <ShieldAlert className="w-5 h-5 text-red-400" />
+              </div>
+              Report Opponent
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Share your email and report details so our team can review this match.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 mt-4">
+            <div className="space-y-2">
+              <label htmlFor="report-email" className="text-sm text-red-300 uppercase tracking-wider flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Your Email
+              </label>
+              <input
+                id="report-email"
+                type="email"
+                placeholder="you@example.com"
+                value={reportEmail}
+                onChange={(event) => {
+                  setReportEmail(event.target.value);
+                  if (reportErrors.email) {
+                    setReportErrors((prev) => ({ ...prev, email: '' }));
+                  }
+                }}
+                className="w-full rounded-xl border border-red-500/30 bg-black/30 px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/60"
+              />
+              {reportErrors.email && <p className="text-sm text-red-400">{reportErrors.email}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="report-reason" className="text-sm text-red-300 uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Reason
+              </label>
+              <textarea
+                id="report-reason"
+                rows={5}
+                placeholder="Describe why you want to report this opponent..."
+                value={reportReason}
+                onChange={(event) => {
+                  setReportReason(event.target.value);
+                  if (reportErrors.reason) {
+                    setReportErrors((prev) => ({ ...prev, reason: '' }));
+                  }
+                }}
+                className="w-full rounded-xl border border-red-500/30 bg-black/30 px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/60 resize-none"
+              />
+              {reportErrors.reason && <p className="text-sm text-red-400">{reportErrors.reason}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCloseReportDialog}
+                className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-3 rounded-xl transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSendReport}
+                className="bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-[0_0_30px_rgba(239,68,68,0.45)] text-white py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold"
+              >
+                <Send className="w-4 h-4" />
+                Send
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
