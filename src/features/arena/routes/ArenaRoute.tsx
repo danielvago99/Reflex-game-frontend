@@ -25,6 +25,7 @@ export default function ArenaRoute() {
       stakeAmount={matchDetails.stakeAmount}
       matchType={matchDetails.matchType}
       opponentName={matchDetails.opponentName}
+      opponentUserId={matchDetails.opponentUserId}
     />
   );
 }

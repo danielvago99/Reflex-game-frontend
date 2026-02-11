@@ -31,6 +31,7 @@ interface GameArenaProps {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
   opponentName?: string;
+  opponentUserId?: string;
 }
 
 type GameState = 'countdown' | 'playing' | 'result';
@@ -47,6 +48,7 @@ export function GameArena({
   stakeAmount = 0,
   matchType = 'bot',
   opponentName,
+  opponentUserId,
 }: GameArenaProps) {
   const { playerName } = useGame();
   // Game state
@@ -286,14 +288,21 @@ export function GameArena({
         return;
       }
 
-      const roundReadyPayload: { round: number; stake: number } = {
+      const roundReadyPayload: {
+        round: number;
+        stake: number;
+        matchType: 'ranked' | 'friend' | 'bot';
+        opponentUserId?: string;
+      } = {
         round: roundNumber,
         stake: stakeAmount,
+        matchType,
+        opponentUserId,
       };
 
       send('round:ready', roundReadyPayload);
     },
-    [isConnected, send, stakeAmount]
+    [isConnected, matchType, opponentUserId, send, stakeAmount]
   );
 
   const handleTargetAppeared = () => {};

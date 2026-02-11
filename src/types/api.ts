@@ -325,6 +325,7 @@ export interface WSRoundReadyPayload {
   round: number;
   stake?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
+  opponentUserId?: string;
 }
 
 export interface WSRoundShowTarget {
