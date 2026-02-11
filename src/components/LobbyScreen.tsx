@@ -27,6 +27,21 @@ interface LobbyScreenProps {
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
 
+function resolveOpponentUserId(payload: Record<string, unknown>): string | undefined {
+  const userIdCandidates = [
+    payload.opponentUserId,
+    payload.opponentId,
+    payload.botUserId,
+    payload.rankedBotUserId,
+    (payload.opponent as { userId?: unknown } | undefined)?.userId,
+    (payload.bot as { userId?: unknown } | undefined)?.userId,
+    (payload.bot as { id?: unknown } | undefined)?.id,
+  ];
+
+  const match = userIdCandidates.find((candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0);
+  return match;
+}
+
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
@@ -120,7 +135,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         matchType,
         roomCode: payload.roomCode,
         opponentName: payload.opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Unknown Opponent'),
-        opponentUserId: payload.opponentUserId ?? payload.opponentId ?? payload.botUserId,
+        opponentUserId: resolveOpponentUserId(payload),
       };
 
       setMatchStatus(matchType === 'friend' ? 'idle' : 'found');
@@ -150,9 +165,19 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       }
     });
 
-    const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
-      console.log('game:enter_arena received');
-      const matchToStart = pendingMatchRef.current;
+    const unsubscribeEnterArena = wsService.on('game:enter_arena', (message: any) => {
+      const payload = message?.payload ?? {};
+      console.log('game:enter_arena received', payload);
+      const matchToStart = pendingMatchRef.current
+        ? {
+            ...pendingMatchRef.current,
+            opponentUserId: resolveOpponentUserId(payload) ?? pendingMatchRef.current.opponentUserId,
+            opponentName:
+              (typeof payload.opponentName === 'string' && payload.opponentName.length > 0
+                ? payload.opponentName
+                : undefined) ?? pendingMatchRef.current.opponentName,
+          }
+        : null;
       const shouldDelayBotReady =
         matchToStart?.matchType === 'ranked' && matchToStart.isBot && Math.random() < 0.65;
       const botReadyDelayMs = shouldDelayBotReady ? 1200 + Math.floor(Math.random() * 2800) : 0;
