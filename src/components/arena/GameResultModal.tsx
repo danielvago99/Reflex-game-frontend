@@ -7,6 +7,7 @@ import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { API_BASE_URL } from '../../features/auth/hooks/useAuth';
 
 const GAME_WIN_MESSAGES = [
   'Champion of the Arena! 🥇',
@@ -43,6 +44,7 @@ interface GameResultModalProps {
   stakeAmount: number;
   matchType?: 'ranked' | 'friend' | 'bot'; // Add matchType prop
   wasForfeit: boolean;
+  gameSessionId?: string | null;
   onPlayAgain: () => void;
   onBackToMenu: () => void;
   playAgainLabel?: string;
@@ -57,6 +59,7 @@ export function GameResultModal({
   stakeAmount,
   matchType = 'bot', // Default to 'bot' if not provided
   wasForfeit,
+  gameSessionId,
   onPlayAgain,
   onBackToMenu,
   playAgainLabel = 'Play Again'
@@ -101,6 +104,7 @@ export function GameResultModal({
   const [reportEmail, setReportEmail] = useState('');
   const [reportReason, setReportReason] = useState('');
   const [reportErrors, setReportErrors] = useState({ email: '', reason: '' });
+  const [isSendingReport, setIsSendingReport] = useState(false);
 
   // Record match completion for daily challenge and match history
   useEffect(() => {
@@ -212,7 +216,11 @@ export function GameResultModal({
     setReportErrors({ email: '', reason: '' });
   };
 
-  const handleSendReport = () => {
+  const handleSendReport = async () => {
+    if (isSendingReport) {
+      return;
+    }
+
     const trimmedEmail = reportEmail.trim();
     const trimmedReason = reportReason.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -236,11 +244,46 @@ export function GameResultModal({
       return;
     }
 
-    setIsReportDialogOpen(false);
-    setReportEmail('');
-    setReportReason('');
-    setReportErrors({ email: '', reason: '' });
-    toast.success('Report sent successfully. Our team will review it shortly.');
+    if (!gameSessionId) {
+      toast.error('Unable to send report', {
+        description: 'Missing match session ID. Please try again after rejoining the match.',
+      });
+      return;
+    }
+
+    try {
+      setIsSendingReport(true);
+      const response = await fetch(`${API_BASE_URL}/api/game/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          sessionId: gameSessionId,
+          email: trimmedEmail,
+          reason: trimmedReason,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Failed to send report');
+      }
+
+      setIsReportDialogOpen(false);
+      setReportEmail('');
+      setReportReason('');
+      setReportErrors({ email: '', reason: '' });
+      toast.success('Report sent successfully. Our team will review it shortly.');
+    } catch (error) {
+      toast.error('Unable to send report', {
+        description: error instanceof Error ? error.message : 'Please try again later.',
+      });
+    } finally {
+      setIsSendingReport(false);
+    }
   };
   const showReportButton = isRanked || matchType === 'ranked';
 
@@ -514,13 +557,15 @@ export function GameResultModal({
               <button
                 type="button"
                 onClick={handleCloseReportDialog}
+                disabled={isSendingReport}
                 className="bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 text-white py-3 rounded-xl transition-all duration-300"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleSendReport}
+                onClick={() => void handleSendReport()}
+                disabled={isSendingReport}
                 className="bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-[0_0_30px_rgba(239,68,68,0.45)] text-white py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold"
               >
                 <Send className="w-4 h-4" />

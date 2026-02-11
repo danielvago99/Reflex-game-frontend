@@ -88,6 +88,7 @@ export function GameArena({
   const [readyDeadlineTs, setReadyDeadlineTs] = useState<number | null>(null);
   const [readySecondsRemaining, setReadySecondsRemaining] = useState<number | null>(null);
   const [canResume, setCanResume] = useState(true);
+  const [gameSessionId, setGameSessionId] = useState<string | null>(null);
 
   const isWaitingForTarget = currentTarget === null;
 
@@ -400,6 +401,10 @@ export function GameArena({
   }, []);
 
   useWebSocketEvent<WSGameStart>('game:start', payload => {
+    if (payload?.sessionId) {
+      setGameSessionId(payload.sessionId);
+    }
+
     if (payload?.player) {
       setPlayerProfile(prev => ({
         ...prev,
@@ -453,6 +458,10 @@ export function GameArena({
 
   useWebSocketEvent<WSGameState>('game:state', payload => {
     if (!payload) return;
+
+    if (payload.sessionId) {
+      setGameSessionId(payload.sessionId);
+    }
 
     setPlayerSlot(payload.playerSlot);
     setCurrentRound(payload.round);
@@ -795,6 +804,7 @@ export function GameArena({
           isRanked={isRanked}
           stakeAmount={stakeAmount}
           matchType={matchType}
+          gameSessionId={gameSessionId}
           wasForfeit={wasForfeitResult}
           onPlayAgain={matchType === 'ranked' ? (onPlayAgain ?? handleRestart) : handleRestart}
           onBackToMenu={onGoToDashboard ?? onQuit}

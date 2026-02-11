@@ -78,4 +78,70 @@ router.get('/history', attachUser, requireAuth, async (req, res) => {
   return res.json({ history });
 });
 
+router.post('/report', attachUser, requireAuth, async (req, res) => {
+  const authUser = req.user;
+
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : '';
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'sessionId is required' });
+  }
+
+  if (!email) {
+    return res.status(400).json({ error: 'email is required' });
+  }
+
+  if (!reason) {
+    return res.status(400).json({ error: 'reason is required' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'email is invalid' });
+  }
+
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      winnerId: true,
+      loserId: true,
+    },
+  });
+
+  if (!session) {
+    return res.status(404).json({ error: 'Game session not found' });
+  }
+
+  if (session.winnerId !== authUser.id && session.loserId !== authUser.id) {
+    return res.status(403).json({ error: 'You can only report players from your own matches' });
+  }
+
+  const report = await prisma.report.create({
+    data: {
+      userId: authUser.id,
+      sessionId,
+      email,
+      reason,
+    },
+  });
+
+  return res.status(201).json({
+    report: {
+      id: report.id,
+      userId: report.userId,
+      sessionId: report.sessionId,
+      email: report.email,
+      reason: report.reason,
+      createdAt: report.createdAt,
+    },
+  });
+});
+
 export { router as gameRouter };
