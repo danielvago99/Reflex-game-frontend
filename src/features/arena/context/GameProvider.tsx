@@ -8,6 +8,7 @@ interface MatchDetails {
   stakeAmount: number;
   matchType: MatchType;
   opponentName?: string;
+  opponentUserId?: string;
 }
 
 interface GameContextValue {

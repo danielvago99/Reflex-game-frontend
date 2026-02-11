@@ -6,6 +6,7 @@ interface GameArenaScreenProps {
   stakeAmount?: number;
   matchType?: 'ranked' | 'friend' | 'bot';
   opponentName?: string;
+  opponentUserId?: string;
 }
 
 export function GameArenaScreen({
@@ -14,6 +15,7 @@ export function GameArenaScreen({
   stakeAmount = 0,
   matchType = 'bot',
   opponentName,
+  opponentUserId,
 }: GameArenaScreenProps) {
   const handleQuit = () => {
     onNavigate('lobby');
@@ -26,6 +28,7 @@ export function GameArenaScreen({
       stakeAmount={stakeAmount}
       matchType={matchType}
       opponentName={opponentName}
+      opponentUserId={opponentUserId}
     />
   );
 }

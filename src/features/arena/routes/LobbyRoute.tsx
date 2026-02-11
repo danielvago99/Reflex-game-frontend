@@ -25,8 +25,8 @@ export default function LobbyRoute() {
       preselectMode={navState?.preselectMode}
       preselectStake={navState?.preselectStake}
       onNavigate={handleNavigate}
-      onStartMatch={(isRanked, stakeAmount, matchType, opponentName) => {
-        setMatchDetails({ isRanked, stakeAmount, matchType, opponentName });
+      onStartMatch={(isRanked, stakeAmount, matchType, opponentName, opponentUserId) => {
+        setMatchDetails({ isRanked, stakeAmount, matchType, opponentName, opponentUserId });
         navigate('/arena');
       }}
     />

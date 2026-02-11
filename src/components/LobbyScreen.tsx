@@ -21,7 +21,8 @@ interface LobbyScreenProps {
     isRanked: boolean,
     stakeAmount: number,
     matchType: 'ranked' | 'friend' | 'bot',
-    opponentName?: string
+    opponentName?: string,
+    opponentUserId?: string
   ) => void;
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
@@ -49,6 +50,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     matchType: 'ranked' | 'friend' | 'bot';
     roomCode?: string;
     opponentName?: string;
+    opponentUserId?: string;
   } | null>(null);
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
@@ -61,6 +63,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     matchType: 'ranked' | 'friend' | 'bot';
     roomCode?: string;
     opponentName?: string;
+    opponentUserId?: string;
   } | null>(null);
   const dailyMatchesPlayed = data?.dailyMatchesPlayed ?? data?.dailyProgress ?? 0;
   const dailyMatchesTarget = data?.dailyTarget ?? 5;
@@ -117,6 +120,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         matchType,
         roomCode: payload.roomCode,
         opponentName: payload.opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Unknown Opponent'),
+        opponentUserId: payload.opponentUserId ?? payload.opponentId ?? payload.botUserId,
       };
 
       setMatchStatus(matchType === 'friend' ? 'idle' : 'found');
@@ -161,7 +165,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
               matchToStart.matchType === 'ranked',
               matchToStart.stake,
               matchToStart.matchType,
-              matchToStart.opponentName
+              matchToStart.opponentName,
+              matchToStart.opponentUserId
             );
           } else {
             onNavigate('arena');
@@ -303,6 +308,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
     opponentName?: string;
+    opponentUserId?: string;
   }) => {
     try {
       // Get the wallet provider from window
@@ -352,6 +358,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           sessionId: matchDetails.sessionId,
           stake: matchDetails.stake,
           matchType: matchDetails.matchType,
+          opponentUserId: matchDetails.opponentUserId,
         });
         return;
       }
@@ -383,6 +390,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         sessionId: matchDetails.sessionId,
         stake: matchDetails.stake,
         matchType: matchDetails.matchType,
+        opponentUserId: matchDetails.opponentUserId,
       });
       if (matchDetails.matchType !== 'bot') {
         setWaitingForStakeConfirmation(true);
@@ -424,6 +432,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       sessionId: pendingMatch.sessionId,
       stake: pendingMatch.stake,
       matchType: pendingMatch.matchType,
+      opponentUserId: pendingMatch.opponentUserId,
     });
     
     setShowTransactionModal(false);
