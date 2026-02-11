@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2, ShieldAlert } from 'lucide-react';
+import { Trophy, Clock, Home, RotateCcw, Coins, X, Share2, ShieldAlert, Zap } from 'lucide-react';
 import { MAX_ROUNDS } from '../../features/arena/constants';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordMatchCompletion, getDailyChallengeInfo } from '../../utils/dailyChallenge';
@@ -325,25 +325,30 @@ export function GameResultModal({
                 <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-4">Match Stats</p>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center flex flex-col">
                       <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
                         <Coins className="w-3.5 h-3.5 text-[#FDE047]" />
                         Earnings
                       </div>
                       <p
-                        className={`mt-2 text-lg font-semibold ${earnings >= 0 ? config.accent : 'text-pink-400'}`}
+                        className={`flex-1 flex items-center justify-center mt-2 text-lg font-semibold ${earnings >= 0 ? config.accent : 'text-pink-400'}`}
                       >
                         {earnings >= 0 ? '+' : '-'}
                         {Math.abs(earnings).toFixed(2)} SOL
                       </p>
-                      {(isRanked || stakeAmount > 0) && (
+                      {isRanked || stakeAmount > 0 ? (
                         <p className="text-[10px] text-gray-500 mt-1">
                           Pot {totalPot.toFixed(2)}
                         </p>
+                      ) : (
+                        <p className="text-[10px] text-gray-500 mt-1 opacity-0">Pot 0.00</p>
                       )}
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-3 text-center">
-                      <div className="text-xs text-gray-400">Your Best Reaction</div>
+                      <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
+                        <Zap className="w-3.5 h-3.5 text-[#F97316]" />
+                        Best reaction
+                      </div>
                       <p className="mt-2 text-lg font-semibold text-white">
                         {bestReactionTime > 0 ? `${bestReactionTime}ms` : '--'}
                       </p>
