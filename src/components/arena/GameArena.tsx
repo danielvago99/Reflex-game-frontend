@@ -401,6 +401,10 @@ export function GameArena({
   }, []);
 
   useWebSocketEvent<WSGameStart>('game:start', payload => {
+    if (payload?.sessionId) {
+      setSessionId(payload.sessionId);
+    }
+
     if (payload?.player) {
       setPlayerProfile(prev => ({
         ...prev,
@@ -415,6 +419,12 @@ export function GameArena({
         name: payload.opponent.name ?? prev.name,
         avatar: payload.opponent.avatar ?? prev.avatar,
       }));
+    }
+  }, []);
+
+  useWebSocketEvent<{ sessionId?: string }>('match_found', payload => {
+    if (payload?.sessionId) {
+      setSessionId(payload.sessionId);
     }
   }, []);
 
