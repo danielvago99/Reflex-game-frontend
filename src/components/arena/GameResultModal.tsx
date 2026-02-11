@@ -7,6 +7,7 @@ import { addMatchToHistory } from '../../utils/matchHistory';
 import { toast } from 'sonner';
 import { MATCH_HISTORY_UPDATED_EVENT } from '../../hooks/useMatchHistory';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { ENV } from '../../config/env';
 
 const GAME_WIN_MESSAGES = [
   'Champion of the Arena! 🥇',
@@ -35,6 +36,7 @@ const GAME_LOSE_MESSAGES = [
 ];
 
 interface GameResultModalProps {
+  sessionId: string;
   playerScore: number;
   opponentScore: number;
   playerTimes: (number | null)[];
@@ -49,6 +51,7 @@ interface GameResultModalProps {
 }
 
 export function GameResultModal({
+  sessionId,
   playerScore,
   opponentScore,
   playerTimes,
@@ -101,6 +104,7 @@ export function GameResultModal({
   const [reportEmail, setReportEmail] = useState('');
   const [reportReason, setReportReason] = useState('');
   const [reportErrors, setReportErrors] = useState({ email: '', reason: '' });
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Record match completion for daily challenge and match history
   useEffect(() => {
@@ -212,10 +216,13 @@ export function GameResultModal({
     setReportErrors({ email: '', reason: '' });
   };
 
-  const handleSendReport = () => {
+  const handleSendReport = async () => {
     const trimmedEmail = reportEmail.trim();
     const trimmedReason = reportReason.trim();
+    const trimmedSessionId = sessionId.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     const nextErrors = {
       email: '',
@@ -226,8 +233,8 @@ export function GameResultModal({
       nextErrors.email = 'Please enter a valid email address.';
     }
 
-    if (!trimmedReason) {
-      nextErrors.reason = 'Please provide a reason for the report.';
+    if (trimmedReason.length < 3) {
+      nextErrors.reason = 'Please provide at least 3 characters.';
     }
 
     setReportErrors(nextErrors);
@@ -236,11 +243,47 @@ export function GameResultModal({
       return;
     }
 
-    setIsReportDialogOpen(false);
-    setReportEmail('');
-    setReportReason('');
-    setReportErrors({ email: '', reason: '' });
-    toast.success('Report sent successfully. Our team will review it shortly.');
+    if (!uuidRegex.test(trimmedSessionId)) {
+      toast.error('Unable to submit report: invalid match session.');
+      return;
+    }
+
+    try {
+      setIsSubmittingReport(true);
+      const baseUrl = ENV.API_BASE_URL.replace(/\/$/, '');
+      const apiBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+      const response = await fetch(`${apiBaseUrl}/game/report`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          sessionId: trimmedSessionId,
+          email: trimmedEmail,
+          reason: trimmedReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? 'Failed to submit report');
+      }
+
+      setIsReportDialogOpen(false);
+      setReportEmail('');
+      setReportReason('');
+      setReportErrors({ email: '', reason: '' });
+      toast.success('Report sent successfully. Our team will review it shortly.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit report right now.';
+      toast.error(message);
+    } finally {
+      setIsSubmittingReport(false);
+    }
   };
   const showReportButton = isRanked || matchType === 'ranked';
 
@@ -521,10 +564,11 @@ export function GameResultModal({
               <button
                 type="button"
                 onClick={handleSendReport}
+                disabled={isSubmittingReport}
                 className="bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-[0_0_30px_rgba(239,68,68,0.45)] text-white py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 font-semibold"
               >
                 <Send className="w-4 h-4" />
-                Send
+                {isSubmittingReport ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>
