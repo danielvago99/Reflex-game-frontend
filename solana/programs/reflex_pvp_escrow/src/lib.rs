@@ -23,6 +23,27 @@ pub mod reflex_pvp_escrow {
     pub fn create_match(ctx: Context<CreateMatch>, stake: u64, join_expiry_secs: i64) -> Result<()> {
         require!(stake > 0, EscrowError::InvalidStake);
 
+        if ctx.accounts.vault.lamports() == 0 {
+            let rent_lamports = Rent::get()?.minimum_balance(0);
+            let match_key = ctx.accounts.game_match.key();
+            let vault_seeds: &[&[u8]] = &[b"vault", match_key.as_ref(), &[ctx.bumps.vault]];
+            invoke_signed(
+                &system_instruction::create_account(
+                    &ctx.accounts.player_a.key(),
+                    &ctx.accounts.vault.key(),
+                    rent_lamports,
+                    0,
+                    &crate::ID,
+                ),
+                &[
+                    ctx.accounts.player_a.to_account_info(),
+                    ctx.accounts.vault.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                ],
+                &[vault_seeds],
+            )?;
+        }
+
         let now = Clock::get()?.unix_timestamp;
         let game_match = &mut ctx.accounts.game_match;
         game_match.player_a = ctx.accounts.player_a.key();
@@ -33,7 +54,6 @@ pub mod reflex_pvp_escrow {
         game_match.join_expiry_ts = now.saturating_add(join_expiry_secs);
         game_match.settle_deadline_ts = 0;
         game_match.vault_bump = ctx.bumps.vault;
-        game_match.bump = 0;
 
         let transfer_ix = system_instruction::transfer(
             &ctx.accounts.player_a.key(),
@@ -82,9 +102,14 @@ pub mod reflex_pvp_escrow {
         let config = &ctx.accounts.config;
         require!(ctx.accounts.server_authority.key() == config.server_authority, EscrowError::Unauthorized);
 
-        let game_match = &mut ctx.accounts.game_match;
+        let game_match = &ctx.accounts.game_match;
         require!(game_match.state == MatchState::Active, EscrowError::InvalidState);
         require!(winner_pubkey == game_match.player_a || winner_pubkey == game_match.player_b, EscrowError::InvalidWinner);
+
+        let match_key = game_match.key();
+        let vault_bump = game_match.vault_bump;
+        let player_a = game_match.player_a;
+        let player_b = game_match.player_b;
 
         let total_pot = game_match.stake.checked_mul(2).ok_or(EscrowError::MathOverflow)?;
         let fee = total_pot.checked_mul(config.fee_bps).ok_or(EscrowError::MathOverflow)?
@@ -92,84 +117,102 @@ pub mod reflex_pvp_escrow {
         let payout = total_pot.checked_sub(fee).ok_or(EscrowError::MathOverflow)?;
 
         transfer_from_vault(
-            &ctx.accounts.game_match,
+            &match_key,
+            vault_bump,
             &ctx.accounts.vault,
             &ctx.accounts.fee_vault.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
             fee,
         )?;
 
-        let winner_info = if winner_pubkey == game_match.player_a {
+        let winner_info = if winner_pubkey == player_a {
             &ctx.accounts.player_a
         } else {
+            require!(winner_pubkey == player_b, EscrowError::InvalidWinner);
             &ctx.accounts.player_b
         };
 
         transfer_from_vault(
-            &ctx.accounts.game_match,
+            &match_key,
+            vault_bump,
             &ctx.accounts.vault,
             &winner_info.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
             payout,
         )?;
 
+        let game_match = &mut ctx.accounts.game_match;
         game_match.state = MatchState::Settled;
         Ok(())
     }
 
     pub fn cancel_unjoined(ctx: Context<CancelUnjoined>) -> Result<()> {
-        let game_match = &mut ctx.accounts.game_match;
+        let game_match = &ctx.accounts.game_match;
         require!(game_match.state == MatchState::WaitingForB, EscrowError::InvalidState);
         require!(Clock::get()?.unix_timestamp > game_match.join_expiry_ts, EscrowError::JoinNotExpired);
 
+        let stake = game_match.stake;
+        let vault_bump = game_match.vault_bump;
+        let match_key = game_match.key();
+
         transfer_from_vault(
-            &ctx.accounts.game_match,
+            &match_key,
+            vault_bump,
             &ctx.accounts.vault,
             &ctx.accounts.player_a.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-            game_match.stake,
+            stake,
         )?;
 
+        let game_match = &mut ctx.accounts.game_match;
         game_match.state = MatchState::Cancelled;
         Ok(())
     }
 
     pub fn timeout_refund(ctx: Context<TimeoutRefund>) -> Result<()> {
-        let game_match = &mut ctx.accounts.game_match;
+        let game_match = &ctx.accounts.game_match;
         require!(game_match.state == MatchState::Active, EscrowError::InvalidState);
         require!(Clock::get()?.unix_timestamp > game_match.settle_deadline_ts, EscrowError::SettlementDeadlineNotReached);
 
+        let stake = game_match.stake;
+        let vault_bump = game_match.vault_bump;
+        let match_key = game_match.key();
+
         transfer_from_vault(
-            &ctx.accounts.game_match,
+            &match_key,
+            vault_bump,
             &ctx.accounts.vault,
             &ctx.accounts.player_a.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-            game_match.stake,
+            stake,
         )?;
         transfer_from_vault(
-            &ctx.accounts.game_match,
+            &match_key,
+            vault_bump,
             &ctx.accounts.vault,
             &ctx.accounts.player_b.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-            game_match.stake,
+            stake,
         )?;
 
+        let game_match = &mut ctx.accounts.game_match;
         game_match.state = MatchState::Refunded;
         Ok(())
     }
 }
 
 fn transfer_from_vault<'info>(
-    game_match: &Account<'info, Match>,
+    match_key: &Pubkey,
+    vault_bump: u8,
     vault: &AccountInfo<'info>,
     destination: &AccountInfo<'info>,
     system_program: &AccountInfo<'info>,
     lamports: u64,
 ) -> Result<()> {
-    let seeds = &[b"vault", game_match.key().as_ref(), &[game_match.vault_bump]];
+    let seeds = &[b"vault", match_key.as_ref(), &[vault_bump]];
     let signer = &[&seeds[..]];
     invoke_signed(
-        &system_instruction::transfer(vault.key, destination.key, lamports),
+        &system_instruction::transfer(&vault.key(), &destination.key(), lamports),
         &[vault.clone(), destination.clone(), system_program.clone()],
         signer,
     )?;
@@ -195,8 +238,8 @@ pub struct CreateMatch<'info> {
     pub config: Account<'info, Config>,
     #[account(init, payer=player_a, space=8 + Match::INIT_SPACE)]
     pub game_match: Account<'info, Match>,
-    #[account(init, payer=player_a, space=8, seeds=[b"vault", game_match.key().as_ref()], bump)]
-    pub vault: SystemAccount<'info>,
+    #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump)]
+    pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -207,7 +250,7 @@ pub struct JoinMatch<'info> {
     #[account(mut)]
     pub game_match: Account<'info, Match>,
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
-    pub vault: SystemAccount<'info>,
+    pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -219,7 +262,7 @@ pub struct Settle<'info> {
     #[account(mut)]
     pub game_match: Account<'info, Match>,
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
-    pub vault: SystemAccount<'info>,
+    pub vault: UncheckedAccount<'info>,
     /// CHECK: validated to be playerA
     #[account(mut, address=game_match.player_a)]
     pub player_a: UncheckedAccount<'info>,
@@ -239,7 +282,7 @@ pub struct CancelUnjoined<'info> {
     #[account(mut)]
     pub game_match: Account<'info, Match>,
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
-    pub vault: SystemAccount<'info>,
+    pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -248,7 +291,7 @@ pub struct TimeoutRefund<'info> {
     #[account(mut)]
     pub game_match: Account<'info, Match>,
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
-    pub vault: SystemAccount<'info>,
+    pub vault: UncheckedAccount<'info>,
     /// CHECK:
     #[account(mut, address=game_match.player_a)]
     pub player_a: UncheckedAccount<'info>,
@@ -279,7 +322,6 @@ pub struct Match {
     pub join_expiry_ts: i64,
     pub settle_deadline_ts: i64,
     pub vault_bump: u8,
-    pub bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, InitSpace, PartialEq, Eq)]
