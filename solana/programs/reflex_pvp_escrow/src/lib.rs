@@ -238,6 +238,7 @@ pub struct CreateMatch<'info> {
     pub config: Account<'info, Config>,
     #[account(init, payer=player_a, space=8 + Match::INIT_SPACE)]
     pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump)]
     pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -249,6 +250,7 @@ pub struct JoinMatch<'info> {
     pub player_b: Signer<'info>,
     #[account(mut)]
     pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
     pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -261,6 +263,7 @@ pub struct Settle<'info> {
     pub config: Account<'info, Config>,
     #[account(mut)]
     pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
     pub vault: UncheckedAccount<'info>,
     /// CHECK: validated to be playerA
@@ -281,6 +284,7 @@ pub struct CancelUnjoined<'info> {
     pub player_a: Signer<'info>,
     #[account(mut)]
     pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
     pub vault: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -290,6 +294,7 @@ pub struct CancelUnjoined<'info> {
 pub struct TimeoutRefund<'info> {
     #[account(mut)]
     pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
     pub vault: UncheckedAccount<'info>,
     /// CHECK:
