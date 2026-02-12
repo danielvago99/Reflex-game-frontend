@@ -195,6 +195,7 @@ export const API = {
     getHistory: (page: number = 1) => apiClient.get(`/game/history?page=${page}`),
     claimFreeStake: () => apiClient.post('/matchmaking/free-stake/claim'),
     createMatch: (data: any) => apiClient.post('/matchmaking/create', data),
+    createEscrowMatchTx: (data: any) => apiClient.post('/matchmaking/escrow/create-tx', data),
     joinMatch: (matchId: string) => apiClient.post(`/matchmaking/${matchId}/join`),
     finishMatch: (matchId: string, data: any) => apiClient.post(`/matchmaking/${matchId}/finish`, data),
     getMatch: (matchId: string) => apiClient.get(`/matchmaking/${matchId}`),
