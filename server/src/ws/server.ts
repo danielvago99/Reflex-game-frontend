@@ -984,7 +984,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
     let player1WalletAddress: string | undefined;
     let player2WalletAddress: string | undefined;
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+    let botWalletAddress: string | undefined;
+    if (sharedState.matchType === 'ranked') {
       const playerIds = [player1Id, player2Id].filter((id): id is string => Boolean(id));
       const users = (await prisma.user.findMany({
         where: { id: { in: playerIds } },
@@ -993,6 +994,10 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       const walletAddressByUserId = new Map<string, string>(users.map((user) => [user.id, user.walletAddress]));
       player1WalletAddress = player1Id ? walletAddressByUserId.get(player1Id) : undefined;
       player2WalletAddress = player2Id ? walletAddressByUserId.get(player2Id) : undefined;
+      botWalletAddress = hasBotOpponent
+        ? (player1Id && player1Id !== humanId ? walletAddressByUserId.get(player1Id) : undefined) ??
+          (player2Id && player2Id !== humanId ? walletAddressByUserId.get(player2Id) : undefined)
+        : undefined;
     }
 
     const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
@@ -1369,7 +1374,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       finalizedSessions.delete(sharedState.sessionId);
     });
 
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+    if (sharedState.matchType === 'ranked') {
       if (!onChainGameMatch) {
         logger.warn(
           { sessionId: sharedState.sessionId },
@@ -1382,6 +1387,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             player1WalletAddress,
             player2WalletAddress,
             winnerWalletAddress,
+            botWalletAddress,
+            hasBotOpponent,
           },
           'On-chain settle skipped: missing one or more wallet addresses'
         );
