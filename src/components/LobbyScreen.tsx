@@ -1,5 +1,7 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -12,6 +14,7 @@ import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay
 import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
+import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -29,6 +32,8 @@ interface LobbyScreenProps {
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
+  const { publicKey } = useAdapterWallet();
+  const { createMatch, joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -47,6 +52,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     stake: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
+    slot?: 'p1' | 'p2';
+    gameMatch?: string;
     roomCode?: string;
     opponentName?: string;
   } | null>(null);
@@ -59,6 +66,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     stake: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
+    slot?: 'p1' | 'p2';
+    gameMatch?: string;
     roomCode?: string;
     opponentName?: string;
   } | null>(null);
@@ -115,6 +124,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         stake: resolvedStake,
         isBot: isBotOpponent,
         matchType,
+        slot: payload.slot === 'p2' ? 'p2' : 'p1',
+        gameMatch: typeof payload.gameMatch === 'string' ? payload.gameMatch : undefined,
         roomCode: payload.roomCode,
         opponentName: payload.opponentName ?? (matchType === 'bot' ? 'Training Bot' : 'Unknown Opponent'),
       };
@@ -137,6 +148,13 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       if (matchType !== 'bot') {
         matchFoundTimeoutRef.current = window.setTimeout(() => {
+          const awaitingHostMatch =
+            matchDetails.matchType === 'ranked' && matchDetails.slot === 'p2' && !matchDetails.gameMatch;
+          if (awaitingHostMatch) {
+            toast.info('Waiting for host to initialize on-chain match escrow...');
+            return;
+          }
+
           if (walletProvider) {
             void handleExternalWalletTransaction(matchDetails);
           } else {
@@ -144,6 +162,24 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           }
         }, 1500);
       }
+    });
+
+
+    const unsubscribeGameMatchReady = wsService.on('match:game_match_ready', (message: any) => {
+      const payload = message?.payload ?? {};
+      if (typeof payload?.sessionId !== 'string' || typeof payload?.gameMatch !== 'string') return;
+
+      setPendingMatch((current) => {
+        if (!current || current.sessionId !== payload.sessionId) return current;
+        const updated = { ...current, gameMatch: payload.gameMatch };
+        pendingMatchRef.current = updated;
+
+        if (walletProvider && updated.matchType === 'ranked' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
+          void handleExternalWalletTransaction(updated);
+        }
+
+        return updated;
+      });
     });
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
@@ -211,6 +247,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     return () => {
       unsubscribeSearching();
       unsubscribeMatchFound();
+      unsubscribeGameMatchReady();
       unsubscribeEnterArena();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
@@ -277,6 +314,53 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       stake: parseFloat(selectedStake),
       useFreeStake: useFreeStakeMode && Boolean(selectedFreeStakeAmount),
     });
+  };
+
+
+  const confirmRankedStakeOnChain = async (matchDetails: {
+    sessionId: string;
+    stake: number;
+    slot?: 'p1' | 'p2';
+    gameMatch?: string;
+  }) => {
+    if (!publicKey) {
+      throw new Error('Connect a Solana wallet before entering ranked matches.');
+    }
+
+    const stakeLamports = Math.round(matchDetails.stake * LAMPORTS_PER_SOL);
+    if (stakeLamports <= 0) {
+      throw new Error('Invalid stake amount.');
+    }
+
+    if (matchDetails.slot === 'p2') {
+      if (!matchDetails.gameMatch) {
+        throw new Error('Waiting for host stake transaction confirmation...');
+      }
+
+      const signature = await joinMatch({
+        gameMatch: new PublicKey(matchDetails.gameMatch),
+        settleDeadlineSeconds: 120,
+      });
+
+      return {
+        signature,
+        gameMatch: matchDetails.gameMatch,
+        playerWallet: publicKey.toBase58(),
+      };
+    }
+
+    const gameMatch = Keypair.generate();
+    const signature = await createMatch({
+      gameMatch,
+      stakeLamports,
+      joinExpirySeconds: 120,
+    });
+
+    return {
+      signature,
+      gameMatch: gameMatch.publicKey.toBase58(),
+      playerWallet: publicKey.toBase58(),
+    };
   };
 
   const handleStartMatch = async () => {
@@ -356,39 +440,27 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         return;
       }
 
-      // For regular SOL stakes, the wallet provider will show its native signing UI
-      // In production, you would create the actual transaction here
-      // For now, we'll simulate it
-      
-      // Example of how you'd create a real Solana transaction:
-      // const transaction = new Transaction().add(
-      //   SystemProgram.transfer({
-      //     fromPubkey: provider.publicKey,
-      //     toPubkey: new PublicKey('ESCROW_ADDRESS'),
-      //     lamports: parseFloat(selectedStake) * 1e9 // Convert SOL to lamports
-      //   })
-      // );
-      
-      // The provider's native UI will automatically appear when calling signAndSendTransaction
-      // const signature = await provider.signAndSendTransaction(transaction);
-      
-      // For demo purposes, simulate the external wallet approval
-      console.log(`[${walletProvider}] Transaction signing requested for ${matchDetails.stake} SOL`);
-      console.log('Native wallet UI would appear here for user approval...');
-      
-      // Simulate successful approval (in production, await actual signature)
-      // The user would approve/reject in their wallet extension UI
-      
+      const stakeConfirmation = await confirmRankedStakeOnChain(matchDetails);
+
       send('match:stake_confirmed', {
         sessionId: matchDetails.sessionId,
         stake: matchDetails.stake,
         matchType: matchDetails.matchType,
+        signature: stakeConfirmation.signature,
+        gameMatch: stakeConfirmation.gameMatch,
+        playerWallet: stakeConfirmation.playerWallet,
       });
       if (matchDetails.matchType !== 'bot') {
         setWaitingForStakeConfirmation(true);
       }
     } catch (error: any) {
       console.error('External wallet transaction error:', error);
+      const errorMessage = typeof error?.message === 'string' ? error.message : '';
+      if (errorMessage.includes('Waiting for host')) {
+        toast.info(errorMessage);
+        return;
+      }
+
       const reason = error?.code === 4001 ? 'transaction rejected' : 'transaction failed';
       if (pendingMatchRef.current) {
         send('match:stake_failed', {
@@ -403,32 +475,54 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   };
 
   const handleTransactionConfirm = async () => {
-    if (pendingMatch?.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
-      try {
-        await consumeFreeStake(selectedFreeStakeAmount);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to use free stake.';
-        toast.error('Free stake unavailable', { description: message });
+    try {
+      if (pendingMatch?.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
+        try {
+          await consumeFreeStake(selectedFreeStakeAmount);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to use free stake.';
+          toast.error('Free stake unavailable', { description: message });
+          return;
+        }
+      }
+
+      if (!pendingMatch) {
+        toast.error('Match details unavailable', {
+          description: 'Please try matchmaking again.',
+        });
         return;
       }
-    }
 
-    if (!pendingMatch) {
-      toast.error('Match details unavailable', {
-        description: 'Please try matchmaking again.',
+      let onChainPayload: { signature?: string; gameMatch?: string; playerWallet?: string } = {};
+      if (pendingMatch.matchType === 'ranked' && !(useFreeStakeMode && selectedFreeStakeAmount)) {
+        const stakeConfirmation = await confirmRankedStakeOnChain(pendingMatch);
+        onChainPayload = {
+          signature: stakeConfirmation.signature,
+          gameMatch: stakeConfirmation.gameMatch,
+          playerWallet: stakeConfirmation.playerWallet,
+        };
+      }
+
+      send('match:stake_confirmed', {
+        sessionId: pendingMatch.sessionId,
+        stake: pendingMatch.stake,
+        matchType: pendingMatch.matchType,
+        ...onChainPayload,
       });
-      return;
-    }
 
-    send('match:stake_confirmed', {
-      sessionId: pendingMatch.sessionId,
-      stake: pendingMatch.stake,
-      matchType: pendingMatch.matchType,
-    });
-    
-    setShowTransactionModal(false);
-    if (pendingMatch.matchType !== 'bot') {
-      setWaitingForStakeConfirmation(true);
+      setShowTransactionModal(false);
+      if (pendingMatch.matchType !== 'bot') {
+        setWaitingForStakeConfirmation(true);
+      }
+    } catch (error: any) {
+      const errorMessage = typeof error?.message === 'string' ? error.message : 'Stake transaction failed';
+      toast.error('Transaction failed', { description: errorMessage });
+      if (pendingMatchRef.current) {
+        send('match:stake_failed', {
+          sessionId: pendingMatchRef.current.sessionId,
+          reason: errorMessage,
+        });
+      }
     }
   };
 
