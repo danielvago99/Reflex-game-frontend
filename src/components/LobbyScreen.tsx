@@ -371,7 +371,25 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       throw new Error('Invalid stake transaction payload returned by server.');
     }
 
-    const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
+    const normalizedSerializedTransaction = serializedTransaction.trim().replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    const requiredPadding = normalizedSerializedTransaction.length % 4;
+    const paddedSerializedTransaction =
+      requiredPadding === 0
+        ? normalizedSerializedTransaction
+        : normalizedSerializedTransaction.padEnd(normalizedSerializedTransaction.length + (4 - requiredPadding), '=');
+
+    let transactionBuffer: Buffer;
+    try {
+      transactionBuffer = Buffer.from(paddedSerializedTransaction, 'base64');
+    } catch {
+      throw new Error('Invalid stake transaction encoding from server. Please retry matchmaking.');
+    }
+
+    if (transactionBuffer.length === 0) {
+      throw new Error('Invalid stake transaction payload from server. Please retry matchmaking.');
+    }
+
+    const transaction = Transaction.from(transactionBuffer);
     const signature = await sendTransaction(transaction, connection, {
       skipPreflight: false,
       preflightCommitment: 'confirmed',
