@@ -8,6 +8,7 @@ import { env } from '../config/env';
 import { redisClient } from '../db/redis';
 import { matchmakingService } from '../services/matchmaking';
 import { botWalletService } from '../services/BotWalletService';
+import { solanaEscrowService } from '../services/solanaEscrowService';
 import { matchmakingEvents } from '../utils/events';
 
 type Shape = 'circle' | 'square' | 'triangle';
@@ -937,6 +938,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
     const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
     const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
+    const onChainGameMatch = sharedState.roomCode;
     const shouldTrackJackpot =
       persistedMatchType === 'ranked' && Number.isFinite(stakeAmount) && Math.abs(stakeAmount - 0.2) < 1e-9;
 
@@ -973,8 +975,22 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       return;
     }
 
+    let player1WalletAddress: string | undefined;
+    let player2WalletAddress: string | undefined;
+    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+      const playerIds = [player1Id, player2Id].filter((id): id is string => Boolean(id));
+      const users = (await prisma.user.findMany({
+        where: { id: { in: playerIds } },
+        select: { id: true, walletAddress: true },
+      })) as Array<{ id: string; walletAddress: string }>;
+      const walletAddressByUserId = new Map<string, string>(users.map((user) => [user.id, user.walletAddress]));
+      player1WalletAddress = player1Id ? walletAddressByUserId.get(player1Id) : undefined;
+      player2WalletAddress = player2Id ? walletAddressByUserId.get(player2Id) : undefined;
+    }
+
     const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
     const loserId = winnerSlot === 'p1' ? toPersistableUserId(player2Id) : toPersistableUserId(player1Id);
+    const winnerWalletAddress = winnerSlot === 'p1' ? player1WalletAddress : player2WalletAddress;
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -1345,6 +1361,51 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       }
       finalizedSessions.delete(sharedState.sessionId);
     });
+
+    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+      if (!onChainGameMatch) {
+        logger.warn(
+          { sessionId: sharedState.sessionId },
+          'On-chain settle skipped: missing gameMatch public key. TODO: pass and persist gameMatch PDA from frontend handshake.'
+        );
+      } else if (!player1WalletAddress || !player2WalletAddress || !winnerWalletAddress) {
+        logger.error(
+          {
+            sessionId: sharedState.sessionId,
+            player1WalletAddress,
+            player2WalletAddress,
+            winnerWalletAddress,
+          },
+          'On-chain settle skipped: missing one or more wallet addresses'
+        );
+      } else {
+        try {
+          const settleResult = await solanaEscrowService.settleMatch({
+            gameMatch: onChainGameMatch,
+            winner: winnerWalletAddress,
+            playerA: player1WalletAddress,
+            playerB: player2WalletAddress,
+          });
+          logger.info(
+            {
+              sessionId: sharedState.sessionId,
+              onChainGameMatch,
+              signature: settleResult.signature,
+            },
+            'On-chain match settlement submitted'
+          );
+        } catch (settleError) {
+          logger.error(
+            {
+              settleError,
+              sessionId: sharedState.sessionId,
+              onChainGameMatch,
+            },
+            'Failed to settle ranked match on-chain'
+          );
+        }
+      }
+    }
   } catch (error) {
     finalizedSessions.delete(sharedState.sessionId);
     if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'P2002') {
