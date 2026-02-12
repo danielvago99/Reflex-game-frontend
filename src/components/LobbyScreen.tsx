@@ -1,7 +1,7 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL, PublicKey, Transaction } from '@solana/web3.js';
+import { useConnection, useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -15,6 +15,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
+import { API } from '../utils/api';
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -32,8 +33,9 @@ interface LobbyScreenProps {
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
-  const { publicKey } = useAdapterWallet();
-  const { createMatch, joinMatch } = useSolanaProgram();
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useAdapterWallet();
+  const { joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -349,16 +351,35 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       };
     }
 
-    const gameMatch = Keypair.generate();
-    const signature = await createMatch({
-      gameMatch,
+    if (!sendTransaction) {
+      throw new Error('Connected wallet cannot sign and send transactions.');
+    }
+
+    const escrowResponse = await API.game.createEscrowMatchTx({
       stakeLamports,
       joinExpirySeconds: 120,
     });
 
+    if (!escrowResponse || 'error' in escrowResponse) {
+      throw new Error(escrowResponse?.error || 'Failed to prepare stake transaction.');
+    }
+
+    const serializedTransaction = (escrowResponse as any).serializedTransaction;
+    const gameMatch = (escrowResponse as any).gameMatch;
+
+    if (typeof serializedTransaction !== 'string' || typeof gameMatch !== 'string') {
+      throw new Error('Invalid stake transaction payload returned by server.');
+    }
+
+    const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
+    const signature = await sendTransaction(transaction, connection, {
+      skipPreflight: false,
+      preflightCommitment: 'confirmed',
+    });
+
     return {
       signature,
-      gameMatch: gameMatch.publicKey.toBase58(),
+      gameMatch,
       playerWallet: publicKey.toBase58(),
     };
   };

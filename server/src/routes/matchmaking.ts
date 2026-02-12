@@ -70,6 +70,37 @@ router.post('/create', attachUser, requireAuth, (req, res) => {
   }
 });
 
+router.post('/escrow/create-tx', attachUser, requireAuth, async (req, res) => {
+  const auth = req.user;
+  if (!auth) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { stakeLamports, joinExpirySeconds } = req.body as {
+    stakeLamports?: number;
+    joinExpirySeconds?: number;
+  };
+
+  if (!Number.isInteger(stakeLamports) || (stakeLamports as number) <= 0) {
+    return res.status(400).json({ error: 'Invalid stakeLamports' });
+  }
+
+  const expiry = Number.isInteger(joinExpirySeconds) && (joinExpirySeconds as number) > 0 ? (joinExpirySeconds as number) : 120;
+
+  try {
+    const transaction = await solanaEscrowService.createMatch({
+      playerA: auth.address,
+      stakeLamports: BigInt(stakeLamports as number),
+      joinExpirySeconds: expiry,
+    });
+
+    return res.status(201).json(transaction);
+  } catch (error) {
+    logger.error({ error, wallet: auth.address }, 'Failed to prepare ranked escrow create-match transaction');
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Could not prepare create-match transaction',
+    });
+  }
+});
+
 router.post('/:matchId/join', attachUser, requireAuth, (req, res) => {
   const auth = req.user;
   if (!auth) return res.status(401).json({ error: 'Unauthorized' });
