@@ -3,10 +3,10 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-reflex_pvp_escrow = "7HNevHHofq8N52W8sqzxznn4PJ2rXwEdtU5WHWUMZLhn"
+reflex_pvp_escrow = "GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7"
 
 [programs.devnet]
-reflex_pvp_escrow = "7HNevHHofq8N52W8sqzxznn4PJ2rXwEdtU5WHWUMZLhn"
+reflex_pvp_escrow = "GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7"
 
 
 [provider]

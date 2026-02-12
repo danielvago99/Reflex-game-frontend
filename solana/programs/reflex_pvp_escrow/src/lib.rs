@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 
-declare_id!("7HNevHHofq8N52W8sqzxznn4PJ2rXwEdtU5WHWUMZLhn");
+declare_id!("GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7");
 
 const FEE_BPS: u64 = 1500;
 const BPS_DENOMINATOR: u64 = 10_000;
