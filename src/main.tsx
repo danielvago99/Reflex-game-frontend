@@ -1,20 +1,31 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
 import { Buffer } from 'buffer';
-import App from './App.tsx';
-import './index.css';
 
-if (typeof globalThis.Buffer === 'undefined') {
-  globalThis.Buffer = Buffer;
-}
+const globalWindow = window as Window & typeof globalThis & {
+  Buffer: typeof Buffer;
+  global: Window & typeof globalThis;
+};
 
-const container = document.getElementById('root');
+globalWindow.Buffer = Buffer;
+globalWindow.global = globalWindow;
 
-if (container) {
-  const root = createRoot(container);
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
-}
+const bootstrap = async () => {
+  const [{ StrictMode }, { createRoot }, { default: App }] = await Promise.all([
+    import('react'),
+    import('react-dom/client'),
+    import('./App.tsx'),
+    import('./index.css'),
+  ]);
+
+  const container = document.getElementById('root');
+
+  if (container) {
+    const root = createRoot(container);
+    root.render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+  }
+};
+
+void bootstrap();
