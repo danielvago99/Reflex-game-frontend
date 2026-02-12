@@ -13,5 +13,11 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["node_modules", "src/tailwind.config.js"]
+  "exclude": [
+    "node_modules",
+    "src/tailwind.config.js",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__/**"
+  ]
   }
