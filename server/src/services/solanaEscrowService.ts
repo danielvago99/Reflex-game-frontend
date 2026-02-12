@@ -28,17 +28,32 @@ const parseServerAuthority = () => {
   }
 };
 
+const parseProgramId = (value?: string) => {
+  if (!value) return null;
+
+  try {
+    return new PublicKey(value);
+  } catch {
+    return null;
+  }
+};
+
 class SolanaEscrowService {
   private readonly connection: Connection;
   private readonly walletKeypair: Keypair | null;
+  private readonly programId: PublicKey | null;
   private readonly provider: AnchorProvider | null;
   private readonly program: Program<Idl> | null;
 
   constructor() {
     this.connection = new Connection(process.env.SOLANA_RPC_URL ?? env.SOLANA_RPC_URL, 'confirmed');
     this.walletKeypair = parseServerAuthority();
+    this.programId = parseProgramId(env.SOLANA_PROGRAM_ID);
 
-    if (!this.walletKeypair || !env.SOLANA_PROGRAM_ID) {
+    if (!this.walletKeypair || !this.programId) {
+      if (env.SOLANA_PROGRAM_ID && !this.programId) {
+        logger.warn({ programId: env.SOLANA_PROGRAM_ID }, 'Invalid SOLANA_PROGRAM_ID. Solana settlement disabled.');
+      }
       this.provider = null;
       this.program = null;
       return;
@@ -49,23 +64,32 @@ class SolanaEscrowService {
       commitment: 'confirmed',
     });
 
-    const programId = new PublicKey(env.SOLANA_PROGRAM_ID);
-    this.program = new Program(idl as Idl, this.provider);
+    this.program = new Program(
+      {
+        ...(idl as Idl),
+        address: this.programId.toBase58(),
+      },
+      this.provider
+    );
 
-    if (!programId.equals(this.program.programId)) {
+    if (!this.programId.equals(this.program.programId)) {
       logger.warn(
-        { envProgramId: programId.toBase58(), idlProgramId: this.program.programId.toBase58() },
+        { envProgramId: this.programId.toBase58(), idlProgramId: this.program.programId.toBase58() },
         'SOLANA_PROGRAM_ID does not match IDL program address. Using env value for PDA derivations only.'
       );
     }
   }
 
   get isConfigured() {
-    return Boolean(this.walletKeypair && this.program && env.SOLANA_PROGRAM_ID);
+    return Boolean(this.walletKeypair && this.program && this.programId);
   }
 
   private getProgramId() {
-    return new PublicKey(env.SOLANA_PROGRAM_ID as string);
+    if (!this.programId) {
+      throw new Error('SOLANA_PROGRAM_ID is not configured');
+    }
+
+    return this.programId;
   }
 
   private deriveConfigPda() {
