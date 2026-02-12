@@ -264,8 +264,8 @@
       "accounts": [
         {
           "name": "server_authority",
-          "signer": true,
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "config",
