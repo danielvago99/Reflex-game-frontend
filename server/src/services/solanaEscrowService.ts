@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 
 const CONFIG_SEED = Buffer.from('config');
 const VAULT_SEED = Buffer.from('vault');
+const DEFAULT_PROGRAM_ID = 'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7';
 
 const parseServerAuthority = () => {
   const raw = env.SOLANA_SERVER_AUTHORITY_SECRET_KEY;
@@ -48,7 +49,7 @@ class SolanaEscrowService {
   constructor() {
     this.connection = new Connection(process.env.SOLANA_RPC_URL ?? env.SOLANA_RPC_URL, 'confirmed');
     this.walletKeypair = parseServerAuthority();
-    this.programId = parseProgramId(env.SOLANA_PROGRAM_ID);
+    this.programId = parseProgramId(env.SOLANA_PROGRAM_ID ?? DEFAULT_PROGRAM_ID);
 
     if (!this.walletKeypair || !this.programId) {
       if (env.SOLANA_PROGRAM_ID && !this.programId) {
@@ -148,7 +149,7 @@ class SolanaEscrowService {
 
     const signature = await this.program.methods
       .settle(winner)
-      .accounts({
+      .accountsStrict({
         serverAuthority: this.walletKeypair.publicKey,
         config: configPda,
         gameMatch,
