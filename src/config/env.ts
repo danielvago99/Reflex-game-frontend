@@ -67,6 +67,10 @@ export const ENV = {
   SOLANA_RPC_URL: solanaRpcUrl,
   SOLANA_NETWORK: solanaNetwork,
   HELIUS_RPC_URL: heliusRpcUrl,
+  SOLANA_PROGRAM_ID:
+    import.meta.env.VITE_SOLANA_PROGRAM_ID ||
+    import.meta.env.SOLANA_PROGRAM_ID ||
+    'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7',
 
   // Platform Configuration
   PLATFORM_FEE_PERCENTAGE: 15, // 15% platform fee
