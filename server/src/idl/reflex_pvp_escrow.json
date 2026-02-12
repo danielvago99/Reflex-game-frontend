@@ -71,6 +71,11 @@
       ],
       "accounts": [
         {
+          "name": "server_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
           "name": "player_a",
           "writable": true,
           "signer": true
@@ -259,7 +264,8 @@
       "accounts": [
         {
           "name": "server_authority",
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "config",

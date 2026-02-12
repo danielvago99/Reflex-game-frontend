@@ -1,4 +1,4 @@
-import { AnchorProvider, Program, Wallet, type Idl } from '@coral-xyz/anchor';
+import { AnchorProvider, BN, Program, Wallet, type Idl } from '@coral-xyz/anchor';
 import { Connection, Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
 import idl from '../idl/reflex_pvp_escrow.json';
@@ -166,6 +166,47 @@ class SolanaEscrowService {
       .rpc();
 
     return { signature };
+  }
+
+  async createMatch(input: {
+    playerA: string;
+    stakeLamports: bigint;
+    joinExpirySeconds: number;
+  }) {
+    if (!this.isConfigured || !this.program || !this.walletKeypair) {
+      throw new Error('Solana escrow service is not configured');
+    }
+
+    const playerA = new PublicKey(input.playerA);
+    const gameMatch = Keypair.generate();
+    const configPda = this.deriveConfigPda();
+    const vaultPda = this.deriveVaultPda(gameMatch.publicKey);
+
+    const tx = await this.program.methods
+      .createMatch(new BN(input.stakeLamports.toString()), new BN(input.joinExpirySeconds))
+      .accountsStrict({
+        serverAuthority: this.walletKeypair.publicKey,
+        playerA,
+        config: configPda,
+        gameMatch: gameMatch.publicKey,
+        vault: vaultPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.walletKeypair.publicKey;
+    tx.partialSign(this.walletKeypair, gameMatch);
+
+    return {
+      gameMatch: gameMatch.publicKey.toBase58(),
+      vault: vaultPda.toBase58(),
+      serializedTransaction: tx
+        .serialize({ requireAllSignatures: false, verifySignatures: false })
+        .toString('base64'),
+      lastValidBlockHeight,
+    };
   }
 
   async confirmTransaction(signature: string) {

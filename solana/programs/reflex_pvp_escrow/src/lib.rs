@@ -22,6 +22,10 @@ pub mod reflex_pvp_escrow {
 
     pub fn create_match(ctx: Context<CreateMatch>, stake: u64, join_expiry_secs: i64) -> Result<()> {
         require!(stake > 0, EscrowError::InvalidStake);
+        require!(
+            ctx.accounts.server_authority.key() == ctx.accounts.config.server_authority,
+            EscrowError::Unauthorized
+        );
 
         if ctx.accounts.vault.lamports() == 0 {
             let rent_lamports = Rent::get()?.minimum_balance(0);
@@ -29,14 +33,14 @@ pub mod reflex_pvp_escrow {
             let vault_seeds: &[&[u8]] = &[b"vault", match_key.as_ref(), &[ctx.bumps.vault]];
             invoke_signed(
                 &system_instruction::create_account(
-                    &ctx.accounts.player_a.key(),
+                    &ctx.accounts.server_authority.key(),
                     &ctx.accounts.vault.key(),
                     rent_lamports,
                     0,
                     &crate::ID,
                 ),
                 &[
-                    ctx.accounts.player_a.to_account_info(),
+                    ctx.accounts.server_authority.to_account_info(),
                     ctx.accounts.vault.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
                 ],
@@ -232,11 +236,13 @@ pub struct InitializeConfig<'info> {
 
 #[derive(Accounts)]
 pub struct CreateMatch<'info> {
+    #[account(mut, address=config.server_authority)]
+    pub server_authority: Signer<'info>,
     #[account(mut)]
     pub player_a: Signer<'info>,
     #[account(seeds=[b"config"], bump=config.bump)]
     pub config: Account<'info, Config>,
-    #[account(init, payer=player_a, space=8 + Match::INIT_SPACE)]
+    #[account(init, payer=server_authority, space=8 + Match::INIT_SPACE)]
     pub game_match: Account<'info, Match>,
     /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump)]
@@ -258,10 +264,11 @@ pub struct JoinMatch<'info> {
 
 #[derive(Accounts)]
 pub struct Settle<'info> {
+    #[account(mut)]
     pub server_authority: Signer<'info>,
     #[account(seeds=[b"config"], bump=config.bump)]
     pub config: Account<'info, Config>,
-    #[account(mut)]
+    #[account(mut, close=server_authority)]
     pub game_match: Account<'info, Match>,
     /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
