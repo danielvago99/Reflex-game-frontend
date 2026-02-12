@@ -1,16 +1,22 @@
 import {
+  AnchorProvider,
+  BN,
+  Program,
+  Wallet,
+  type Idl,
+} from '@coral-xyz/anchor';
+import {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
-  Transaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import bs58 from 'bs58';
 import 'dotenv/config';
 import { env } from '../config/env';
 import prisma from '../db/prisma';
+import escrowIdl from '../idl/reflex_pvp_escrow.json';
 import { logger } from '../utils/logger';
 
 export interface RankedBotIdentity {
@@ -53,7 +59,17 @@ interface RankedBotProfile {
   avatar: string;
 }
 
+interface BotJoinMatchInput {
+  botKeypair: Keypair | null;
+  gameMatch: string;
+  stakeAmountSol: number;
+  settleDeadlineSeconds: number;
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const VAULT_SEED = Buffer.from('vault');
+const DEFAULT_PROGRAM_ID = 'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7';
+const BOT_GAS_BUFFER_LAMPORTS = 0.002 * LAMPORTS_PER_SOL;
 
 const parseBotKeypair = (entry: unknown): Keypair | null => {
   if (Array.isArray(entry)) {
@@ -85,12 +101,13 @@ class BotWalletService {
   private botKeypairs: Keypair[] = [];
   private botUsernames: string[] = BOT_USERNAMES;
   private botProfilesByWallet = new Map<string, RankedBotProfile>();
-  private treasuryWallet: PublicKey | null = null;
+  private programId: PublicKey;
   private simulationMode = false;
   private initializationPromise: Promise<void> | null = null;
 
   constructor() {
     this.connection = new Connection(env.SOLANA_RPC_URL, 'confirmed');
+    this.programId = new PublicKey(env.SOLANA_PROGRAM_ID ?? DEFAULT_PROGRAM_ID);
     this.initialize();
   }
 
@@ -111,10 +128,9 @@ class BotWalletService {
 
   private async initializeInternal() {
     const rawKeys = process.env.BOT_PRIVATE_KEYS;
-    const treasuryWallet = process.env.GAME_TREASURY_WALLET;
     const rawUsernames = process.env.BOT_USERNAMES;
 
-    if (!rawKeys || !treasuryWallet) {
+    if (!rawKeys) {
       this.enableSimulationMode();
       return;
     }
@@ -159,14 +175,6 @@ class BotWalletService {
         return;
       }
       keypairs.push(keypair);
-    }
-
-    try {
-      this.treasuryWallet = new PublicKey(treasuryWallet);
-    } catch (error) {
-      logger.warn({ error }, 'Failed to parse GAME_TREASURY_WALLET env var.');
-      this.enableSimulationMode();
-      return;
     }
 
     this.botKeypairs = keypairs;
@@ -246,10 +254,11 @@ class BotWalletService {
     }
 
     const requiredLamports = Math.max(0, Math.round(requiredStake * LAMPORTS_PER_SOL));
+    const minimumBalance = requiredLamports + BOT_GAS_BUFFER_LAMPORTS;
 
     for (const [index, keypair] of this.botKeypairs.entries()) {
       const balance = await this.connection.getBalance(keypair.publicKey);
-      if (balance >= requiredLamports) {
+      if (balance >= minimumBalance) {
         const walletAddress = keypair.publicKey.toBase58();
         const profile = this.botProfilesByWallet.get(walletAddress);
         const username = this.botUsernames[index % this.botUsernames.length] ?? 'Ranked Bot';
@@ -265,29 +274,80 @@ class BotWalletService {
       }
     }
 
-    throw new Error('No ranked bot wallet has sufficient balance for the required stake.');
+    throw new Error(
+      `No ranked bot wallet has sufficient balance for stake + gas reserve (${minimumBalance} lamports).`,
+    );
   }
 
-  async payEntryStake(botKeypair: Keypair | null, amount: number): Promise<string> {
+  private createBotProgram(botKeypair: Keypair) {
+    const botProvider = new AnchorProvider(this.connection, new Wallet(botKeypair), {
+      commitment: 'confirmed',
+    });
+
+    return new Program(
+      {
+        ...(escrowIdl as Idl),
+        address: this.programId.toBase58(),
+      },
+      botProvider,
+    );
+  }
+
+  async joinRankedMatch({
+    botKeypair,
+    gameMatch,
+    stakeAmountSol,
+    settleDeadlineSeconds,
+  }: BotJoinMatchInput): Promise<string> {
     if (this.simulationMode) {
       await sleep(500);
       return 'simulated_tx_signature';
     }
 
-    if (!botKeypair || !this.treasuryWallet) {
-      throw new Error('BotWalletService is missing required keypairs or treasury wallet.');
+    if (!botKeypair) {
+      throw new Error('BotWalletService is missing ranked bot keypair.');
     }
 
-    const lamports = Math.max(0, Math.round(amount * LAMPORTS_PER_SOL));
-    const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: botKeypair.publicKey,
-        toPubkey: this.treasuryWallet,
-        lamports,
-      }),
+    const stakeLamports = Math.max(0, Math.round(stakeAmountSol * LAMPORTS_PER_SOL));
+    const requiredBalance = stakeLamports + BOT_GAS_BUFFER_LAMPORTS;
+    const currentBalance = await this.connection.getBalance(botKeypair.publicKey);
+
+    if (currentBalance < requiredBalance) {
+      throw new Error(
+        `Ranked bot has insufficient SOL. Required=${requiredBalance} lamports, balance=${currentBalance} lamports.`,
+      );
+    }
+
+    const gameMatchPubkey = new PublicKey(gameMatch);
+    const vault = PublicKey.findProgramAddressSync([VAULT_SEED, gameMatchPubkey.toBuffer()], this.programId)[0];
+    const program = this.createBotProgram(botKeypair);
+
+    const signature = await program.methods
+      .joinMatch(new BN(settleDeadlineSeconds))
+      .accounts({
+        playerB: botKeypair.publicKey,
+        gameMatch: gameMatchPubkey,
+        vault,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([botKeypair])
+      .rpc();
+
+    const latestBlockhash = await this.connection.getLatestBlockhash('confirmed');
+    const confirmation = await this.connection.confirmTransaction(
+      {
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      },
+      'confirmed',
     );
 
-    return sendAndConfirmTransaction(this.connection, transaction, [botKeypair]);
+    if (confirmation.value.err) {
+      throw new Error(`Ranked bot joinMatch transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+    }
+
+    return signature;
   }
 }
 

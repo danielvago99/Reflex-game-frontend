@@ -2,6 +2,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import type { Keypair } from '@solana/web3.js';
 import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
 import { env } from '../config/env';
@@ -281,6 +282,7 @@ const activeUsers = new Map<string, WebSocket>();
 const sessionSockets = new Map<string, Set<WebSocket>>();
 const disconnectTimeouts = new Map<string, NodeJS.Timeout>();
 const readyTimeouts = new Map<string, NodeJS.Timeout>();
+const rankedBotKeypairs = new Map<string, Keypair>();
 const isPersistableUserId = (userId?: string | null) =>
   Boolean(userId && userId !== 'bot_opponent' && !userId.startsWith('guest'));
 const toPersistableUserId = (userId?: string | null) => (isPersistableUserId(userId) ? userId : null);
@@ -597,6 +599,7 @@ const closeFriendRoom = async (
   sessionAssignments.delete(sessionId);
   sessionStates.delete(sessionId);
   sessionSockets.delete(sessionId);
+  rankedBotKeypairs.delete(sessionId);
 
   for (const sessionSocket of sockets) {
     const sessionRef = sessions.get(sessionSocket);
@@ -781,6 +784,7 @@ const cleanupAbortedSession = async (sessionId: string, reason: string) => {
   sessionAssignments.delete(sessionId);
   sessionSockets.delete(sessionId);
   sessionStates.delete(sessionId);
+  rankedBotKeypairs.delete(sessionId);
   finalizedSessions.delete(sessionId);
 
   try {
@@ -1959,6 +1963,9 @@ export function createWsServer(server: Server) {
       sessionSockets.set(sessionId, new Set());
       userActiveSessions.set(userId, sessionId);
       userNames.set(opponentId, opponentName);
+      if (rankedBot.keypair) {
+        rankedBotKeypairs.set(sessionId, rankedBot.keypair);
+      }
 
       const sockets = sessionSockets.get(sessionId);
 
@@ -1976,31 +1983,6 @@ export function createWsServer(server: Server) {
         });
       }
       scheduleReadyTimeout(sessionState);
-
-      try {
-        const signature = await botWalletService.payEntryStake(rankedBot.keypair, stake);
-        sessionState.p2Staked = true;
-        void persistSessionState(sessionState);
-        if (socket) {
-          sendMessage(socket, 'match:opponent_staked', { sessionId, opponentId, signature });
-        }
-        if (sessionState.p1Staked) {
-          broadcastToSession(sessionId, 'game:enter_arena', { sessionId });
-        }
-      } catch (error) {
-        logger.error({ error, userId, sessionId }, 'Bot stake payment failed');
-        if (sessionStates.has(sessionId)) {
-          void failFastCancelSession(sessionId, 'bot stake failed', 'Match cancelled due to bot stake failure.');
-        } else if (socket) {
-          sendMessage(socket, 'match:cancelled', {
-            sessionId,
-            reason: 'bot stake failed',
-            message: 'Match cancelled due to bot stake failure.',
-          });
-        }
-        clearUserActiveSession(userId);
-        return;
-      }
 
       logger.info({ userId, sessionId }, 'Started Ranked Bot Match due to timeout');
     } catch (error) {
@@ -2749,7 +2731,7 @@ export function createWsServer(server: Server) {
             const onChainGameMatch =
               typeof message.payload?.gameMatch === 'string' ? message.payload.gameMatch : undefined;
 
-            if (matchType === 'ranked' && !hasBotOpponent) {
+            if (matchType === 'ranked') {
               if (!onChainTxSignature) {
                 await failFastCancelSession(sessionId, 'missing on-chain signature', 'Match cancelled: missing stake transaction.');
                 break;
@@ -2803,6 +2785,49 @@ export function createWsServer(server: Server) {
               resolvedSessionState.p1Staked = true;
             } else {
               resolvedSessionState.p2Staked = true;
+            }
+
+            if (hasBotOpponent && matchType === 'ranked' && slot === 'p1') {
+              const botKeypair = rankedBotKeypairs.get(sessionId) ?? null;
+
+              if (!resolvedSessionState.onChainGameMatch) {
+                await failFastCancelSession(
+                  sessionId,
+                  'gameMatch not initialized',
+                  'Match cancelled: waiting for host to initialize match escrow.',
+                );
+                break;
+              }
+
+              try {
+                const botSignature = await botWalletService.joinRankedMatch({
+                  botKeypair,
+                  gameMatch: resolvedSessionState.onChainGameMatch,
+                  stakeAmountSol: stakeAmount,
+                  settleDeadlineSeconds: 120,
+                });
+                resolvedSessionState.p2Staked = true;
+                void persistSessionState(resolvedSessionState);
+                logger.info({ sessionId, botSignature }, 'Ranked bot joined on-chain match escrow');
+                for (const sessionSocket of sessionSockets.get(sessionId) ?? []) {
+                  sendMessage(sessionSocket, 'match:opponent_staked', {
+                    sessionId,
+                    opponentId: updatedAssignments.p2,
+                    signature: botSignature,
+                  });
+                }
+              } catch (botStakeError) {
+                logger.error(
+                  { botStakeError, sessionId, gameMatch: resolvedSessionState.onChainGameMatch },
+                  'Bot failed to join on-chain ranked match',
+                );
+                await failFastCancelSession(
+                  sessionId,
+                  'bot stake failed',
+                  'Match cancelled due to bot on-chain join failure.',
+                );
+                break;
+              }
             }
 
             const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
