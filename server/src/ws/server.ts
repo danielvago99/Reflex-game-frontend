@@ -1844,6 +1844,17 @@ export function createWsServer(server: Server) {
     scheduleReadyTimeout(baseState);
   });
 
+
+  matchmakingEvents.on('match_status', (data) => {
+    const { userIds, ...payload } = data as { userIds: string[]; [key: string]: unknown };
+
+    for (const userId of userIds ?? []) {
+      const socket = activeUsers.get(userId);
+      if (!socket) continue;
+      sendMessage(socket, 'match:status', payload);
+    }
+  });
+
   matchmakingEvents.on('bot_match', async (data) => {
     const { userId, stake } = data as { userId: string; stake: number };
     const socket = activeUsers.get(userId);
