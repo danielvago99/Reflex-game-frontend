@@ -41,6 +41,7 @@ interface SessionState extends RoundTimers {
     timeoutSeconds: number;
   };
   stakeAmount?: number;
+  onChainGameMatch?: string;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
   roomCode?: string;
@@ -85,6 +86,7 @@ interface RedisSessionState {
     timeoutSeconds: number;
   };
   stakeAmount?: number;
+  onChainGameMatch?: string;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
   roomCode?: string;
@@ -162,6 +164,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   disconnectCounts: state.disconnectCounts,
   disconnectPause: state.disconnectPause,
   stakeAmount: state.stakeAmount,
+  onChainGameMatch: state.onChainGameMatch,
   matchType: state.matchType,
   isBotOpponent: state.isBotOpponent,
   roomCode: state.roomCode,
@@ -938,7 +941,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
     const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
     const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
-    const onChainGameMatch = sharedState.roomCode;
+    const onChainGameMatch = sharedState.onChainGameMatch;
     const shouldTrackJackpot =
       persistedMatchType === 'ranked' && Number.isFinite(stakeAmount) && Math.abs(stakeAmount - 0.2) < 1e-9;
 
@@ -1885,6 +1888,7 @@ export function createWsServer(server: Server) {
       stake,
       isBot: false,
       matchType: 'ranked',
+      slot: 'p1',
     });
 
     sessions.set(socket2, { sessionId, userId: player2Id });
@@ -1896,6 +1900,7 @@ export function createWsServer(server: Server) {
       stake,
       isBot: false,
       matchType: 'ranked',
+      slot: 'p2',
     });
 
     logger.info(
@@ -2094,6 +2099,8 @@ export function createWsServer(server: Server) {
             isBot: hasBotOpponent,
             matchType: existingState.matchType ?? (hasBotOpponent ? 'bot' : 'ranked'),
             roomCode: existingState.roomCode,
+            slot: assignments?.p1 === userId ? 'p1' : 'p2',
+            gameMatch: existingState.onChainGameMatch,
           });
 
           clearDisconnectTimeout(activeSessionId);
@@ -2697,7 +2704,7 @@ export function createWsServer(server: Server) {
 
             sessionRef.sessionId = sessionId;
 
-            const resolvedSessionState = sessionState ?? {
+            const resolvedSessionState: SessionState = sessionState ?? {
               sessionId,
               round: 1,
               scores: { p1: 0, p2: 0 },
@@ -2737,6 +2744,61 @@ export function createWsServer(server: Server) {
 
             sessionAssignments.set(sessionId, updatedAssignments);
 
+            const onChainTxSignature =
+              typeof message.payload?.signature === 'string' ? message.payload.signature : undefined;
+            const onChainGameMatch =
+              typeof message.payload?.gameMatch === 'string' ? message.payload.gameMatch : undefined;
+
+            if (matchType === 'ranked' && !hasBotOpponent) {
+              if (!onChainTxSignature) {
+                await failFastCancelSession(sessionId, 'missing on-chain signature', 'Match cancelled: missing stake transaction.');
+                break;
+              }
+
+              try {
+                await solanaEscrowService.confirmTransaction(onChainTxSignature);
+              } catch (confirmError) {
+                logger.error({ confirmError, sessionId, onChainTxSignature }, 'Stake transaction confirmation failed');
+                await failFastCancelSession(
+                  sessionId,
+                  'stake transaction unconfirmed',
+                  'Match cancelled: on-chain stake transaction was not confirmed.',
+                );
+                break;
+              }
+
+              if (slot === 'p1') {
+                if (!onChainGameMatch) {
+                  await failFastCancelSession(
+                    sessionId,
+                    'missing gameMatch public key',
+                    'Match cancelled: host did not provide game account.',
+                  );
+                  break;
+                }
+
+                resolvedSessionState.onChainGameMatch = onChainGameMatch;
+              } else {
+                if (!resolvedSessionState.onChainGameMatch) {
+                  await failFastCancelSession(
+                    sessionId,
+                    'gameMatch not initialized',
+                    'Match cancelled: waiting for host to initialize match escrow.',
+                  );
+                  break;
+                }
+
+                if (onChainGameMatch && onChainGameMatch !== resolvedSessionState.onChainGameMatch) {
+                  await failFastCancelSession(
+                    sessionId,
+                    'gameMatch mismatch',
+                    'Match cancelled: incorrect game account for join transaction.',
+                  );
+                  break;
+                }
+              }
+            }
+
             if (slot === 'p1') {
               resolvedSessionState.p1Staked = true;
             } else {
@@ -2746,6 +2808,15 @@ export function createWsServer(server: Server) {
             const sockets = sessionSockets.get(sessionId) ?? new Set<WebSocket>();
             sockets.add(socket);
             sessionSockets.set(sessionId, sockets);
+
+            if (resolvedSessionState.onChainGameMatch && matchType === 'ranked') {
+              for (const sessionSocket of sockets) {
+                sendMessage(sessionSocket, 'match:game_match_ready', {
+                  sessionId,
+                  gameMatch: resolvedSessionState.onChainGameMatch,
+                });
+              }
+            }
 
             const requiresBotStake = hasBotOpponent && matchType !== 'bot';
             const bothStaked = hasBotOpponent

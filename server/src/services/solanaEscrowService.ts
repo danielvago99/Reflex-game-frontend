@@ -85,6 +85,10 @@ class SolanaEscrowService {
     return Boolean(this.walletKeypair && this.program && this.programId);
   }
 
+  get configuredProgramId() {
+    return this.programId?.toBase58() ?? DEFAULT_PROGRAM_ID;
+  }
+
   private getProgramId() {
     if (!this.programId) {
       throw new Error('SOLANA_PROGRAM_ID is not configured');
@@ -162,6 +166,27 @@ class SolanaEscrowService {
       .rpc();
 
     return { signature };
+  }
+
+  async confirmTransaction(signature: string) {
+    const status = await this.connection.getSignatureStatus(signature, {
+      searchTransactionHistory: true,
+    });
+
+    const confirmation = status.value;
+    if (!confirmation) {
+      throw new Error('Transaction status not found');
+    }
+
+    if (confirmation.err) {
+      throw new Error(`Transaction failed: ${JSON.stringify(confirmation.err)}`);
+    }
+
+    if (!confirmation.confirmationStatus || confirmation.confirmationStatus === 'processed') {
+      throw new Error('Transaction is not yet confirmed');
+    }
+
+    return confirmation;
   }
 }
 
