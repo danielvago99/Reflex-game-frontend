@@ -263,6 +263,7 @@ export type WSMessageType =
   | 'match:searching'
   | 'match_found'
   | 'match:reset'
+  | 'match:status'
   | 'friend:create_room'
   | 'friend:join_room'
   | 'friend:room_created'

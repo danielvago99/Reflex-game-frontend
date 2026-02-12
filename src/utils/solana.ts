@@ -29,6 +29,18 @@ export const connection = new Connection(ENV.SOLANA_RPC_URL, 'confirmed');
  * NOTE: This uses real Solana Web3 with devnet.
  */
 
+
+export interface EscrowProgramParams {
+  programId: string;
+  matchAccount: string;
+  vaultAccount: string;
+}
+
+export interface WalletTransactionSigner {
+  publicKey: PublicKey;
+  signTransaction: (tx: Transaction) => Promise<Transaction>;
+}
+
 export interface WalletKeypair {
   publicKey: string;
   secretKey: Uint8Array;
@@ -99,6 +111,33 @@ class SolanaService {
     return signature;
   }
 
+
+  async sendEscrowInstruction(
+    wallet: WalletTransactionSigner,
+    programId: string,
+    instruction: Uint8Array,
+    accounts: Array<{ pubkey: string; isSigner: boolean; isWritable: boolean }>,
+  ): Promise<string> {
+    const transaction = new Transaction();
+    transaction.add({
+      programId: new PublicKey(programId),
+      keys: accounts.map((account) => ({
+        pubkey: new PublicKey(account.pubkey),
+        isSigner: account.isSigner,
+        isWritable: account.isWritable,
+      })),
+      data: Buffer.from(instruction),
+    } as any);
+
+    transaction.feePayer = wallet.publicKey;
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+
+    const signed = await wallet.signTransaction(transaction);
+    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    return signature;
+  }
   /**
    * Get transaction details
    */

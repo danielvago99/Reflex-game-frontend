@@ -193,6 +193,11 @@ export const API = {
     getActiveLobby: () => apiClient.get('/game/lobby/active'),
     submitAction: (data: any) => apiClient.post('/game/action', data),
     getHistory: (page: number = 1) => apiClient.get(`/game/history?page=${page}`),
+    claimFreeStake: () => apiClient.post('/matchmaking/free-stake/claim'),
+    createMatch: (data: any) => apiClient.post('/matchmaking/create', data),
+    joinMatch: (matchId: string) => apiClient.post(`/matchmaking/${matchId}/join`),
+    finishMatch: (matchId: string, data: any) => apiClient.post(`/matchmaking/${matchId}/finish`, data),
+    getMatch: (matchId: string) => apiClient.get(`/matchmaking/${matchId}`),
   },
 
   // Ambassador endpoints
