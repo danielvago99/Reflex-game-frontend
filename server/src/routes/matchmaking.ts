@@ -75,31 +75,29 @@ router.post('/escrow/create-tx', attachUser, requireAuth, async (req, res) => {
   const auth = req.user;
   if (!auth) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { stakeLamports } = req.body as {
-    stakeLamports?: number;
-  };
+  const stakeLamports = Number((req.body as { stakeLamports?: unknown })?.stakeLamports);
 
-  if (!Number.isInteger(stakeLamports) || (stakeLamports as number) <= 0) {
+  if (!Number.isFinite(stakeLamports) || !Number.isInteger(stakeLamports) || stakeLamports <= 0) {
     return res.status(400).json({ error: 'Invalid stakeLamports' });
   }
 
   try {
-    const dbUser = auth.address
-      ? null
-      : await prisma.user.findUnique({
+    const userWallet = auth.address
+      ? auth.address
+      : (
+          await prisma.user.findUnique({
           where: { id: auth.id },
           select: { walletAddress: true },
-        });
+        })
+        )?.walletAddress;
 
-    const playerA = auth.address || dbUser?.walletAddress;
-
-    if (!playerA) {
+    if (!userWallet) {
       return res.status(400).json({ error: 'Missing wallet address for authenticated user' });
     }
 
     const { serializedTransaction, gameMatch, vault } = await solanaEscrowService.createEscrowMatchTx({
-      playerA,
-      stakeLamports: BigInt(stakeLamports as number),
+      playerA: userWallet,
+      stakeLamports: BigInt(stakeLamports),
     });
 
     return res.status(201).json({ serializedTransaction, gameMatch, vault });
