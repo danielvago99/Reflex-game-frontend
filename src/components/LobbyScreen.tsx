@@ -38,7 +38,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useActiveWallet();
   const { provider: appWalletProvider } = useAppWallet();
-  const { connect, wallet, wallets, select } = useAdapterWallet();
+  const { connect, wallet, wallets, select, signTransaction } = useAdapterWallet();
   const { joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
@@ -397,7 +397,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       };
     }
 
-    if (!sendTransaction) {
+    if (!sendTransaction && !signTransaction) {
       throw new Error('Connected wallet cannot sign and send transactions.');
     }
 
@@ -418,10 +418,29 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     }
 
     const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
-    const signature = await sendTransaction(transaction, connection, {
-      skipPreflight: false,
-      preflightCommitment: 'confirmed',
-    });
+    console.debug(
+      'Stake transaction signatures before user signing:',
+      transaction.signatures.map(({ publicKey, signature }) => ({
+        publicKey: publicKey.toBase58(),
+        hasSignature: Boolean(signature),
+      })),
+    );
+
+    let signature: string;
+
+    if (signTransaction) {
+      const signedTransaction = await signTransaction(transaction);
+      const rawTransaction = signedTransaction.serialize();
+      signature = await connection.sendRawTransaction(rawTransaction, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+    } else {
+      signature = await (sendTransaction as any)(transaction, connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+    }
 
     return {
       signature,
