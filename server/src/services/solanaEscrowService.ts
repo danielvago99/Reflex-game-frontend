@@ -34,8 +34,19 @@ const parseProgramId = (value?: string) => {
 
   try {
     return new PublicKey(value);
-  } catch {
+  } catch (error) {
+    logger.error({ value, error }, 'Invalid program id public key string');
     return null;
+  }
+};
+
+
+const parsePublicKeyOrThrow = (value: string, fieldName: string) => {
+  try {
+    return new PublicKey(value);
+  } catch (error) {
+    logger.error({ fieldName, value, error }, 'Invalid Solana public key string');
+    throw new Error(`Invalid ${fieldName} public key: ${value}`);
   }
 };
 
@@ -107,7 +118,7 @@ class SolanaEscrowService {
 
   private async resolveFeeVault(feeVault?: string) {
     if (feeVault) {
-      return new PublicKey(feeVault);
+      return parsePublicKeyOrThrow(feeVault, 'feeVault');
     }
 
     if (!this.program) {
@@ -121,7 +132,7 @@ class SolanaEscrowService {
       throw new Error('Config account not found on-chain and feeVault was not provided');
     }
 
-    return new PublicKey(configAccount.feeVault as PublicKey);
+    return parsePublicKeyOrThrow((configAccount.feeVault as PublicKey).toString(), 'config.feeVault');
   }
 
   async settleMatch(input: {
@@ -142,10 +153,10 @@ class SolanaEscrowService {
       throw new Error('gameMatch public key is required for settlement');
     }
 
-    const gameMatch = new PublicKey(gameMatchKey);
-    const winner = new PublicKey(input.winner);
-    const playerA = new PublicKey(input.playerA);
-    const playerB = new PublicKey(input.playerB);
+    const gameMatch = parsePublicKeyOrThrow(gameMatchKey, 'gameMatch');
+    const winner = parsePublicKeyOrThrow(input.winner, 'winner');
+    const playerA = parsePublicKeyOrThrow(input.playerA, 'playerA');
+    const playerB = parsePublicKeyOrThrow(input.playerB, 'playerB');
 
     const configPda = this.deriveConfigPda();
     const vaultPda = this.deriveVaultPda(gameMatch);
@@ -177,7 +188,7 @@ class SolanaEscrowService {
       throw new Error('Solana escrow service is not configured');
     }
 
-    const playerA = new PublicKey(input.playerA);
+    const playerA = parsePublicKeyOrThrow(input.playerA, 'playerA');
     const gameMatch = Keypair.generate();
     const configPda = this.deriveConfigPda();
     const vaultPda = this.deriveVaultPda(gameMatch.publicKey);

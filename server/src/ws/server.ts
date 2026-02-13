@@ -2,6 +2,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bs58 from 'bs58';
 import type { Keypair } from '@solana/web3.js';
 import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
@@ -286,6 +287,25 @@ const rankedBotKeypairs = new Map<string, Keypair>();
 const isPersistableUserId = (userId?: string | null) =>
   Boolean(userId && userId !== 'bot_opponent' && !userId.startsWith('guest'));
 const toPersistableUserId = (userId?: string | null) => (isPersistableUserId(userId) ? userId : null);
+
+
+const isValidBase58 = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  try {
+    const decoded = bs58.decode(trimmed);
+    return decoded.length > 0;
+  } catch {
+    return false;
+  }
+};
 
 const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -2734,13 +2754,26 @@ export function createWsServer(server: Server) {
             sessionAssignments.set(sessionId, updatedAssignments);
 
             const onChainTxSignature =
-              typeof message.payload?.signature === 'string' ? message.payload.signature : undefined;
+              typeof message.payload?.signature === 'string' ? message.payload.signature.trim() : undefined;
             const onChainGameMatch =
-              typeof message.payload?.gameMatch === 'string' ? message.payload.gameMatch : undefined;
+              typeof message.payload?.gameMatch === 'string' ? message.payload.gameMatch.trim() : undefined;
 
             if (matchType === 'ranked') {
-              if (!onChainTxSignature) {
-                await failFastCancelSession(sessionId, 'missing on-chain signature', 'Match cancelled: missing stake transaction.');
+              if (!onChainTxSignature || !isValidBase58(onChainTxSignature)) {
+                await failFastCancelSession(
+                  sessionId,
+                  'invalid on-chain signature',
+                  'Match cancelled: invalid stake transaction signature.',
+                );
+                break;
+              }
+
+              if (slot === 'p1' && (!onChainGameMatch || !isValidBase58(onChainGameMatch))) {
+                await failFastCancelSession(
+                  sessionId,
+                  'invalid gameMatch public key',
+                  'Match cancelled: host provided an invalid game account.',
+                );
                 break;
               }
 
@@ -2807,9 +2840,14 @@ export function createWsServer(server: Server) {
               }
 
               try {
+                const gameMatchFromSessionState = resolvedSessionState.onChainGameMatch;
+                if (!gameMatchFromSessionState) {
+                  throw new Error('Missing on-chain gameMatch in session state before bot join.');
+                }
+
                 const botSignature = await botWalletService.joinRankedMatch({
                   botKeypair,
-                  gameMatch: resolvedSessionState.onChainGameMatch,
+                  gameMatch: gameMatchFromSessionState,
                   stakeAmountSol: stakeAmount,
                   settleDeadlineSeconds: 120,
                 });
