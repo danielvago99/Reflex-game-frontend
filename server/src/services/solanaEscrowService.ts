@@ -196,7 +196,7 @@ class SolanaEscrowService {
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
     tx.recentBlockhash = blockhash;
-    tx.feePayer = this.walletKeypair.publicKey;
+    tx.feePayer = playerA;
     tx.partialSign(this.walletKeypair, gameMatch);
 
     return {
