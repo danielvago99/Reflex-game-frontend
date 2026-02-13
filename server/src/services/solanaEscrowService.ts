@@ -285,6 +285,42 @@ class SolanaEscrowService {
     };
   }
 
+
+  async joinMatch(input: {
+    gameMatch: string | PublicKey;
+    playerB: string | PublicKey;
+  }) {
+    if (!this.isConfigured || !this.program || !this.walletKeypair) {
+      throw new Error('Solana escrow service is not configured');
+    }
+
+    const gameMatch = typeof input.gameMatch === 'string' ? new PublicKey(input.gameMatch) : input.gameMatch;
+    const playerB = typeof input.playerB === 'string' ? new PublicKey(input.playerB) : input.playerB;
+    const vaultPda = this.deriveVaultPda(gameMatch);
+
+    const tx = await (this.program.methods as any)
+      .joinMatch()
+      .accountsStrict({
+        serverAuthority: this.walletKeypair.publicKey,
+        playerB,
+        gameMatch,
+        vault: vaultPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .transaction();
+
+    const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = playerB;
+    tx.partialSign(this.walletKeypair);
+
+    return {
+      serializedTransaction: tx
+        .serialize({ requireAllSignatures: false, verifySignatures: false })
+        .toString('base64'),
+    };
+  }
+
   async confirmTransaction(signature: string) {
     const status = await this.connection.getSignatureStatus(signature, {
       searchTransactionHistory: true,
