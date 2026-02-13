@@ -9,15 +9,15 @@ import { AuthProvider } from '../../features/auth/hooks/useAuth';
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <SolanaWalletProvider>
-      <SolanaProvider>
-        <WalletProvider>
+      <WalletProvider>
+        <SolanaProvider>
           <AuthProvider>
             <WebSocketProvider>
               <GameProvider>{children}</GameProvider>
             </WebSocketProvider>
           </AuthProvider>
-        </WalletProvider>
-      </SolanaProvider>
+        </SolanaProvider>
+      </WalletProvider>
     </SolanaWalletProvider>
   );
 }

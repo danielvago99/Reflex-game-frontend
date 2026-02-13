@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Connection, Transaction } from '@solana/web3.js';
+import type { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
 import {
   deriveSolanaKeypair,
   encryptSeedPhrase,
@@ -31,6 +31,8 @@ interface WalletContextValue {
   importFromKeystore: (record: EncryptedWalletRecord, password: string) => Promise<{ seed: string[]; publicKey: string }>;
   connectExternalWallet: (address: string, provider: string) => void;
   signMessage: (message: string | Uint8Array) => Promise<Uint8Array>;
+  signTransaction: <T extends Transaction | VersionedTransaction>(transaction: T) => Promise<T>;
+  signAllTransactions: <T extends Transaction | VersionedTransaction>(transactions: T[]) => Promise<T[]>;
   sendTransaction: (transaction: Transaction, connection: Connection) => Promise<string>;
   logout: () => Promise<void>;
 }
@@ -192,6 +194,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return connection.sendRawTransaction(transaction.serialize());
   };
 
+  const signTransaction = async <T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> => {
+    if (!vaultRef.current.seed.length) {
+      throw new Error('Wallet is locked. Unlock or create a wallet to sign transactions.');
+    }
+
+    const keypair = await deriveSolanaKeypair(vaultRef.current.seed);
+
+    if ('version' in transaction) {
+      transaction.sign([keypair]);
+    } else {
+      transaction.partialSign(keypair);
+    }
+
+    return transaction;
+  };
+
+  const signAllTransactions = async <T extends Transaction | VersionedTransaction>(transactions: T[]) => {
+    const signed: T[] = [];
+    for (const transaction of transactions) {
+      signed.push(await signTransaction(transaction));
+    }
+    return signed;
+  };
+
   const logout = async () => {
     setAddress('');
     setProvider(undefined);
@@ -213,6 +239,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       importFromKeystore,
       connectExternalWallet,
       signMessage,
+      signTransaction,
+      signAllTransactions,
       sendTransaction,
       logout
     }),

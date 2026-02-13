@@ -12,13 +12,18 @@ type TransactionState =
 
 type TransactionProgressState = 'broadcasting';
 
+interface TransactionProgressReport {
+  state: TransactionProgressState;
+  signature?: string;
+}
+
 interface TransactionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel?: () => void;
   onFailure?: (message: string) => void;
-  onSign?: (reportState: (state: TransactionProgressState) => void) => Promise<string>;
+  onSign?: (reportState: (report: TransactionProgressReport) => void) => Promise<string>;
   stakeAmount: number;
   isFreeStake?: boolean;
   transactionType?: 'stake' | 'claim' | 'withdrawal';
@@ -51,6 +56,7 @@ export function TransactionModal({
   const [txId, setTxId] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [broadcastSeconds, setBroadcastSeconds] = useState(0);
   const autoStartedRef = useRef(false);
 
   useEffect(() => {
@@ -75,9 +81,13 @@ export function TransactionModal({
 
     if (onSign) {
       try {
-        const signature = await onSign((nextState) => {
-          if (nextState === 'broadcasting') {
+        const signature = await onSign((report) => {
+          if (report.state === 'broadcasting') {
             setState('broadcasting');
+          }
+
+          if (report.signature) {
+            setTxId(report.signature);
           }
         });
         setTxId(signature);
@@ -152,6 +162,7 @@ export function TransactionModal({
       setTxId('');
       setCopied(false);
       setErrorMessage('');
+      setBroadcastSeconds(0);
       autoStartedRef.current = false;
     }
   }, [open, isFreeStake]);
@@ -164,6 +175,18 @@ export function TransactionModal({
       }, 0);
     }
   }, [open, autoStart, isFreeStake]);
+
+  useEffect(() => {
+    if (!open || state !== 'broadcasting') {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setBroadcastSeconds((previous) => previous + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [open, state]);
 
   const handleDaoFundedComplete = () => {
     toast.success('Free stake activated', {
@@ -362,14 +385,28 @@ export function TransactionModal({
               </div>
 
               <h2 className="text-2xl text-white mb-2">Broadcasting Transaction</h2>
-              <p className="text-sm text-gray-400 mb-4">Sending to Solana network...</p>
+              <p className="text-sm text-gray-400 mb-3">Sending to Solana network...</p>
+
+              <p className="text-xs text-[#06B6D4] mb-4">Live confirmation timer: {broadcastSeconds}s</p>
 
               {/* Progress indicator */}
-              <div className="max-w-xs mx-auto">
+              <div className="max-w-xs mx-auto mb-4">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] rounded-full animate-pulse" style={{ width: '70%' }}></div>
                 </div>
               </div>
+
+              {txId && (
+                <a
+                  href={getExplorerUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#06B6D4]/50 text-[#06B6D4] rounded-lg transition-all text-xs"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Live on Solscan
+                </a>
+              )}
             </div>
           )}
 

@@ -166,7 +166,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     }
   };
 
-  const handleTransactionSign = async (reportState: (state: 'broadcasting') => void) => {
+  const handleTransactionSign = async (reportState: (report: { state: 'broadcasting'; signature?: string }) => void) => {
     if (!publicKey || !sendTransaction) {
       throw new Error('Connect your wallet before sending SOL.');
     }
@@ -197,7 +197,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
     );
 
     const signature = await sendTransaction(transaction, connection);
-    reportState('broadcasting');
+    reportState({ state: 'broadcasting', signature });
     onClose();
     await connection.confirmTransaction(
       {

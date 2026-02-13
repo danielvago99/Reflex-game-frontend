@@ -6,10 +6,11 @@ import {
   type Wallet as AnchorWallet,
 } from '@coral-xyz/anchor';
 import { type ReactNode, createContext, useContext, useMemo } from 'react';
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram, Transaction, type VersionedTransaction } from '@solana/web3.js';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import idl from '../../../idl/reflex_pvp_escrow.json';
 import { ENV } from '../../../config/env';
+import { useWallet } from './WalletProvider';
 
 const CONFIG_SEED = Buffer.from('config');
 const VAULT_SEED = Buffer.from('vault');
@@ -33,7 +34,28 @@ const SolanaProgramContext = createContext<SolanaProgramContextValue | null>(nul
 
 export function SolanaProvider({ children }: { children: ReactNode }) {
   const { connection } = useConnection();
-  const wallet = useAnchorWallet();
+  const adapterWallet = useAnchorWallet();
+  const { address, signTransaction: signInAppTransaction, signAllTransactions: signAllInAppTransactions } = useWallet();
+
+  const wallet = useMemo<AnchorWallet | null>(() => {
+    if (adapterWallet?.publicKey) {
+      return adapterWallet as AnchorWallet;
+    }
+
+    if (!address) {
+      return null;
+    }
+
+    const inAppPublicKey = new PublicKey(address);
+
+    return {
+      publicKey: inAppPublicKey,
+      signTransaction: async <T extends Transaction | VersionedTransaction>(transaction: T) =>
+        signInAppTransaction(transaction),
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(transactions: T[]) =>
+        signAllInAppTransactions(transactions),
+    } as AnchorWallet;
+  }, [adapterWallet, address, signAllInAppTransactions, signInAppTransaction]);
 
   const provider = useMemo(() => {
     if (!wallet) return null;
