@@ -10,21 +10,43 @@ const VAULT_SEED = Buffer.from('vault');
 const DEFAULT_PROGRAM_ID = 'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7';
 
 const parseServerAuthority = () => {
-  const raw = env.SOLANA_SERVER_AUTHORITY_SECRET_KEY;
-  if (!raw) return null;
+  const raw = env.SOLANA_SERVER_AUTHORITY_SECRET_KEY?.trim();
+  if (!raw) {
+    logger.error('SOLANA_SERVER_AUTHORITY_SECRET_KEY is missing or empty after trimming.');
+    return null;
+  }
 
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return Keypair.fromSecretKey(Uint8Array.from(parsed));
+      const keypair = Keypair.fromSecretKey(Uint8Array.from(parsed));
+      logger.info('Parsed SOLANA_SERVER_AUTHORITY_SECRET_KEY as JSON array.');
+      return keypair;
     }
-  } catch {
-    // fallback to bs58 secret key
+    logger.error(
+      { parsedType: typeof parsed },
+      'SOLANA_SERVER_AUTHORITY_SECRET_KEY JSON parsing succeeded but did not produce an array.'
+    );
+    return null;
+  } catch (jsonError) {
+    if (raw.startsWith('[')) {
+      logger.error(
+        { err: jsonError },
+        'Failed to parse SOLANA_SERVER_AUTHORITY_SECRET_KEY JSON array. Base58 fallback blocked to prevent corrupt key decoding.'
+      );
+      return null;
+    }
   }
 
   try {
-    return Keypair.fromSecretKey(bs58.decode(raw));
-  } catch {
+    const keypair = Keypair.fromSecretKey(bs58.decode(raw));
+    logger.info('Parsed SOLANA_SERVER_AUTHORITY_SECRET_KEY as base58.');
+    return keypair;
+  } catch (base58Error) {
+    logger.error(
+      { err: base58Error },
+      'Failed to parse SOLANA_SERVER_AUTHORITY_SECRET_KEY as base58.'
+    );
     return null;
   }
 };
