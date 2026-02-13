@@ -1,6 +1,7 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { LAMPORTS_PER_SOL, Transaction } from '@solana/web3.js';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -13,7 +14,6 @@ import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay
 import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
-import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
 import { useActiveWallet } from '../hooks/useActiveWallet';
 
 interface LobbyScreenProps {
@@ -64,8 +64,8 @@ const formatStakeTransactionError = (rawError: unknown) => {
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
-  const { publicKey } = useActiveWallet();
-  const { createMatch, joinMatch } = useSolanaProgram();
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -355,7 +355,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     slot?: 'p1' | 'p2';
     gameMatch?: string;
   }) => {
-    if (!publicKey) {
+    if (!publicKey || !sendTransaction) {
       throw new Error('Connect a Solana wallet before entering ranked matches.');
     }
 
@@ -369,10 +369,22 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         throw new Error('Waiting for host stake transaction confirmation...');
       }
 
-      const signature = await joinMatch({
-        gameMatch: new PublicKey(matchDetails.gameMatch),
-        settleDeadlineSeconds: 120,
+      const joinResponse = await fetch('/api/match/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameMatch: matchDetails.gameMatch,
+          playerWallet: publicKey.toBase58(),
+        }),
       });
+
+      if (!joinResponse.ok) {
+        throw new Error('Failed to prepare join match transaction.');
+      }
+
+      const { serializedTransaction } = await joinResponse.json();
+      const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
+      const signature = await sendTransaction(transaction, connection);
 
       return {
         signature,
@@ -381,16 +393,26 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       };
     }
 
-    const gameMatch = Keypair.generate();
-    const signature = await createMatch({
-      gameMatch,
-      stakeLamports,
-      joinExpirySeconds: 120,
+    const createResponse = await fetch('/api/match/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stakeAmount: matchDetails.stake,
+        playerWallet: publicKey.toBase58(),
+      }),
     });
+
+    if (!createResponse.ok) {
+      throw new Error('Failed to prepare create match transaction.');
+    }
+
+    const { serializedTransaction, gameMatch } = await createResponse.json();
+    const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
+    const signature = await sendTransaction(transaction, connection);
 
     return {
       signature,
-      gameMatch: gameMatch.publicKey.toBase58(),
+      gameMatch,
       playerWallet: publicKey.toBase58(),
     };
   };
