@@ -34,7 +34,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useAdapterWallet();
+  const { publicKey, sendTransaction, connect, wallet } = useAdapterWallet();
   const { joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
@@ -325,7 +325,18 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     slot?: 'p1' | 'p2';
     gameMatch?: string;
   }) => {
-    if (!publicKey) {
+    let activePublicKey = publicKey;
+    if (!activePublicKey) {
+      try {
+        await connect();
+      } catch (connectError) {
+        console.error('Wallet connect prompt failed:', connectError);
+        throw new Error('Connect a Solana wallet before entering ranked matches.');
+      }
+      activePublicKey = wallet?.adapter.publicKey ?? null;
+    }
+
+    if (!activePublicKey) {
       throw new Error('Connect a Solana wallet before entering ranked matches.');
     }
 
@@ -347,7 +358,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       return {
         signature,
         gameMatch: matchDetails.gameMatch,
-        playerWallet: publicKey.toBase58(),
+        playerWallet: activePublicKey.toBase58(),
       };
     }
 
@@ -380,7 +391,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     return {
       signature,
       gameMatch,
-      playerWallet: publicKey.toBase58(),
+      playerWallet: activePublicKey.toBase58(),
     };
   };
 
