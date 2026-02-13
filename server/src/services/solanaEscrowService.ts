@@ -289,36 +289,111 @@ class SolanaEscrowService {
   async joinMatch(input: {
     gameMatch: string | PublicKey;
     playerB: string | PublicKey;
+    botSecretKey?: string | Uint8Array;
   }) {
     if (!this.isConfigured || !this.program || !this.walletKeypair) {
       throw new Error('Solana escrow service is not configured');
     }
 
-    const gameMatch = typeof input.gameMatch === 'string' ? new PublicKey(input.gameMatch) : input.gameMatch;
-    const playerB = typeof input.playerB === 'string' ? new PublicKey(input.playerB) : input.playerB;
-    const vaultPda = this.deriveVaultPda(gameMatch);
+    try {
+      const gameMatch = typeof input.gameMatch === 'string' ? new PublicKey(input.gameMatch) : input.gameMatch;
+      const playerB = typeof input.playerB === 'string' ? new PublicKey(input.playerB) : input.playerB;
 
-    const tx = await (this.program.methods as any)
-      .joinMatch()
-      .accountsStrict({
-        serverAuthority: this.walletKeypair.publicKey,
-        playerB,
-        gameMatch,
-        vault: vaultPda,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
+      if (!gameMatch || !playerB) {
+        throw new Error('gameMatch and playerB are required');
+      }
 
-    const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = playerB;
-    tx.partialSign(this.walletKeypair);
+      const configPda = this.deriveConfigPda();
+      const vaultPda = this.deriveVaultPda(gameMatch);
 
-    return {
-      serializedTransaction: tx
+      const tx = await (this.program.methods as any)
+        .joinMatch()
+        .accountsStrict({
+          serverAuthority: this.walletKeypair.publicKey,
+          config: configPda,
+          playerB,
+          gameMatch,
+          vault: vaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
+
+      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = blockhash;
+
+      if (input.botSecretKey !== undefined) {
+        let botKeypair: Keypair;
+
+        if (typeof input.botSecretKey === 'string') {
+          const trimmedSecretKey = input.botSecretKey.trim();
+          if (!trimmedSecretKey) {
+            throw new Error('botSecretKey was provided but is empty');
+          }
+
+          const jsonSecretKey = parseJsonSecretKey(trimmedSecretKey);
+          const commaSeparatedSecretKey = parseCommaSeparatedSecretKey(trimmedSecretKey);
+          const parsedBotSecretKey = jsonSecretKey ?? commaSeparatedSecretKey ?? bs58.decode(trimmedSecretKey);
+          botKeypair = Keypair.fromSecretKey(parsedBotSecretKey);
+        } else {
+          if (input.botSecretKey.length === 0) {
+            throw new Error('botSecretKey was provided but is empty');
+          }
+          botKeypair = Keypair.fromSecretKey(input.botSecretKey);
+        }
+
+        if (!botKeypair.publicKey.equals(playerB)) {
+          throw new Error('botSecretKey does not correspond to playerB');
+        }
+
+        tx.feePayer = botKeypair.publicKey;
+        tx.partialSign(this.walletKeypair, botKeypair);
+
+        const signature = await this.connection.sendRawTransaction(tx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        });
+
+        await this.connection.confirmTransaction(
+          {
+            signature,
+            blockhash,
+            lastValidBlockHeight,
+          },
+          'confirmed'
+        );
+
+        logger.info(
+          {
+            gameMatch: gameMatch.toBase58(),
+            playerB: playerB.toBase58(),
+            signature,
+          },
+          'Submitted on-chain joinMatch transaction for ranked bot.'
+        );
+
+        return { signature, confirmed: true as const };
+      }
+
+      tx.feePayer = playerB;
+      tx.partialSign(this.walletKeypair);
+
+      const serializedTransaction = tx
         .serialize({ requireAllSignatures: false, verifySignatures: false })
-        .toString('base64'),
-    };
+        .toString('base64');
+
+      logger.info(
+        {
+          gameMatch: gameMatch.toBase58(),
+          playerB: playerB.toBase58(),
+        },
+        'Prepared partially-signed joinMatch transaction for human player.'
+      );
+
+      return { serializedTransaction };
+    } catch (error) {
+      logger.error({ err: error, input }, 'Failed to create joinMatch transaction.');
+      throw error;
+    }
   }
 
   async confirmTransaction(signature: string) {
