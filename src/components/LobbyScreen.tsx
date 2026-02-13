@@ -85,6 +85,24 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const freeStakes = getFreeStakeOptions(data);
   const freeStakeTotal = getFreeStakeTotal(freeStakes);
 
+  const isValidPublicKey = (value: string | undefined): value is string => {
+    if (!value) return false;
+    try {
+      new PublicKey(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const normalizeStakeFailureReason = (reason?: string) => {
+    const normalized = reason?.toLowerCase() ?? '';
+    if (normalized.includes('rejected') || normalized.includes('cancel')) return 'transaction_rejected';
+    if (normalized.includes('insufficient')) return 'insufficient_funds';
+    if (normalized.includes('waiting for host')) return 'waiting_for_host';
+    return 'transaction_failed';
+  };
+
   useEffect(() => {
     if (selectedMode !== 'ranked') {
       setSelectedFreeStakeAmount(null);
@@ -155,7 +173,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       if (matchType !== 'bot') {
         matchFoundTimeoutRef.current = window.setTimeout(() => {
           const awaitingHostMatch =
-            matchDetails.matchType === 'ranked' && matchDetails.slot === 'p2' && !matchDetails.gameMatch;
+            matchDetails.matchType === 'ranked' &&
+            matchDetails.slot === 'p2' &&
+            !isValidPublicKey(matchDetails.gameMatch);
           if (awaitingHostMatch) {
             toast.info('Waiting for host to initialize on-chain match escrow...');
             return;
@@ -361,7 +381,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     }
 
     if (matchDetails.slot === 'p2') {
-      if (!matchDetails.gameMatch) {
+      if (!isValidPublicKey(matchDetails.gameMatch)) {
         throw new Error('Waiting for host stake transaction confirmation...');
       }
 
@@ -508,7 +528,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         return;
       }
 
-      const reason = error?.code === 4001 ? 'transaction rejected' : 'transaction failed';
+      const reason = error?.code === 4001 ? 'transaction_rejected' : 'transaction_failed';
       if (pendingMatchRef.current) {
         send('match:stake_failed', {
           sessionId: pendingMatchRef.current.sessionId,
@@ -567,7 +587,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       if (pendingMatchRef.current) {
         send('match:stake_failed', {
           sessionId: pendingMatchRef.current.sessionId,
-          reason: errorMessage,
+          reason: normalizeStakeFailureReason(errorMessage),
         });
       }
     }
@@ -578,7 +598,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     if (pendingMatchRef.current) {
       send('match:stake_failed', {
         sessionId: pendingMatchRef.current.sessionId,
-        reason: 'transaction cancelled by user',
+        reason: 'transaction_rejected',
       });
     }
   };
@@ -587,7 +607,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     if (pendingMatchRef.current) {
       send('match:stake_failed', {
         sessionId: pendingMatchRef.current.sessionId,
-        reason: message,
+        reason: normalizeStakeFailureReason(message),
       });
     }
   };
