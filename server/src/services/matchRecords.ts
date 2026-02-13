@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { PublicKey } from '@solana/web3.js';
 
 export type MatchLifecycleStatus =
   | 'created'
@@ -41,7 +42,18 @@ export class MatchRecordStore {
     }
 
     const matchId = crypto.randomUUID();
-    const onChainMatch = input.onChainMatch ?? crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
+    if (!input.onChainMatch) {
+      throw new Error('Missing onChainMatch public key');
+    }
+
+    let onChainMatch: string;
+    try {
+      onChainMatch = new PublicKey(input.onChainMatch).toBase58();
+    } catch {
+      throw new Error('Invalid onChainMatch public key');
+    }
+
     const now = Date.now();
     const record: MatchRecord = {
       matchId,

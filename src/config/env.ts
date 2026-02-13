@@ -13,8 +13,8 @@
  * VITE_HELIUS_RPC_URL=https://rpc.helius.xyz/?api-key=your-helius-api-key
  * 
  * For development:
- * VITE_API_BASE_URL=http://localhost:3000/api
- * VITE_WS_URL=ws://localhost:3000/ws
+ * VITE_API_BASE_URL=http://localhost:4000/api
+ * VITE_WS_URL=ws://localhost:4000/ws
  * VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
  * VITE_SOLANA_NETWORK=devnet
  * VITE_HELIUS_API_KEY=your-helius-api-key
@@ -58,10 +58,10 @@ const heliusRpcUrl = resolveHeliusRpcUrl(solanaNetwork);
 
 export const ENV = {
   // Backend API Configuration
-  API_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api',
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000/api',
 
   // WebSocket Configuration
-  WS_URL: import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws',
+  WS_URL: import.meta.env.VITE_WS_URL || 'ws://localhost:4000/ws',
 
   // Solana Configuration
   SOLANA_RPC_URL: solanaRpcUrl,

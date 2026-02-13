@@ -82,13 +82,34 @@ class ApiClient {
         },
       });
 
-      const data = await response.json();
+      let data: unknown = null;
+      const contentType = response.headers.get('content-type') ?? '';
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
+      if (contentType.includes('application/json')) {
+        data = await response.json();
       }
 
-      return data;
+      if (!response.ok) {
+        const message =
+          typeof data === 'object' && data !== null && 'error' in data
+            ? String((data as { error?: unknown }).error ?? 'Request failed')
+            : 'Request failed';
+        throw new Error(message);
+      }
+
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'success' in data &&
+        typeof (data as { success?: unknown }).success === 'boolean'
+      ) {
+        return data as ApiResponse<T>;
+      }
+
+      return {
+        success: true,
+        data: data as T,
+      };
     } catch (error) {
       console.error('[API Error]', endpoint, error);
       return {
@@ -198,6 +219,12 @@ export const API = {
     joinMatch: (matchId: string) => apiClient.post(`/matchmaking/${matchId}/join`),
     finishMatch: (matchId: string, data: any) => apiClient.post(`/matchmaking/${matchId}/finish`, data),
     getMatch: (matchId: string) => apiClient.get(`/matchmaking/${matchId}`),
+  },
+
+  // On-chain escrow tx payload endpoints
+  match: {
+    create: (data: { stakeAmount: number; playerWallet: string }) => apiClient.post('/match/create', data),
+    join: (data: { gameMatch: string; playerWallet: string }) => apiClient.post('/match/join', data),
   },
 
   // Ambassador endpoints

@@ -26,12 +26,14 @@ router.post('/create', attachUser, requireAuth, (req, res) => {
     freeStake,
     claimNonce,
     claimSignature,
+    onChainMatch,
   } = req.body as {
     stakeLamports?: number;
     idempotencyKey?: string;
     freeStake?: boolean;
     claimNonce?: string;
     claimSignature?: string;
+    onChainMatch?: string;
   };
 
   if (!Number.isInteger(stakeLamports) || (stakeLamports as number) <= 0) {
@@ -58,6 +60,7 @@ router.post('/create', attachUser, requireAuth, (req, res) => {
       stakeLamports: lamports,
       idempotencyKey,
       freeStakeSponsored: Boolean(freeStake),
+      onChainMatch,
     });
     matchRecordStore.update(record.matchId, { status: 'waiting' });
 

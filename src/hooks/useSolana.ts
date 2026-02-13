@@ -51,26 +51,18 @@ export function useSolana(): UseSolanaReturn {
       setLoading(true);
       setError(null);
 
-      const response = await API.game.createMatch({
-        stakeLamports: input.stakeLamports,
-        joinExpirySeconds: input.joinExpirySeconds ?? 120,
-        idempotencyKey: input.idempotencyKey,
+      const response = await API.match.create({
+        stakeAmount: input.stakeLamports / 1_000_000_000,
+        playerWallet: wallet.publicKey.toBase58(),
       });
 
       if (!response.success || !response.data) {
         throw new Error(response.error ?? 'Failed to create ranked match transaction.');
       }
 
-      const {
-        serializedTransaction,
-        gameMatch,
-        blockhash,
-        lastValidBlockHeight,
-      } = response.data as {
+      const { serializedTransaction, gameMatch } = response.data as {
         serializedTransaction?: string;
         gameMatch?: string;
-        blockhash?: string;
-        lastValidBlockHeight?: number;
       };
 
       if (!serializedTransaction || !gameMatch) {
@@ -82,11 +74,7 @@ export function useSolana(): UseSolanaReturn {
       const signedTransaction = await wallet.signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signedTransaction.serialize());
 
-      if (blockhash && typeof lastValidBlockHeight === 'number') {
-        await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-      } else {
-        await connection.confirmTransaction(signature, 'confirmed');
-      }
+      await connection.confirmTransaction(signature, 'confirmed');
 
       input.emitStakeConfirmed({ signature, gameMatch });
 
