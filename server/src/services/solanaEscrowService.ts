@@ -272,15 +272,37 @@ class SolanaEscrowService {
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
     tx.recentBlockhash = blockhash;
-    tx.feePayer = playerA;
-    tx.partialSign(this.walletKeypair, gameMatch);
+    tx.feePayer = this.walletKeypair.publicKey;
+
+    try {
+      tx.partialSign(this.walletKeypair, gameMatch);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('Signature verification failed')) {
+        logger.error(
+          {
+            err: error,
+            gameMatch: gameMatch.publicKey.toBase58(),
+            serverAuthority: this.walletKeypair.publicKey.toBase58(),
+          },
+          'Signature verification failed while partially signing createMatch transaction.'
+        );
+      }
+      throw error;
+    }
+
+    logger.info(
+      {
+        gameMatch: gameMatch.publicKey.toBase58(),
+        feePayer: this.walletKeypair.publicKey.toBase58(),
+      },
+      'Prepared createMatch transaction with server as fee payer.'
+    );
 
     return {
       gameMatch: gameMatch.publicKey.toBase58(),
       vault: vaultPda.toBase58(),
-      serializedTransaction: tx
-        .serialize({ requireAllSignatures: false, verifySignatures: false })
-        .toString('base64'),
+      serializedTransaction: tx.serialize({ requireAllSignatures: false }).toString('base64'),
       lastValidBlockHeight,
     };
   }
