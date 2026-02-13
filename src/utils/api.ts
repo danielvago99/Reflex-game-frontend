@@ -82,13 +82,24 @@ class ApiClient {
         },
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const isJsonResponse = contentType.includes('application/json');
+      const rawBody = await response.text();
+      const data = rawBody
+        ? isJsonResponse
+          ? JSON.parse(rawBody)
+          : { error: rawBody }
+        : {};
 
       if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
+        const responseError =
+          data?.error ||
+          data?.message ||
+          `Request failed with status ${response.status}`;
+        throw new Error(responseError);
       }
 
-      return data;
+      return data as ApiResponse<T>;
     } catch (error) {
       console.error('[API Error]', endpoint, error);
       return {
@@ -113,6 +124,40 @@ class ApiClient {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
+  }
+
+  /**
+   * POST request with endpoint fallback support.
+   * Useful during backend route migrations where one endpoint may not yet be deployed.
+   */
+  async postWithFallback<T>(endpoints: string[], data?: any): Promise<ApiResponse<T>> {
+    let lastError: ApiResponse<T> | null = null;
+
+    for (const endpoint of endpoints) {
+      const response = await this.post<T>(endpoint, data);
+      if (!response?.error) {
+        return response;
+      }
+
+      const isNotFoundError =
+        response.error.includes('404') ||
+        response.error.includes('Cannot POST') ||
+        response.error.includes('Not Found');
+
+      lastError = response;
+      if (!isNotFoundError) {
+        return response;
+      }
+
+      console.warn(`[API Fallback] Endpoint not found: ${endpoint}. Trying next fallback.`);
+    }
+
+    return (
+      lastError || {
+        success: false,
+        error: 'No endpoint candidates were provided',
+      }
+    );
   }
 
   /**
@@ -195,7 +240,15 @@ export const API = {
     getHistory: (page: number = 1) => apiClient.get(`/game/history?page=${page}`),
     claimFreeStake: () => apiClient.post('/matchmaking/free-stake/claim'),
     createMatch: (data: any) => apiClient.post('/matchmaking/create', data),
-    createEscrowMatchTx: (data: any) => apiClient.post('/matchmaking/escrow/create-tx', data),
+    createEscrowMatchTx: (data: any) =>
+      apiClient.postWithFallback(
+        [
+          '/matchmaking/escrow/create-tx',
+          '/matchmaking/escrow/create',
+          '/matchmaking/create-tx',
+        ],
+        data
+      ),
     joinMatch: (matchId: string) => apiClient.post(`/matchmaking/${matchId}/join`),
     finishMatch: (matchId: string, data: any) => apiClient.post(`/matchmaking/${matchId}/finish`, data),
     getMatch: (matchId: string) => apiClient.get(`/matchmaking/${matchId}`),
