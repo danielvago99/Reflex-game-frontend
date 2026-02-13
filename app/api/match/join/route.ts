@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { solanaEscrowService } from '../../../../server/src/services/solanaEscrowService';
 
+const DEFAULT_SETTLE_DEADLINE_SECONDS = 900;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -18,6 +20,7 @@ export async function POST(request: Request) {
     const { serializedTransaction } = await solanaEscrowService.joinMatch({
       gameMatch,
       playerB: playerWallet,
+      settleDeadlineSeconds: DEFAULT_SETTLE_DEADLINE_SECONDS,
     });
 
     return NextResponse.json({ serializedTransaction });
