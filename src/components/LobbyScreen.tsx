@@ -1,7 +1,6 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -15,6 +14,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
+import { useActiveWallet } from '../hooks/useActiveWallet';
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -64,7 +64,7 @@ const formatStakeTransactionError = (rawError: unknown) => {
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
-  const { publicKey } = useAdapterWallet();
+  const { publicKey } = useActiveWallet();
   const { createMatch, joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
