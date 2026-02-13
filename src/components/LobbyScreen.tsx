@@ -15,6 +15,8 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
+import { useWallet as useAppWallet } from '../features/wallet/context/WalletProvider';
+import { useActiveWallet } from '../hooks/useActiveWallet';
 import { API } from '../utils/api';
 
 interface LobbyScreenProps {
@@ -34,7 +36,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { connection } = useConnection();
-  const { publicKey, sendTransaction, connect, wallet } = useAdapterWallet();
+  const { publicKey, sendTransaction } = useActiveWallet();
+  const { provider: appWalletProvider } = useAppWallet();
+  const { connect, wallet, wallets, select } = useAdapterWallet();
   const { joinMatch } = useSolanaProgram();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
@@ -327,6 +331,17 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   }) => {
     let activePublicKey = publicKey;
     if (!activePublicKey) {
+      const preferredProvider = walletProvider ?? appWalletProvider;
+      if (!wallet && preferredProvider) {
+        const matchingWallet = wallets.find((walletOption) =>
+          walletOption.adapter.name.toLowerCase() === preferredProvider.toLowerCase(),
+        );
+
+        if (matchingWallet) {
+          select(matchingWallet.adapter.name);
+        }
+      }
+
       try {
         await connect();
       } catch (connectError) {
