@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { prisma } from '../db/prisma';
 import { attachUser, requireAuth } from '../middleware/auth';
 import { matchRecordStore } from '../services/matchRecords';
 import { freeStakeService } from '../services/freeStakeService';
@@ -74,25 +75,34 @@ router.post('/escrow/create-tx', attachUser, requireAuth, async (req, res) => {
   const auth = req.user;
   if (!auth) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { stakeLamports, joinExpirySeconds } = req.body as {
+  const { stakeLamports } = req.body as {
     stakeLamports?: number;
-    joinExpirySeconds?: number;
   };
 
   if (!Number.isInteger(stakeLamports) || (stakeLamports as number) <= 0) {
     return res.status(400).json({ error: 'Invalid stakeLamports' });
   }
 
-  const expiry = Number.isInteger(joinExpirySeconds) && (joinExpirySeconds as number) > 0 ? (joinExpirySeconds as number) : 120;
-
   try {
-    const transaction = await solanaEscrowService.createMatch({
-      playerA: auth.address,
+    const dbUser = auth.address
+      ? null
+      : await prisma.user.findUnique({
+          where: { id: auth.id },
+          select: { walletAddress: true },
+        });
+
+    const playerA = auth.address || dbUser?.walletAddress;
+
+    if (!playerA) {
+      return res.status(400).json({ error: 'Missing wallet address for authenticated user' });
+    }
+
+    const { serializedTransaction, gameMatch, vault } = await solanaEscrowService.createEscrowMatchTx({
+      playerA,
       stakeLamports: BigInt(stakeLamports as number),
-      joinExpirySeconds: expiry,
     });
 
-    return res.status(201).json(transaction);
+    return res.status(201).json({ serializedTransaction, gameMatch, vault });
   } catch (error) {
     logger.error({ error, wallet: auth.address }, 'Failed to prepare ranked escrow create-match transaction');
     return res.status(500).json({

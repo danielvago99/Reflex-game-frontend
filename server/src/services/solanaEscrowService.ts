@@ -220,6 +220,17 @@ class SolanaEscrowService {
     };
   }
 
+  async createEscrowMatchTx(input: {
+    playerA: string;
+    stakeLamports: bigint;
+  }) {
+    return this.createMatch({
+      playerA: input.playerA,
+      stakeLamports: input.stakeLamports,
+      joinExpirySeconds: 120,
+    });
+  }
+
   async confirmTransaction(signature: string) {
     const status = await this.connection.getSignatureStatus(signature, {
       searchTransactionHistory: true,
