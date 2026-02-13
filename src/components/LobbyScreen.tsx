@@ -29,6 +29,38 @@ interface LobbyScreenProps {
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
 
+const formatStakeTransactionError = (rawError: unknown) => {
+  const fallback = 'Match cancelled due to transaction failure.';
+  const message = typeof rawError === 'string'
+    ? rawError
+    : rawError instanceof Error
+      ? rawError.message
+      : '';
+
+  if (!message) {
+    return fallback;
+  }
+
+  if (message.includes('ConstraintAddress') && message.includes('server_authority')) {
+    const leftMatch = message.match(/Program log: Left:\s*\n?Program log:\s*([1-9A-HJ-NP-Za-km-z]{32,44})/);
+    const rightMatch = message.match(/Program log: Right:\s*\n?Program log:\s*([1-9A-HJ-NP-Za-km-z]{32,44})/);
+    const expected = rightMatch?.[1];
+    const configured = leftMatch?.[1];
+
+    if (expected && configured) {
+      return `Server wallet mismatch (${configured} ≠ ${expected}). Contact support to sync backend authority.`;
+    }
+
+    return 'Server wallet mismatch (server_authority). Contact support to sync backend authority.';
+  }
+
+  if (message.length > 240) {
+    return `${message.slice(0, 237)}...`;
+  }
+
+  return message;
+};
+
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
@@ -468,8 +500,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           reason,
         });
       }
+      const description = formatStakeTransactionError(error);
       toast.error('Transaction failed', {
-        description: 'Match cancelled due to transaction failure.',
+        description,
       });
     }
   };
@@ -516,7 +549,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       }
     } catch (error: any) {
       const errorMessage = typeof error?.message === 'string' ? error.message : 'Stake transaction failed';
-      toast.error('Transaction failed', { description: errorMessage });
+      toast.error('Transaction failed', { description: formatStakeTransactionError(errorMessage) });
       if (pendingMatchRef.current) {
         send('match:stake_failed', {
           sessionId: pendingMatchRef.current.sessionId,
