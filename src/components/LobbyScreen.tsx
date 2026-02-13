@@ -13,6 +13,7 @@ import { getFreeStakeOptions, getFreeStakeTotal } from '../features/rewards/util
 import { MatchmakingOverlay, MatchmakingStatus } from './game/MatchmakingOverlay';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
+import { ENV } from '../config/env';
 import { toast } from 'sonner';
 import { useActiveWallet } from '../hooks/useActiveWallet';
 
@@ -369,7 +370,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         throw new Error('Waiting for host stake transaction confirmation...');
       }
 
-      const joinResponse = await fetch('/api/match/join', {
+      const joinResponse = await fetch(`${ENV.API_BASE_URL.replace(/\/$/, '')}/match/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -394,7 +395,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       };
     }
 
-    const createResponse = await fetch('/api/match/create', {
+    const createResponse = await fetch(`${ENV.API_BASE_URL.replace(/\/$/, '')}/match/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

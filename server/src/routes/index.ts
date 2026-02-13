@@ -7,6 +7,7 @@ import { ambassadorRouter } from './ambassador';
 import { rewardsRouter } from './rewards';
 import { jackpotRouter } from './jackpot';
 import { matchmakingRouter } from './matchmaking';
+import { matchRouter } from './match';
 
 export const router = Router();
 
@@ -18,3 +19,4 @@ router.use('/ambassador', ambassadorRouter);
 router.use('/rewards', rewardsRouter);
 router.use('/jackpot', jackpotRouter);
 router.use('/matchmaking', matchmakingRouter);
+router.use('/match', matchRouter);

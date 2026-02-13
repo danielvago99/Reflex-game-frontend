@@ -59,9 +59,39 @@ const parseCommaSeparatedSecretKey = (raw: string): Uint8Array | null => {
   return sanitizeSecretKeyBytes(numbers);
 };
 
+
+const normalizeSecretKeyInput = (value: string) => {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
+const parseBase64SecretKey = (raw: string): Uint8Array | null => {
+  const normalized = raw.replace(/\s+/g, '');
+  if (!normalized || normalized.includes(',') || normalized.startsWith('[')) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(normalized, 'base64');
+    if (decoded.length === 64) {
+      return Uint8Array.from(decoded);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 const parseServerAuthority = () => {
-  const raw = env.SOLANA_SERVER_AUTHORITY_SECRET_KEY?.trim();
-  if (!raw) {
+  const raw = normalizeSecretKeyInput(env.SOLANA_SERVER_AUTHORITY_SECRET_KEY ?? '');
+  if (!raw.trim()) {
     logger.error('SOLANA_SERVER_AUTHORITY_SECRET_KEY is missing or empty after trimming.');
     return null;
   }
@@ -89,6 +119,18 @@ const parseServerAuthority = () => {
       return keypair;
     } catch (error) {
       logger.error({ err: error }, 'Invalid comma-separated SOLANA_SERVER_AUTHORITY_SECRET_KEY.');
+      return null;
+    }
+  }
+
+  const base64SecretKey = parseBase64SecretKey(raw);
+  if (base64SecretKey) {
+    try {
+      const keypair = Keypair.fromSecretKey(base64SecretKey);
+      logger.info({ publicKey: keypair.publicKey.toBase58() }, 'Parsed SOLANA_SERVER_AUTHORITY_SECRET_KEY as base64.');
+      return keypair;
+    } catch (error) {
+      logger.error({ err: error }, 'Invalid base64 SOLANA_SERVER_AUTHORITY_SECRET_KEY.');
       return null;
     }
   }
