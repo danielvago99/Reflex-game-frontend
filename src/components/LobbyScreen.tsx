@@ -378,11 +378,12 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         }),
       });
 
+      const joinBody = await joinResponse.json();
       if (!joinResponse.ok) {
-        throw new Error('Failed to prepare join match transaction.');
+        throw new Error(joinBody?.error ?? 'Failed to prepare join match transaction.');
       }
 
-      const { serializedTransaction } = await joinResponse.json();
+      const { serializedTransaction } = joinBody;
       const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
       const signature = await sendTransaction(transaction, connection);
 
@@ -402,11 +403,12 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       }),
     });
 
+    const createBody = await createResponse.json();
     if (!createResponse.ok) {
-      throw new Error('Failed to prepare create match transaction.');
+      throw new Error(createBody?.error ?? 'Failed to prepare create match transaction.');
     }
 
-    const { serializedTransaction, gameMatch } = await createResponse.json();
+    const { serializedTransaction, gameMatch } = createBody;
     const transaction = Transaction.from(Buffer.from(serializedTransaction, 'base64'));
     const signature = await sendTransaction(transaction, connection);
 

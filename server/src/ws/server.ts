@@ -2811,7 +2811,7 @@ export function createWsServer(server: Server) {
                   botKeypair,
                   gameMatch: resolvedSessionState.onChainGameMatch,
                   stakeAmountSol: stakeAmount,
-                  settleDeadlineSeconds: 120,
+                  settleDeadlineSeconds: 900,
                 });
                 resolvedSessionState.p2Staked = true;
                 void persistSessionState(resolvedSessionState);

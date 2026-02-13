@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 const CONFIG_SEED = Buffer.from('config');
 const VAULT_SEED = Buffer.from('vault');
 const DEFAULT_PROGRAM_ID = 'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7';
+const DEFAULT_SETTLE_DEADLINE_SECONDS = 900;
 
 const sanitizeSecretKeyBytes = (bytes: number[]): Uint8Array | null => {
   if (!bytes.every((value) => Number.isInteger(value) && value >= 0 && value <= 255)) {
@@ -311,6 +312,7 @@ class SolanaEscrowService {
   async joinMatch(input: {
     gameMatch: string | PublicKey;
     playerB: string | PublicKey;
+    settleDeadlineSeconds?: number;
     botSecretKey?: string | Uint8Array;
   }) {
     if (!this.isConfigured || !this.program || !this.walletKeypair) {
@@ -325,14 +327,14 @@ class SolanaEscrowService {
         throw new Error('gameMatch and playerB are required');
       }
 
-      const configPda = this.deriveConfigPda();
       const vaultPda = this.deriveVaultPda(gameMatch);
+      const settleDeadlineSeconds = Number.isFinite(input.settleDeadlineSeconds)
+        ? Math.max(1, Math.floor(input.settleDeadlineSeconds as number))
+        : DEFAULT_SETTLE_DEADLINE_SECONDS;
 
-      const tx = await (this.program.methods as any)
-        .joinMatch()
+      const tx = await this.program.methods
+        .joinMatch(new BN(settleDeadlineSeconds))
         .accountsStrict({
-          serverAuthority: this.walletKeypair.publicKey,
-          config: configPda,
           playerB,
           gameMatch,
           vault: vaultPda,
@@ -368,7 +370,7 @@ class SolanaEscrowService {
         }
 
         tx.feePayer = botKeypair.publicKey;
-        tx.partialSign(this.walletKeypair, botKeypair);
+        tx.partialSign(botKeypair);
 
         const signature = await this.connection.sendRawTransaction(tx.serialize(), {
           skipPreflight: false,
@@ -397,8 +399,6 @@ class SolanaEscrowService {
       }
 
       tx.feePayer = playerB;
-      tx.partialSign(this.walletKeypair);
-
       const serializedTransaction = tx
         .serialize({ requireAllSignatures: false, verifySignatures: false })
         .toString('base64');
