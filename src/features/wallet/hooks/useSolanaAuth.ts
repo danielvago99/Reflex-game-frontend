@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useUnifiedWallet } from './useUnifiedWallet';
 import nacl from 'tweetnacl';
 
 export interface SolanaAuthResult {
-  publicKey: NonNullable<ReturnType<typeof useWallet>['publicKey']>;
+  publicKey: NonNullable<ReturnType<typeof useUnifiedWallet>['publicKey']>;
   signature: Uint8Array;
   message: string;
 }
 
 export function useSolanaAuth() {
-  const { connected, publicKey, signMessage } = useWallet();
+  const { connected, publicKey, signMessage } = useUnifiedWallet();
 
   const login = useCallback(async (): Promise<SolanaAuthResult> => {
     if (!connected || !publicKey) {

@@ -7,9 +7,10 @@ import {
 } from '@coral-xyz/anchor';
 import { type ReactNode, createContext, useContext, useMemo } from 'react';
 import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import idl from '../../../idl/reflex_pvp_escrow.json';
 import { ENV } from '../../../config/env';
+import { useUnifiedWallet } from '../hooks/useUnifiedWallet';
 
 const CONFIG_SEED = Buffer.from('config');
 const VAULT_SEED = Buffer.from('vault');
@@ -33,15 +34,15 @@ const SolanaProgramContext = createContext<SolanaProgramContextValue | null>(nul
 
 export function SolanaProvider({ children }: { children: ReactNode }) {
   const { connection } = useConnection();
-  const wallet = useAnchorWallet();
+  const { anchorWallet, publicKey } = useUnifiedWallet();
 
   const provider = useMemo(() => {
-    if (!wallet) return null;
+    if (!anchorWallet) return null;
 
-    return new AnchorProvider(connection, wallet as AnchorWallet, {
+    return new AnchorProvider(connection, anchorWallet as AnchorWallet, {
       commitment: 'confirmed',
     });
-  }, [connection, wallet]);
+  }, [anchorWallet, connection]);
 
   const program = useMemo(() => {
     if (!provider) return null;
@@ -57,7 +58,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
       deriveVaultPda: (matchPubkey: PublicKey) =>
         PublicKey.findProgramAddressSync([VAULT_SEED, matchPubkey.toBuffer()], programId)[0],
       createMatch: async ({ gameMatch, stakeLamports, joinExpirySeconds }) => {
-        if (!program || !wallet?.publicKey) {
+        if (!program || !publicKey) {
           throw new Error('Wallet is not connected');
         }
 
@@ -67,7 +68,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
         return program.methods
           .createMatch(new BN(stakeLamports.toString()), new BN(joinExpirySeconds))
           .accounts({
-            playerA: wallet.publicKey,
+            playerA: publicKey,
             config,
             gameMatch: gameMatch.publicKey,
             vault,
@@ -77,7 +78,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
           .rpc();
       },
       joinMatch: async ({ gameMatch, settleDeadlineSeconds }) => {
-        if (!program || !wallet?.publicKey) {
+        if (!program || !publicKey) {
           throw new Error('Wallet is not connected');
         }
 
@@ -86,7 +87,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
         return program.methods
           .joinMatch(new BN(settleDeadlineSeconds))
           .accounts({
-            playerB: wallet.publicKey,
+            playerB: publicKey,
             gameMatch,
             vault,
             systemProgram: SystemProgram.programId,
@@ -94,7 +95,7 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
           .rpc();
       },
     }),
-    [program, wallet]
+    [program, publicKey]
   );
 
   return <SolanaProgramContext.Provider value={value}>{children}</SolanaProgramContext.Provider>;
