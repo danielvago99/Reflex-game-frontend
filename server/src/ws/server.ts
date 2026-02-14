@@ -11,6 +11,7 @@ import { matchmakingService } from '../services/matchmaking';
 import { botWalletService } from '../services/BotWalletService';
 import { solanaEscrowService } from '../services/solanaEscrowService';
 import { matchmakingEvents } from '../utils/events';
+import { stakeInputToLamports, toStakeLamports } from '../utils/stake';
 
 type Shape = 'circle' | 'square' | 'triangle';
 
@@ -527,11 +528,11 @@ const generateRoomCode = (): string => {
   return code;
 };
 
-const getValidStakeLamports = (stakeLamports: unknown) => {
-  const numeric = typeof stakeLamports === 'number' ? stakeLamports : Number(stakeLamports);
-  if (!Number.isInteger(numeric)) return null;
-  if (numeric <= 0 || numeric > MAX_FRIEND_STAKE_LAMPORTS) return null;
-  return numeric;
+const getValidStakeLamports = (payload: { stakeLamports?: unknown; stake?: unknown }) => {
+  const lamports = stakeInputToLamports(payload);
+  if (lamports === null) return null;
+  if (lamports <= 0 || lamports > MAX_FRIEND_STAKE_LAMPORTS) return null;
+  return lamports;
 };
 
 const attachSocketToSession = (sessionId: string, socket: WebSocket, userId?: string) => {
@@ -943,7 +944,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
     const totalPot = stakeLamports > 0 ? stakeLamports * 2 : 0;
-    const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
+    const stakeFee = totalPot > 0 ? Math.floor((totalPot * 15) / 100) : 0;
     const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeLamports : 0;
     const shouldTrackJackpot =
       persistedMatchType === 'ranked' && Number.isFinite(stakeLamports) && stakeLamports === 200_000_000;
@@ -2156,7 +2157,7 @@ export function createWsServer(server: Server) {
               break;
             }
 
-            const stakeLamports = getValidStakeLamports(message.payload?.stakeLamports);
+            const stakeLamports = getValidStakeLamports(message.payload ?? {});
             if (stakeLamports === null) {
               sendMessage(socket, 'friend:error', {
                 message: `Stake must be between 1 lamport and ${MAX_FRIEND_STAKE_LAMPORTS} lamports.`,
@@ -2560,7 +2561,7 @@ export function createWsServer(server: Server) {
                   const reaction = stats?.avgReaction ? Number(stats.avgReaction) : 600;
 
                   // Ensure stake is a number
-                  const requestedStakeLamports = Number(message.payload?.stakeLamports) || 0;
+                  const requestedStakeLamports = toStakeLamports(message.payload?.stakeLamports) ?? 0;
                   const useFreeStake = Boolean(message.payload?.useFreeStake);
 
                   if (useFreeStake) {
@@ -2592,8 +2593,8 @@ export function createWsServer(server: Server) {
             break;
           case 'match:cancel': {
             const { userId } = sessionRef;
-            const stakeValue = Number(message.payload?.stakeLamports);
-            if (userId && Number.isFinite(stakeValue)) {
+            const stakeValue = toStakeLamports(message.payload?.stakeLamports);
+            if (userId && stakeValue !== null) {
               await matchmakingService.removeFromQueue(userId, stakeValue);
             }
             if (userId) {
@@ -2678,9 +2679,7 @@ export function createWsServer(server: Server) {
                   : 'ranked';
             const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
             const payloadStake =
-              typeof message.payload?.stakeLamports === 'number' && Number.isFinite(message.payload.stakeLamports)
-                ? message.payload.stakeLamports
-                : undefined;
+              toStakeLamports(message.payload?.stakeLamports) ?? undefined;
             const sessionStake =
               typeof sessionState?.stakeLamports === 'number' && Number.isFinite(sessionState.stakeLamports)
                 ? sessionState.stakeLamports

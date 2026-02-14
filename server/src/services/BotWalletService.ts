@@ -69,7 +69,7 @@ interface BotJoinMatchInput {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const VAULT_SEED = Buffer.from('vault');
 const DEFAULT_PROGRAM_ID = 'GMq3D9QQ8LxjcftXMnQUmffRoiCfczbuUoASaS7pCkp7';
-const BOT_GAS_BUFFER_LAMPORTS = 0.002 * LAMPORTS_PER_SOL;
+const BOT_GAS_BUFFER_LAMPORTS = Math.round(0.002 * LAMPORTS_PER_SOL);
 
 const parseBotKeypair = (entry: unknown): Keypair | null => {
   if (Array.isArray(entry)) {
@@ -238,7 +238,7 @@ class BotWalletService {
     logger.info({ count: this.botProfilesByWallet.size }, 'Ranked bot users synced in database');
   }
 
-  async getRankedBot(requiredStake: number): Promise<RankedBotIdentity> {
+  async getRankedBot(requiredStakeLamports: number): Promise<RankedBotIdentity> {
     if (this.initializationPromise) {
       await this.initializationPromise;
     }
@@ -253,7 +253,7 @@ class BotWalletService {
       };
     }
 
-    const requiredLamports = Math.max(0, Math.round(requiredStake * LAMPORTS_PER_SOL));
+    const requiredLamports = Math.max(0, Math.round(requiredStakeLamports));
     const minimumBalance = requiredLamports + BOT_GAS_BUFFER_LAMPORTS;
 
     for (const [index, keypair] of this.botKeypairs.entries()) {

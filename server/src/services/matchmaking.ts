@@ -1,6 +1,7 @@
 import { redisClient } from '../db/redis';
 import { matchmakingEvents } from '../utils/events';
 import { logger } from '../utils/logger';
+import { toStakeLamports } from '../utils/stake';
 
 const MATCH_CHECK_INTERVAL = 4000;
 const MAX_WAIT_TIME_MS = 9000;
@@ -44,26 +45,34 @@ export class MatchmakingService {
   }
 
   async addToQueue(userId: string, stakeLamports: number, avgReaction: number) {
-    const queueKey = `matchmaking:queue:${stakeLamports}`;
-    const timerKey = `matchmaking:timers:${stakeLamports}`;
+    const normalizedStake = toStakeLamports(stakeLamports);
+    if (normalizedStake === null || normalizedStake <= 0) {
+      throw new Error('Invalid stakeLamports for queue');
+    }
+
+    const queueKey = `matchmaking:queue:${normalizedStake}`;
+    const timerKey = `matchmaking:timers:${normalizedStake}`;
     const now = Date.now();
 
     await redisClient.zadd(queueKey, { score: avgReaction, member: userId });
     await redisClient.zadd(timerKey, { score: now, member: userId });
 
-    logger.info({ userId, stakeLamports, avgReaction }, 'Player added to matchmaking queue');
+    logger.info({ userId, stakeLamports: normalizedStake, avgReaction }, 'Player added to matchmaking queue');
 
-    this.startQueueProcessing(stakeLamports);
+    this.startQueueProcessing(normalizedStake);
   }
 
   async removeFromQueue(userId: string, stakeLamports: number) {
-    const queueKey = `matchmaking:queue:${stakeLamports}`;
-    const timerKey = `matchmaking:timers:${stakeLamports}`;
+    const normalizedStake = toStakeLamports(stakeLamports);
+    if (normalizedStake === null || normalizedStake <= 0) return;
+
+    const queueKey = `matchmaking:queue:${normalizedStake}`;
+    const timerKey = `matchmaking:timers:${normalizedStake}`;
 
     await redisClient.zrem(queueKey, userId);
     await redisClient.zrem(timerKey, userId);
 
-    logger.info({ userId, stakeLamports }, 'Player removed from matchmaking queue');
+    logger.info({ userId, stakeLamports: normalizedStake }, 'Player removed from matchmaking queue');
   }
 
   private startQueueProcessing(stakeLamports: number) {
