@@ -12,7 +12,7 @@ describe('FreeStakeService limits', () => {
         wallet,
         nonce: claim.nonce,
         signature: claim.signature,
-        requestedLamports: 1000n,
+        requestedLamports: 1000,
       });
     }
 
@@ -23,7 +23,7 @@ describe('FreeStakeService limits', () => {
         wallet,
         nonce: fourth.nonce,
         signature: fourth.signature,
-        requestedLamports: 1000n,
+        requestedLamports: 1000,
       }),
     ).toThrowError('FREE_STAKE_USER_DAILY_MATCH_LIMIT');
   });

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { toStakeLamports } from '../utils/stake';
 
 export type MatchLifecycleStatus =
   | 'created'
@@ -14,7 +15,7 @@ export interface MatchRecord {
   onChainMatch: string;
   playerA: string;
   playerB?: string;
-  stakeLamports: bigint;
+  stakeLamports: number;
   freeStakeSponsored: boolean;
   status: MatchLifecycleStatus;
   idempotencyKey: string;
@@ -31,13 +32,19 @@ export class MatchRecordStore {
 
   create(input: {
     playerA: string;
-    stakeLamports: bigint;
+    stakeLamports: number;
     idempotencyKey: string;
     freeStakeSponsored: boolean;
     onChainMatch?: string;
   }) {
     if (this.idempotencyIndex.has(input.idempotencyKey)) {
       return this.records.get(this.idempotencyIndex.get(input.idempotencyKey) as string) as MatchRecord;
+    }
+
+
+    const normalizedStakeLamports = toStakeLamports(input.stakeLamports);
+    if (normalizedStakeLamports === null || normalizedStakeLamports <= 0) {
+      throw new Error('INVALID_STAKE_LAMPORTS');
     }
 
     const matchId = crypto.randomUUID();
@@ -47,7 +54,7 @@ export class MatchRecordStore {
       matchId,
       onChainMatch,
       playerA: input.playerA,
-      stakeLamports: input.stakeLamports,
+      stakeLamports: normalizedStakeLamports,
       freeStakeSponsored: input.freeStakeSponsored,
       status: 'created',
       idempotencyKey: input.idempotencyKey,
@@ -60,7 +67,7 @@ export class MatchRecordStore {
     this.idempotencyIndex.set(input.idempotencyKey, matchId);
     this.log(matchId, 'created', {
       playerA: input.playerA,
-      stakeLamports: input.stakeLamports.toString(),
+      stakeLamports: normalizedStakeLamports,
       freeStakeSponsored: input.freeStakeSponsored,
     });
 

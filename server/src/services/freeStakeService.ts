@@ -10,17 +10,17 @@ interface FreeStakeClaim {
 
 interface UserQuota {
   count: number;
-  spentLamports: bigint;
+  spentLamports: number;
   windowStartedAt: number;
 }
 
 export class FreeStakeService {
   private readonly claims = new Map<string, FreeStakeClaim>();
   private readonly userDailyQuota = new Map<string, UserQuota>();
-  private dailyBudgetRemaining: bigint;
+  private dailyBudgetRemaining: number;
 
   constructor() {
-    this.dailyBudgetRemaining = BigInt(env.FREE_STAKE_DAILY_BUDGET_LAMPORTS);
+    this.dailyBudgetRemaining = env.FREE_STAKE_DAILY_BUDGET_LAMPORTS;
   }
 
   issueClaim(wallet: string) {
@@ -40,7 +40,7 @@ export class FreeStakeService {
     wallet: string;
     nonce: string;
     signature: string;
-    requestedLamports: bigint;
+    requestedLamports: number;
   }) {
     const claim = this.claims.get(input.nonce);
     if (!claim) throw new Error('FREE_STAKE_INVALID_NONCE');
@@ -54,8 +54,8 @@ export class FreeStakeService {
     this.claims.delete(input.nonce);
   }
 
-  private enforceQuota(wallet: string, requestedLamports: bigint) {
-    if (requestedLamports > BigInt(env.FREE_STAKE_MAX_PER_MATCH_LAMPORTS)) {
+  private enforceQuota(wallet: string, requestedLamports: number) {
+    if (requestedLamports > env.FREE_STAKE_MAX_PER_MATCH_LAMPORTS) {
       throw new Error('FREE_STAKE_MATCH_LIMIT_EXCEEDED');
     }
 
@@ -65,7 +65,7 @@ export class FreeStakeService {
     const activeQuota =
       quota && now - quota.windowStartedAt < oneDayMs
         ? quota
-        : { count: 0, spentLamports: 0n, windowStartedAt: now };
+        : { count: 0, spentLamports: 0, windowStartedAt: now };
 
     if (activeQuota.count >= env.FREE_STAKE_MAX_MATCHES_PER_USER_PER_DAY) {
       throw new Error('FREE_STAKE_USER_DAILY_MATCH_LIMIT');
@@ -73,7 +73,7 @@ export class FreeStakeService {
 
     if (
       activeQuota.spentLamports + requestedLamports >
-      BigInt(env.FREE_STAKE_MAX_LAMPORTS_PER_USER_PER_DAY)
+      env.FREE_STAKE_MAX_LAMPORTS_PER_USER_PER_DAY
     ) {
       throw new Error('FREE_STAKE_USER_DAILY_BUDGET_LIMIT');
     }

@@ -7,14 +7,14 @@ describe('MatchRecordStore idempotency', () => {
 
     const first = store.create({
       playerA: 'A111',
-      stakeLamports: 1000n,
+      stakeLamports: 1000,
       idempotencyKey: 'idem-key-1',
       freeStakeSponsored: false,
     });
 
     const second = store.create({
       playerA: 'A111',
-      stakeLamports: 1000n,
+      stakeLamports: 1000,
       idempotencyKey: 'idem-key-1',
       freeStakeSponsored: false,
     });
