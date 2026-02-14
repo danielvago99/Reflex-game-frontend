@@ -16,14 +16,15 @@ import { useWebSocket, useWebSocketEvent } from '../../hooks/useWebSocket';
 interface FriendInviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  roomInfo?: { sessionId: string; roomCode: string; stakeAmount: number } | null;
-  onRoomCreated?: (room: { sessionId: string; roomCode: string; stakeAmount: number } | null) => void;
+  roomInfo?: { sessionId: string; roomCode: string; stakeLamports: number } | null;
+  onRoomCreated?: (room: { sessionId: string; roomCode: string; stakeLamports: number } | null) => void;
   suppressRoomClose?: boolean;
 }
 
 const MIN_FRIEND_STAKE = 0.05;
 const MAX_FRIEND_STAKE = 10;
 const STAKE_STEP = 0.05;
+const LAMPORTS_PER_SOL = 1_000_000_000;
 const DEFAULT_STAKE = 0.05;
 
 const formatStakeAmount = (value: number) => value.toFixed(2);
@@ -101,7 +102,7 @@ export function FriendInviteDialog({
     if (open && roomInfo) {
       setRoomCode(roomInfo.roomCode);
       setSessionId(roomInfo.sessionId);
-      setStakeAmount(formatStakeAmount(roomInfo.stakeAmount));
+      setStakeAmount(formatStakeAmount(roomInfo.stakeLamports / LAMPORTS_PER_SOL));
     }
   }, [open, roomInfo]);
 
@@ -174,16 +175,16 @@ export function FriendInviteDialog({
     setStakeAmount(sanitized.display);
 
     setIsCreating(true);
-    send('friend:create_room', { stakeAmount: sanitized.numeric });
+    send('friend:create_room', { stakeLamports: Math.round(sanitized.numeric * LAMPORTS_PER_SOL) });
   };
 
-  useWebSocketEvent<{ sessionId: string; roomCode: string; stakeAmount: number }>(
+  useWebSocketEvent<{ sessionId: string; roomCode: string; stakeLamports: number }>(
     'friend:room_created',
     payload => {
       if (!open) return;
       setRoomCode(payload.roomCode);
       setSessionId(payload.sessionId);
-      setStakeAmount(formatStakeAmount(payload.stakeAmount));
+      setStakeAmount(formatStakeAmount(payload.stakeLamports / LAMPORTS_PER_SOL));
       setIsCreating(false);
       onRoomCreated?.(payload);
       toast.success('Room created! Share the code with your friend.');

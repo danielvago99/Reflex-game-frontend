@@ -43,53 +43,53 @@ export class MatchmakingService {
     logger.info('Matchmaking Service Started (Lazy Mode)');
   }
 
-  async addToQueue(userId: string, stake: number, avgReaction: number) {
-    const queueKey = `matchmaking:queue:${stake}`;
-    const timerKey = `matchmaking:timers:${stake}`;
+  async addToQueue(userId: string, stakeLamports: number, avgReaction: number) {
+    const queueKey = `matchmaking:queue:${stakeLamports}`;
+    const timerKey = `matchmaking:timers:${stakeLamports}`;
     const now = Date.now();
 
     await redisClient.zadd(queueKey, { score: avgReaction, member: userId });
     await redisClient.zadd(timerKey, { score: now, member: userId });
 
-    logger.info({ userId, stake, avgReaction }, 'Player added to matchmaking queue');
+    logger.info({ userId, stakeLamports, avgReaction }, 'Player added to matchmaking queue');
 
-    this.startQueueProcessing(stake);
+    this.startQueueProcessing(stakeLamports);
   }
 
-  async removeFromQueue(userId: string, stake: number) {
-    const queueKey = `matchmaking:queue:${stake}`;
-    const timerKey = `matchmaking:timers:${stake}`;
+  async removeFromQueue(userId: string, stakeLamports: number) {
+    const queueKey = `matchmaking:queue:${stakeLamports}`;
+    const timerKey = `matchmaking:timers:${stakeLamports}`;
 
     await redisClient.zrem(queueKey, userId);
     await redisClient.zrem(timerKey, userId);
 
-    logger.info({ userId, stake }, 'Player removed from matchmaking queue');
+    logger.info({ userId, stakeLamports }, 'Player removed from matchmaking queue');
   }
 
-  private startQueueProcessing(stake: number) {
-    if (this.intervals.has(stake)) return;
+  private startQueueProcessing(stakeLamports: number) {
+    if (this.intervals.has(stakeLamports)) return;
 
-    logger.info(`Starting matchmaking processor for stake: ${stake} SOL`);
+    logger.info(`Starting matchmaking processor for stake: ${stakeLamports} lamports`);
     const interval = setInterval(async () => {
       try {
-        const hasPlayers = await this.processQueue(stake);
+        const hasPlayers = await this.processQueue(stakeLamports);
 
         if (!hasPlayers) {
-          logger.info(`Queue empty for ${stake} SOL - Stopping processor`);
-          clearInterval(this.intervals.get(stake));
-          this.intervals.delete(stake);
+          logger.info(`Queue empty for ${stakeLamports} lamports - Stopping processor`);
+          clearInterval(this.intervals.get(stakeLamports));
+          this.intervals.delete(stakeLamports);
         }
       } catch (error) {
-        logger.error({ error, stake }, 'Matchmaking queue processing failed');
+        logger.error({ error, stakeLamports }, 'Matchmaking queue processing failed');
       }
     }, MATCH_CHECK_INTERVAL);
 
-    this.intervals.set(stake, interval);
+    this.intervals.set(stakeLamports, interval);
   }
 
-  private async processQueue(stake: number): Promise<boolean> {
-    const queueKey = `matchmaking:queue:${stake}`;
-    const timerKey = `matchmaking:timers:${stake}`;
+  private async processQueue(stakeLamports: number): Promise<boolean> {
+    const queueKey = `matchmaking:queue:${stakeLamports}`;
+    const timerKey = `matchmaking:timers:${stakeLamports}`;
 
     const now = Date.now();
     const timeoutThreshold = now - MAX_WAIT_TIME_MS;
@@ -100,8 +100,8 @@ export class MatchmakingService {
 
     if (timedOutUsers.length > 0) {
       for (const userId of timedOutUsers) {
-        await this.removeFromQueue(userId, stake);
-        matchmakingEvents.emit('bot_match', { userId, stake });
+        await this.removeFromQueue(userId, stakeLamports);
+        matchmakingEvents.emit('bot_match', { userId, stakeLamports });
         logger.info({ userId }, 'Triggered BOT match due to timeout');
       }
     }
@@ -133,13 +133,13 @@ export class MatchmakingService {
         const diff = Math.abs(p1Reaction - p2Reaction);
 
         if (diff <= REACTION_TOLERANCE_MS) {
-          await this.createHumanMatch(p1Id, p2Id, stake);
+          await this.createHumanMatch(p1Id, p2Id, stakeLamports);
 
           matchedUsers.add(p1Id);
           matchedUsers.add(p2Id);
 
-          await this.removeFromQueue(p1Id, stake);
-          await this.removeFromQueue(p2Id, stake);
+          await this.removeFromQueue(p1Id, stakeLamports);
+          await this.removeFromQueue(p2Id, stakeLamports);
           break;
         }
       }
@@ -149,13 +149,13 @@ export class MatchmakingService {
     return count > 0;
   }
 
-  private async createHumanMatch(player1Id: string, player2Id: string, stake: number) {
-    logger.info({ player1Id, player2Id, stake }, 'Human Match Found - Emitting Event');
+  private async createHumanMatch(player1Id: string, player2Id: string, stakeLamports: number) {
+    logger.info({ player1Id, player2Id, stakeLamports }, 'Human Match Found - Emitting Event');
 
     matchmakingEvents.emit('match_found', {
       player1Id,
       player2Id,
-      stake,
+      stakeLamports,
     });
   }
 }
