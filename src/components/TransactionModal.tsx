@@ -15,7 +15,7 @@ type TransactionProgressState = 'broadcasting';
 interface TransactionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
   onFailure?: (message: string) => void;
   onSign?: (reportState: (state: TransactionProgressState) => void) => Promise<string>;
@@ -28,6 +28,7 @@ interface TransactionModalProps {
   successActionLabel?: string;
   successDescription?: string;
   autoStart?: boolean;
+  walletType?: 'external' | 'in-app' | 'none';
 }
 
 export function TransactionModal({
@@ -46,6 +47,7 @@ export function TransactionModal({
   successActionLabel = 'Continue to Game',
   successDescription,
   autoStart = false,
+  walletType = 'none',
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
@@ -66,6 +68,19 @@ export function TransactionModal({
   // Reset state when modal opens
   const handleSign = async () => {
     setState('signing');
+
+    if (walletType === 'external') {
+      try {
+        await Promise.resolve(onConfirm());
+      } catch (error) {
+        const failureMessage = error instanceof Error ? error.message : 'Transaction failed';
+        setErrorMessage(failureMessage);
+        setState('error');
+        onFailure?.(failureMessage);
+      }
+      return;
+    }
+
     const loadingToastId = toast.loading('Processing transaction...', {
       description: 'Please wait for blockchain confirmation',
     });
@@ -323,20 +338,33 @@ export function TransactionModal({
           {/* Signing State */}
           {state === 'signing' && (
             <div className="p-8 text-center">
-              {/* Solana Logo Animation */}
-              <div className="relative inline-flex items-center justify-center mb-6">
-                {/* Rotating rings */}
-                <div className="absolute w-24 h-24 border-4 border-[#00FFA3]/30 border-t-[#00FFA3] rounded-full animate-spin"></div>
-                <div className="absolute w-32 h-32 border-2 border-[#06B6D4]/20 border-b-[#06B6D4] rounded-full animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
-                
-                {/* Center icon */}
-                <div className="relative w-16 h-16 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 rounded-2xl border border-[#00FFA3]/50 flex items-center justify-center animate-pulse">
-                  <Shield className="w-8 h-8 text-[#00FFA3]" />
-                </div>
-              </div>
+              {walletType === 'external' ? (
+                <>
+                  <div className="relative inline-flex items-center justify-center mb-6">
+                    <div className="w-16 h-16 border-4 border-[#00FFA3]/30 border-t-[#00FFA3] rounded-full animate-spin"></div>
+                  </div>
 
-              <h2 className="text-2xl text-white mb-2">Waiting for Signature</h2>
-              <p className="text-sm text-gray-400 mb-4">Please confirm the transaction in your wallet</p>
+                  <h2 className="text-2xl text-white mb-2">Waiting for Wallet</h2>
+                  <p className="text-sm text-gray-300 mb-4">Please approve the request in your wallet...</p>
+                </>
+              ) : (
+                <>
+                  {/* Solana Logo Animation */}
+                  <div className="relative inline-flex items-center justify-center mb-6">
+                    {/* Rotating rings */}
+                    <div className="absolute w-24 h-24 border-4 border-[#00FFA3]/30 border-t-[#00FFA3] rounded-full animate-spin"></div>
+                    <div className="absolute w-32 h-32 border-2 border-[#06B6D4]/20 border-b-[#06B6D4] rounded-full animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+
+                    {/* Center icon */}
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-[#00FFA3]/30 to-[#06B6D4]/30 rounded-2xl border border-[#00FFA3]/50 flex items-center justify-center animate-pulse">
+                      <Shield className="w-8 h-8 text-[#00FFA3]" />
+                    </div>
+                  </div>
+
+                  <h2 className="text-2xl text-white mb-2">Waiting for Signature</h2>
+                  <p className="text-sm text-gray-400 mb-4">Please confirm the transaction in your wallet</p>
+                </>
+              )}
 
               {/* Solana branding */}
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
