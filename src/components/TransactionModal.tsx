@@ -1,6 +1,8 @@
-import { X, Shield, Copy, Check, AlertCircle, ExternalLink, Zap, Vault, Sparkles } from 'lucide-react';
+import { X, Shield, Copy, Check, AlertCircle, ExternalLink, Zap, Vault, Sparkles, Info } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+const RENT_DEPOSIT_SOL = 0.0028;
 
 type TransactionState = 
   | 'review'           // Initial review screen
@@ -29,6 +31,7 @@ interface TransactionModalProps {
   successDescription?: string;
   autoStart?: boolean;
   walletType?: 'external' | 'in-app' | 'none';
+  showRentDeposit?: boolean;
 }
 
 export function TransactionModal({
@@ -48,6 +51,7 @@ export function TransactionModal({
   successDescription,
   autoStart = false,
   walletType = 'none',
+  showRentDeposit = false,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
@@ -198,6 +202,8 @@ export function TransactionModal({
     onOpenChange(false);
   };
 
+  const totalCost = stakeAmount + estimatedFee + (showRentDeposit ? RENT_DEPOSIT_SOL : 0);
+
   if (!open) return null;
 
   return (
@@ -245,6 +251,21 @@ export function TransactionModal({
                   </div>
                 </div>
 
+                {showRentDeposit && (
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-400 flex items-center gap-1">
+                        Refundable Deposit
+                        <Info
+                          className="w-3.5 h-3.5 text-gray-400"
+                          title="Solana Account Rent - Returned after match"
+                        />
+                      </span>
+                      <span className="text-white">◎ {RENT_DEPOSIT_SOL.toFixed(4)}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Network Fee */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
@@ -265,7 +286,7 @@ export function TransactionModal({
                 <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 border border-[#00FFA3]/30 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-white">Total Cost</span>
-                    <span className="text-xl text-[#00FFA3]">◎ {(stakeAmount + estimatedFee).toFixed(6)}</span>
+                    <span className="text-xl text-[#00FFA3]">◎ {totalCost.toFixed(6)}</span>
                   </div>
                 </div>
               </div>
