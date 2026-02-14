@@ -30,8 +30,7 @@ interface TransactionModalProps {
   autoStart?: boolean;
   walletType?: 'external' | 'in-app' | 'none';
   showRentDeposit?: boolean;
-  vaultRentDepositSol?: number;
-  matchAccountRentDepositSol?: number;
+  temporaryDepositSol?: number;
 }
 
 export function TransactionModal({
@@ -52,8 +51,7 @@ export function TransactionModal({
   autoStart = false,
   walletType = 'none',
   showRentDeposit = false,
-  vaultRentDepositSol = 0,
-  matchAccountRentDepositSol = 0,
+  temporaryDepositSol = 0,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
@@ -204,7 +202,7 @@ export function TransactionModal({
     onOpenChange(false);
   };
 
-  const totalRentDeposit = showRentDeposit ? vaultRentDepositSol + matchAccountRentDepositSol : 0;
+  const totalRentDeposit = showRentDeposit ? temporaryDepositSol : 0;
   const totalCost = stakeAmount + estimatedFee + totalRentDeposit;
 
   if (!open) return null;
@@ -254,32 +252,17 @@ export function TransactionModal({
                   </div>
                 </div>
 
-                {showRentDeposit && vaultRentDepositSol > 0 && (
+                {showRentDeposit && temporaryDepositSol > 0 && (
                   <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-gray-400 flex items-center gap-1">
-                        Vault Rent Deposit
+                        Temporary Deposit
                         <Info
                           className="w-3.5 h-3.5 text-gray-400"
-                          title="Temporary Solana rent deposit for escrow vault account creation."
+                          title="Combined temporary Solana rent deposit for vault and match account creation."
                         />
                       </span>
-                      <span className="text-white">◎ {vaultRentDepositSol.toFixed(8)}</span>
-                    </div>
-                  </div>
-                )}
-
-                {showRentDeposit && matchAccountRentDepositSol > 0 && (
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-400 flex items-center gap-1">
-                        Match Account Deposit
-                        <Info
-                          className="w-3.5 h-3.5 text-gray-400"
-                          title="Temporary Solana rent deposit for match state account creation."
-                        />
-                      </span>
-                      <span className="text-white">◎ {matchAccountRentDepositSol.toFixed(8)}</span>
+                      <span className="text-white">◎ {temporaryDepositSol.toFixed(8)}</span>
                     </div>
                   </div>
                 )}
