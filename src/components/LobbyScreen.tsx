@@ -32,9 +32,10 @@ interface LobbyScreenProps {
 }
 
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch }: LobbyScreenProps) {
+  const toLamports = (value: number): number => Math.max(0, Math.round(value * LAMPORTS_PER_SOL));
+  const toSol = (lamports: number): number => Number((lamports / LAMPORTS_PER_SOL).toFixed(8));
   const normalizeStakeAmount = (value: number): number => {
-    const lamports = Math.round(value * LAMPORTS_PER_SOL);
-    return Number((lamports / LAMPORTS_PER_SOL).toFixed(8));
+    return toSol(toLamports(value));
   };
 
   const { data, consumeFreeStake } = useRewardsData();
@@ -47,7 +48,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const [activeTab, setActiveTab] = useState('quickplay');
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
-  const [friendRoom, setFriendRoom] = useState<{ sessionId: string; roomCode: string; stakeAmount: number } | null>(null);
+  const [friendRoom, setFriendRoom] = useState<{ sessionId: string; roomCode: string; stakeLamports: number } | null>(null);
   const [selectedFreeStakeAmount, setSelectedFreeStakeAmount] = useState<number | null>(null);
   const [useFreeStakeMode, setUseFreeStakeMode] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -57,7 +58,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const [waitingForStakeConfirmation, setWaitingForStakeConfirmation] = useState(false);
   const [pendingMatch, setPendingMatch] = useState<{
     sessionId: string;
-    stake: number;
+    stakeLamports: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
     slot?: 'p1' | 'p2';
@@ -76,7 +77,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const botReadyDelayTimeoutRef = useRef<number | null>(null);
   const pendingMatchRef = useRef<{
     sessionId: string;
-    stake: number;
+    stakeLamports: number;
     isBot: boolean;
     matchType: 'ranked' | 'friend' | 'bot';
     slot?: 'p1' | 'p2';
@@ -131,10 +132,13 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
             ? 'bot'
             : 'ranked';
       const isBotOpponent = Boolean(payload.isBot) || matchType === 'bot';
-      const resolvedStake = normalizeStakeAmount(payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake));
+      const payloadStakeLamports =
+        typeof payload.stakeLamports === 'number' && Number.isFinite(payload.stakeLamports)
+          ? payload.stakeLamports
+          : toLamports(payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake));
       const matchDetails = {
         sessionId: payload.sessionId as string,
-        stake: resolvedStake,
+        stakeLamports: payloadStakeLamports,
         isBot: isBotOpponent,
         matchType,
         slot: payload.slot === 'p2' ? 'p2' : 'p1',
@@ -204,7 +208,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           if (onStartMatch) {
             onStartMatch(
               matchToStart.matchType === 'ranked',
-              matchToStart.stake,
+              toSol(matchToStart.stakeLamports),
               matchToStart.matchType,
               matchToStart.opponentName
             );
@@ -320,7 +324,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
     setMatchStatus('searching');
     send('match:find', {
-      stake: normalizeStakeAmount(parseFloat(selectedStake)),
+      stakeLamports: toLamports(parseFloat(selectedStake)),
       useFreeStake: useFreeStakeMode && Boolean(selectedFreeStakeAmount),
     });
   };
@@ -328,7 +332,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
   const confirmRankedStakeOnChain = async (matchDetails: {
     sessionId: string;
-    stake: number;
+    stakeLamports: number;
     slot?: 'p1' | 'p2';
     gameMatch?: string;
   }) => {
@@ -336,7 +340,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       throw new Error('Connect a Solana wallet before entering ranked matches.');
     }
 
-    const stakeLamports = Math.round(matchDetails.stake * LAMPORTS_PER_SOL);
+    const stakeLamports = matchDetails.stakeLamports;
     if (stakeLamports <= 0) {
       throw new Error('Invalid stake amount.');
     }
@@ -418,7 +422,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       send('match:stake_confirmed', {
         sessionId: pendingMatch.sessionId,
-        stake: normalizeStakeAmount(pendingMatch.stake),
+        stakeLamports: pendingMatch.stakeLamports,
         matchType: pendingMatch.matchType,
         ...onChainPayload,
       });
@@ -490,7 +494,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   };
 
   const handleCancelMatchmaking = () => {
-    send('match:cancel', { stake: normalizeStakeAmount(parseFloat(selectedStake)) });
+    send('match:cancel', { stakeLamports: toLamports(parseFloat(selectedStake)) });
     setMatchStatus('idle');
   };
 
@@ -1034,12 +1038,12 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
                   <p className="text-xs uppercase tracking-wider text-gray-400">Opponent</p>
                   <p className="truncate text-lg font-semibold text-white">{pendingMatch.opponentName ?? 'Unknown Opponent'}</p>
                   <p className="mt-4 text-xs uppercase tracking-wider text-gray-400">Stake</p>
-                  <p className="text-lg font-semibold text-[#00FFA3]">◎ {pendingMatch.stake.toFixed(3)} SOL</p>
+                  <p className="text-lg font-semibold text-[#00FFA3]">◎ {toSol(pendingMatch.stakeLamports).toFixed(3)} SOL</p>
                   <div className="mt-4 flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2">
                     <div>
                       <p className="text-[10px] uppercase tracking-wider text-gray-400">Winner payout</p>
                       <p className="text-base font-semibold text-white">
-                        ◎ {(pendingMatch.stake * 2 * 0.85).toFixed(3)} SOL
+                        ◎ {(toSol(pendingMatch.stakeLamports) * 2 * 0.85).toFixed(3)} SOL
                       </p>
                     </div>
                   </div>
@@ -1087,7 +1091,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
                 <div>
                   <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
                   <p className="text-sm text-gray-400">
-                    {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {pendingMatch.stake.toFixed(3)} SOL.
+                    {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {toSol(pendingMatch.stakeLamports).toFixed(3)} SOL.
                   </p>
                 </div>
               </div>
@@ -1118,7 +1122,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         onCancel={handleTransactionCancelled}
         onFailure={handleTransactionFailure}
         onSign={!useFreeStakeMode ? handleTransactionSign : undefined}
-        stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
+        stakeAmount={pendingMatch ? toSol(pendingMatch.stakeLamports) : parseFloat(selectedStake)}
         estimatedFee={0.000005}
         recipientAddress={pendingMatch?.gameMatch ?? ENV.SOLANA_PROGRAM_ID}
         network={ENV.SOLANA_NETWORK as 'devnet' | 'mainnet-beta' | 'testnet'}

@@ -62,7 +62,7 @@ interface RankedBotProfile {
 interface BotJoinMatchInput {
   botKeypair: Keypair | null;
   gameMatch: string;
-  stakeAmountSol: number;
+  stakeLamports: number;
   settleDeadlineSeconds: number;
 }
 
@@ -296,7 +296,7 @@ class BotWalletService {
   async joinRankedMatch({
     botKeypair,
     gameMatch,
-    stakeAmountSol,
+    stakeLamports,
     settleDeadlineSeconds,
   }: BotJoinMatchInput): Promise<string> {
     if (this.simulationMode) {
@@ -308,7 +308,6 @@ class BotWalletService {
       throw new Error('BotWalletService is missing ranked bot keypair.');
     }
 
-    const stakeLamports = Math.max(0, Math.round(stakeAmountSol * LAMPORTS_PER_SOL));
     const requiredBalance = stakeLamports + BOT_GAS_BUFFER_LAMPORTS;
     const currentBalance = await this.connection.getBalance(botKeypair.publicKey);
 

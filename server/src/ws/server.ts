@@ -41,7 +41,7 @@ interface SessionState extends RoundTimers {
     deadlineTs: number;
     timeoutSeconds: number;
   };
-  stakeAmount?: number;
+  stakeLamports?: number;
   onChainGameMatch?: string;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
@@ -86,7 +86,7 @@ interface RedisSessionState {
     deadlineTs: number;
     timeoutSeconds: number;
   };
-  stakeAmount?: number;
+  stakeLamports?: number;
   onChainGameMatch?: string;
   matchType?: 'ranked' | 'friend' | 'bot';
   isBotOpponent?: boolean;
@@ -152,7 +152,7 @@ const RANKED_BOT_REACTION_RANGE = 250; // results in 380-630ms reaction time
 const GAME_STATE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
-const MAX_FRIEND_STAKE = 10;
+const MAX_FRIEND_STAKE_LAMPORTS = 10 * 1_000_000_000;
 const DISCONNECT_TIMEOUT_MS = 30_000;
 const READY_TIMEOUT_MS = 15_000;
 
@@ -164,7 +164,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   scores: state.scores,
   disconnectCounts: state.disconnectCounts,
   disconnectPause: state.disconnectPause,
-  stakeAmount: state.stakeAmount,
+  stakeLamports: state.stakeLamports,
   onChainGameMatch: state.onChainGameMatch,
   matchType: state.matchType,
   isBotOpponent: state.isBotOpponent,
@@ -527,10 +527,10 @@ const generateRoomCode = (): string => {
   return code;
 };
 
-const getValidStakeAmount = (stakeAmount: unknown) => {
-  const numeric = typeof stakeAmount === 'number' ? stakeAmount : Number(stakeAmount);
-  if (!Number.isFinite(numeric)) return null;
-  if (numeric <= 0 || numeric > MAX_FRIEND_STAKE) return null;
+const getValidStakeLamports = (stakeLamports: unknown) => {
+  const numeric = typeof stakeLamports === 'number' ? stakeLamports : Number(stakeLamports);
+  if (!Number.isInteger(numeric)) return null;
+  if (numeric <= 0 || numeric > MAX_FRIEND_STAKE_LAMPORTS) return null;
   return numeric;
 };
 
@@ -688,7 +688,7 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.disconnectPause = undefined;
 
   if (state.matchType !== 'friend') {
-    state.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : state.stakeAmount;
+    state.stakeLamports = typeof payload?.stakeLamports === 'number' ? payload.stakeLamports : state.stakeLamports;
   }
   const validTypes = ['ranked', 'friend', 'bot'];
   const requestedMatchType =
@@ -935,18 +935,18 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   try {
     const winnerSlot = sharedState.scores.p1 >= sharedState.scores.p2 ? 'p1' : 'p2';
     const loserSlot = getOpponentSlot(winnerSlot);
-    const stakeAmount =
-      typeof sharedState.stakeAmount === 'number' && Number.isFinite(sharedState.stakeAmount)
-        ? sharedState.stakeAmount
+    const stakeLamports =
+      typeof sharedState.stakeLamports === 'number' && Number.isFinite(sharedState.stakeLamports)
+        ? sharedState.stakeLamports
         : 0;
     const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
-    const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
+    const totalPot = stakeLamports > 0 ? stakeLamports * 2 : 0;
     const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
-    const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
+    const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeLamports : 0;
     const shouldTrackJackpot =
-      persistedMatchType === 'ranked' && Number.isFinite(stakeAmount) && Math.abs(stakeAmount - 0.2) < 1e-9;
+      persistedMatchType === 'ranked' && Number.isFinite(stakeLamports) && stakeLamports === 200_000_000;
 
     const playerTimes = sharedState.history
       .map((round) => round.p1Time)
@@ -1037,9 +1037,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               winRate: newWinRate,
               bestReaction: newBestReaction ?? 9999,
               avgReaction: newAverageReaction ?? 0,
-              totalVolumeSolPlayed: stakeAmount,
+              totalVolumeSolPlayed: stakeLamports,
               totalSolWon: outcome === 'win' ? payoutAmount : 0,
-              totalSolLost: outcome === 'loss' ? stakeAmount : 0,
+              totalSolLost: outcome === 'loss' ? stakeLamports : 0,
             },
           });
         } else {
@@ -1052,9 +1052,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               winRate: newWinRate,
               bestReaction: newBestReaction ?? undefined,
               avgReaction: newAverageReaction ?? undefined,
-              totalVolumeSolPlayed: stakeAmount ? { increment: stakeAmount } : undefined,
+              totalVolumeSolPlayed: stakeLamports ? { increment: stakeLamports } : undefined,
               totalSolWon: outcome === 'win' && payoutAmount ? { increment: payoutAmount } : undefined,
-              totalSolLost: outcome === 'loss' && stakeAmount ? { increment: stakeAmount } : undefined,
+              totalSolLost: outcome === 'loss' && stakeLamports ? { increment: stakeLamports } : undefined,
             },
           });
         }
@@ -1070,8 +1070,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           loserId,
           avgWinnerReaction,
           avgLoserReaction,
-          stakeWinner: stakeAmount,
-          stakeLoser: stakeAmount,
+          stakeWinner: stakeLamports,
+          stakeLoser: stakeLamports,
           payout: payoutAmount,
           winnerScore,
           loserScore,
@@ -1356,7 +1356,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
     let player1WalletAddress: string | undefined;
     let player2WalletAddress: string | undefined;
-    const shouldSettle = Boolean(sharedState.onChainGameMatch && stakeAmount > 0);
+    const shouldSettle = Boolean(sharedState.onChainGameMatch && stakeLamports > 0);
 
     if (shouldSettle) {
       if (player1Id && !player1Id.startsWith('guest')) {
@@ -1616,7 +1616,7 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
   }
 
   if (sessionState.matchType !== 'friend') {
-    sessionState.stakeAmount = typeof payload?.stake === 'number' ? payload.stake : sessionState.stakeAmount;
+    sessionState.stakeLamports = typeof payload?.stakeLamports === 'number' ? payload.stakeLamports : sessionState.stakeLamports;
   }
   if (sessionState.matchType) {
     if (payload?.matchType) {
@@ -1850,10 +1850,10 @@ export function createWsServer(server: Server) {
   };
 
   matchmakingEvents.on('match_found', (data) => {
-    const { player1Id, player2Id, stake } = data as {
+    const { player1Id, player2Id, stakeLamports } = data as {
       player1Id: string;
       player2Id: string;
-      stake: number;
+      stakeLamports: number;
     };
     logger.info(`SERVER: Match found ${player1Id} vs ${player2Id}`);
     const socket1 = activeUsers.get(player1Id);
@@ -1876,7 +1876,7 @@ export function createWsServer(server: Server) {
       disconnectCounts: { p1: 0, p2: 0 },
       matchType: 'ranked',
       isBotOpponent: false,
-      stakeAmount: stake,
+      stakeLamports,
       roundResolved: false,
       reactions: {},
       history: [],
@@ -1902,7 +1902,7 @@ export function createWsServer(server: Server) {
       sessionId,
       opponentId: player2Id,
       opponentName: name2,
-      stake,
+      stakeLamports,
       isBot: false,
       matchType: 'ranked',
       slot: 'p1',
@@ -1914,7 +1914,7 @@ export function createWsServer(server: Server) {
       sessionId,
       opponentId: player1Id,
       opponentName: name1,
-      stake,
+      stakeLamports,
       isBot: false,
       matchType: 'ranked',
       slot: 'p2',
@@ -1939,12 +1939,12 @@ export function createWsServer(server: Server) {
   });
 
   matchmakingEvents.on('bot_match', async (data) => {
-    const { userId, stake } = data as { userId: string; stake: number };
+    const { userId, stakeLamports } = data as { userId: string; stakeLamports: number };
     const socket = activeUsers.get(userId);
     const sessionId = crypto.randomUUID();
 
     try {
-      const rankedBot = await botWalletService.getRankedBot(stake);
+      const rankedBot = await botWalletService.getRankedBot(stakeLamports);
       const opponentId = rankedBot.userId;
       const opponentName = rankedBot.username;
 
@@ -1955,7 +1955,7 @@ export function createWsServer(server: Server) {
         disconnectCounts: { p1: 0, p2: 0 },
         matchType: 'ranked',
         isBotOpponent: true,
-        stakeAmount: stake,
+        stakeLamports,
         roundResolved: false,
         reactions: {},
         history: [],
@@ -1990,7 +1990,7 @@ export function createWsServer(server: Server) {
           sessionId,
           opponentId,
           opponentName,
-          stake,
+          stakeLamports,
           isBot: true,
           matchType: 'ranked',
         });
@@ -2090,7 +2090,7 @@ export function createWsServer(server: Server) {
             sessionId: activeSessionId,
             opponentId,
             opponentName,
-            stake: existingState.stakeAmount,
+            stakeLamports: existingState.stakeLamports,
             isBot: hasBotOpponent,
             matchType: existingState.matchType ?? (hasBotOpponent ? 'bot' : 'ranked'),
             roomCode: existingState.roomCode,
@@ -2117,7 +2117,7 @@ export function createWsServer(server: Server) {
         round: 1,
         scores: { p1: 0, p2: 0 },
         disconnectCounts: { p1: 0, p2: 0 },
-        stakeAmount: 0,
+        stakeLamports: 0,
         matchType: 'friend',
         isBotOpponent: false,
         hasStarted: false,
@@ -2156,10 +2156,10 @@ export function createWsServer(server: Server) {
               break;
             }
 
-            const stakeAmount = getValidStakeAmount(message.payload?.stakeAmount);
-            if (stakeAmount === null) {
+            const stakeLamports = getValidStakeLamports(message.payload?.stakeLamports);
+            if (stakeLamports === null) {
               sendMessage(socket, 'friend:error', {
-                message: `Stake amount must be between 0 and ${MAX_FRIEND_STAKE} SOL.`,
+                message: `Stake must be between 1 lamport and ${MAX_FRIEND_STAKE_LAMPORTS} lamports.`,
               });
               break;
             }
@@ -2204,7 +2204,7 @@ export function createWsServer(server: Server) {
               disconnectCounts: { p1: 0, p2: 0 },
               matchType: 'friend',
               isBotOpponent: false,
-              stakeAmount,
+              stakeLamports,
               roomCode,
               hasStarted: false,
               roundResolved: false,
@@ -2229,7 +2229,7 @@ export function createWsServer(server: Server) {
             sendMessage(socket, 'friend:room_created', {
               sessionId,
               roomCode,
-              stakeAmount,
+              stakeLamports,
             });
             break;
           }
@@ -2296,8 +2296,8 @@ export function createWsServer(server: Server) {
               sessionId,
               opponentId: p2Id,
               opponentName: p2Name,
-              stake: sessionState.stakeAmount ?? 0,
-              stakeAmount: sessionState.stakeAmount ?? 0,
+              stake: sessionState.stakeLamports ?? 0,
+              stakeLamports: sessionState.stakeLamports ?? 0,
               isBot: false,
               matchType: 'friend',
               roomCode: sessionState.roomCode ?? normalizedCode,
@@ -2309,8 +2309,8 @@ export function createWsServer(server: Server) {
                 sessionId,
                 opponentId: p1Id,
                 opponentName: p1Name,
-                stake: sessionState.stakeAmount ?? 0,
-                stakeAmount: sessionState.stakeAmount ?? 0,
+                stake: sessionState.stakeLamports ?? 0,
+                stakeLamports: sessionState.stakeLamports ?? 0,
                 isBot: false,
                 matchType: 'friend',
                 roomCode: sessionState.roomCode ?? normalizedCode,
@@ -2424,13 +2424,13 @@ export function createWsServer(server: Server) {
                     ? assignments?.p2
                     : assignments?.p1;
                 const isBot = hasBotOpponent;
-                const stake = existingState.stakeAmount || 0;
+                const stake = existingState.stakeLamports || 0;
                 const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
 
                 sendMessage(socket, 'match_found', {
                   sessionId: activeSessionId,
                   opponentId,
-                  stake,
+                  stakeLamports: stake,
                   isBot,
                   matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
                   opponentName,
@@ -2456,7 +2456,7 @@ export function createWsServer(server: Server) {
               disconnectCounts: { p1: 0, p2: 0 },
               matchType: 'bot',
               isBotOpponent: true,
-              stakeAmount: 0,
+              stakeLamports: 0,
               roundResolved: false,
               reactions: {},
               history: [],
@@ -2486,7 +2486,7 @@ export function createWsServer(server: Server) {
               opponentId: 'bot_opponent',
               opponentName: sessionState.botDisplayName ?? 'Training Bot',
               stake: 0,
-              stakeAmount: 0,
+              stakeLamports: 0,
               isBot: true,
               matchType: 'bot',
             });
@@ -2524,7 +2524,7 @@ export function createWsServer(server: Server) {
                       : assignments?.p1;
                   // Need to define stake/isBot from state
                   const isBot = hasBotOpponent;
-                  const stake = existingState.stakeAmount || 0;
+                  const stake = existingState.stakeLamports || 0;
                   const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
 
                   socket.send(
@@ -2533,7 +2533,7 @@ export function createWsServer(server: Server) {
                       payload: {
                         sessionId: activeSessionId,
                         opponentId,
-                        stake,
+                        stakeLamports: stake,
                         isBot,
                         matchType: existingState?.matchType ?? (isBot ? 'bot' : 'ranked'),
                         opponentName,
@@ -2560,7 +2560,7 @@ export function createWsServer(server: Server) {
                   const reaction = stats?.avgReaction ? Number(stats.avgReaction) : 600;
 
                   // Ensure stake is a number
-                  const requestedStake = Number(message.payload?.stake) || 0;
+                  const requestedStakeLamports = Number(message.payload?.stakeLamports) || 0;
                   const useFreeStake = Boolean(message.payload?.useFreeStake);
 
                   if (useFreeStake) {
@@ -2573,17 +2573,17 @@ export function createWsServer(server: Server) {
                     const timer = setTimeout(() => {
                       freeStakeBotTimers.delete(userId!);
                       if (!userActiveSessions.has(userId!)) {
-                        matchmakingEvents.emit('bot_match', { userId, stake: requestedStake });
+                        matchmakingEvents.emit('bot_match', { userId, stakeLamports: requestedStakeLamports });
                       }
                     }, waitMs);
 
                     freeStakeBotTimers.set(userId!, timer);
-                    sendMessage(socket, 'match:searching', { stake: requestedStake });
+                    sendMessage(socket, 'match:searching', { stakeLamports: requestedStakeLamports });
                     return;
                   }
 
-                  await matchmakingService.addToQueue(userId!, requestedStake, reaction);
-                  sendMessage(socket, 'match:searching', { stake: requestedStake });
+                  await matchmakingService.addToQueue(userId!, requestedStakeLamports, reaction);
+                  sendMessage(socket, 'match:searching', { stakeLamports: requestedStakeLamports });
                 } catch (e) {
                   logger.error({ error: e }, 'Matchmaking queue error');
                 }
@@ -2592,7 +2592,7 @@ export function createWsServer(server: Server) {
             break;
           case 'match:cancel': {
             const { userId } = sessionRef;
-            const stakeValue = Number(message.payload?.stake);
+            const stakeValue = Number(message.payload?.stakeLamports);
             if (userId && Number.isFinite(stakeValue)) {
               await matchmakingService.removeFromQueue(userId, stakeValue);
             }
@@ -2678,14 +2678,14 @@ export function createWsServer(server: Server) {
                   : 'ranked';
             const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
             const payloadStake =
-              typeof message.payload?.stake === 'number' && Number.isFinite(message.payload.stake)
-                ? message.payload.stake
+              typeof message.payload?.stakeLamports === 'number' && Number.isFinite(message.payload.stakeLamports)
+                ? message.payload.stakeLamports
                 : undefined;
             const sessionStake =
-              typeof sessionState?.stakeAmount === 'number' && Number.isFinite(sessionState.stakeAmount)
-                ? sessionState.stakeAmount
+              typeof sessionState?.stakeLamports === 'number' && Number.isFinite(sessionState.stakeLamports)
+                ? sessionState.stakeLamports
                 : undefined;
-            const stakeAmount =
+            const stakeLamports =
               resolvedMatchType === 'friend'
                 ? sessionStake ?? payloadStake ?? 0
                 : payloadStake ?? sessionStake ?? 0;
@@ -2704,7 +2704,7 @@ export function createWsServer(server: Server) {
               round: 1,
               scores: { p1: 0, p2: 0 },
               disconnectCounts: { p1: 0, p2: 0 },
-              stakeAmount: 0,
+              stakeLamports: 0,
               matchType: 'friend',
               isBotOpponent: false,
               p1Staked: false,
@@ -2720,7 +2720,7 @@ export function createWsServer(server: Server) {
 
             resolvedSessionState.sessionId = sessionId;
             resolvedSessionState.matchType = matchType;
-            resolvedSessionState.stakeAmount = stakeAmount;
+            resolvedSessionState.stakeLamports = stakeLamports;
             const hasBotOpponent = matchType === 'bot' || resolvedSessionState.isBotOpponent === true;
             resolvedSessionState.isBotOpponent = hasBotOpponent;
             sessionStates.set(sessionId, resolvedSessionState);
@@ -2816,7 +2816,7 @@ export function createWsServer(server: Server) {
                 const botSignature = await botWalletService.joinRankedMatch({
                   botKeypair,
                   gameMatch: resolvedSessionState.onChainGameMatch,
-                  stakeAmountSol: stakeAmount,
+                  stakeLamports,
                   settleDeadlineSeconds: 120,
                 });
                 resolvedSessionState.p2Staked = true;
@@ -3037,9 +3037,9 @@ export function createWsServer(server: Server) {
         sessions.delete(socket);
         if (sessionState) {
           const isPaidMatch =
-            typeof sessionState.stakeAmount === 'number' &&
-            Number.isFinite(sessionState.stakeAmount) &&
-            sessionState.stakeAmount > 0;
+            typeof sessionState.stakeLamports === 'number' &&
+            Number.isFinite(sessionState.stakeLamports) &&
+            sessionState.stakeLamports > 0;
           if (isPaidMatch) {
             void finalizeGame(sessionState, true);
           } else {
