@@ -19,7 +19,7 @@ interface WithdrawDialogProps {
 }
 
 export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialogProps) {
-  const { publicKey, sendTransaction } = useActiveWallet();
+  const { publicKey, sendTransaction, walletType } = useActiveWallet();
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [network] = useState<'devnet' | 'mainnet'>(
@@ -402,6 +402,7 @@ export function WithdrawDialog({ open, onClose, currentBalance }: WithdrawDialog
         network={network === 'mainnet' ? 'mainnet-beta' : 'devnet'}
         successActionLabel="Close"
         successDescription="Your withdrawal has been confirmed."
+        walletType={walletType}
       />
     </>
   );

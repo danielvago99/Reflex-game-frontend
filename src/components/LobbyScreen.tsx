@@ -15,6 +15,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
+import { useActiveWallet } from '../hooks/useActiveWallet';
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -29,11 +30,12 @@ interface LobbyScreenProps {
   walletProvider?: string; // External wallet provider name (Phantom, Solflare, etc.)
 }
 
-export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch, walletProvider }: LobbyScreenProps) {
+export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { publicKey } = useAdapterWallet();
   const { createMatch, joinMatch } = useSolanaProgram();
+  const { walletType } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -155,11 +157,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
             return;
           }
 
-          if (walletProvider) {
-            void handleExternalWalletTransaction(matchDetails);
-          } else {
-            setShowTransactionModal(true);
-          }
+          setShowTransactionModal(true);
         }, 1500);
       }
     });
@@ -174,8 +172,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         const updated = { ...current, gameMatch: payload.gameMatch };
         pendingMatchRef.current = updated;
 
-        if (walletProvider && updated.matchType === 'ranked' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
-          void handleExternalWalletTransaction(updated);
+        if (updated.matchType === 'ranked' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
+          setShowTransactionModal(true);
         }
 
         return updated;
@@ -263,7 +261,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         botReadyDelayTimeoutRef.current = null;
       }
     };
-  }, [onNavigate, onStartMatch, selectedStake, walletProvider]);
+  }, [onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
 
   useEffect(() => {
     if (!waitingForStakeConfirmation || !pendingMatchRef.current) {
@@ -380,99 +378,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     }
   };
 
-  // Handle transaction signing with external wallet providers
-  const handleExternalWalletTransaction = async (matchDetails?: {
-    sessionId: string;
-    stake: number;
-    isBot: boolean;
-    matchType: 'ranked' | 'friend' | 'bot';
-    opponentName?: string;
-  }) => {
-    try {
-      // Get the wallet provider from window
-      let provider: any;
-      switch (walletProvider) {
-        case 'Phantom':
-          provider = (window as any).phantom?.solana;
-          break;
-        case 'Solflare':
-          provider = (window as any).solflare;
-          break;
-        case 'Backpack':
-          provider = (window as any).backpack;
-          break;
-        case 'Glow':
-          provider = (window as any).glow;
-          break;
-        case 'Slope':
-          provider = (window as any).Slope;
-          break;
-        case 'Coin98':
-          provider = (window as any).coin98?.sol;
-          break;
-        default:
-          throw new Error('Unknown wallet provider');
-      }
 
-      if (!provider) {
-        throw new Error('Wallet provider not found');
-      }
-
-      if (!matchDetails) {
-        throw new Error('Match details are missing');
-      }
-
-      // Skip transaction for free stakes (DAO treasury handles it)
-      if (matchDetails.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
-        try {
-          await consumeFreeStake(selectedFreeStakeAmount);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unable to use free stake.';
-          toast.error('Free stake unavailable', { description: message });
-          return;
-        }
-
-        send('match:stake_confirmed', {
-          sessionId: matchDetails.sessionId,
-          stake: matchDetails.stake,
-          matchType: matchDetails.matchType,
-        });
-        return;
-      }
-
-      const stakeConfirmation = await confirmRankedStakeOnChain(matchDetails);
-
-      send('match:stake_confirmed', {
-        sessionId: matchDetails.sessionId,
-        stake: matchDetails.stake,
-        matchType: matchDetails.matchType,
-        signature: stakeConfirmation.signature,
-        gameMatch: stakeConfirmation.gameMatch,
-        playerWallet: stakeConfirmation.playerWallet,
-      });
-      if (matchDetails.matchType !== 'bot') {
-        setWaitingForStakeConfirmation(true);
-      }
-    } catch (error: any) {
-      console.error('External wallet transaction error:', error);
-      const errorMessage = typeof error?.message === 'string' ? error.message : '';
-      if (errorMessage.includes('Waiting for host')) {
-        toast.info(errorMessage);
-        return;
-      }
-
-      const reason = error?.code === 4001 ? 'transaction rejected' : 'transaction failed';
-      if (pendingMatchRef.current) {
-        send('match:stake_failed', {
-          sessionId: pendingMatchRef.current.sessionId,
-          reason,
-        });
-      }
-      toast.error('Transaction failed', {
-        description: 'Match cancelled due to transaction failure.',
-      });
-    }
-  };
 
   const handleTransactionConfirm = async () => {
     try {
@@ -523,6 +429,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           reason: errorMessage,
         });
       }
+      setShowTransactionModal(false);
     }
   };
 
@@ -548,10 +455,6 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const handleFriendContinue = () => {
     setFriendIntroOpen(false);
     if (!pendingMatchRef.current) return;
-    if (walletProvider) {
-      void handleExternalWalletTransaction(pendingMatchRef.current);
-      return;
-    }
     setShowTransactionModal(true);
   };
 
@@ -1185,6 +1088,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         onFailure={handleTransactionFailure}
         stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
         isFreeStake={useFreeStakeMode}
+        walletType={walletType}
       />
     </div>
   );
