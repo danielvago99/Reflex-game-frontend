@@ -77,7 +77,7 @@ export const ENV = {
 
   // Feature Flags
   // Default to real data + enabled websockets unless explicitly overridden
-  USE_MOCK_DATA: isFlagEnabled(import.meta.env.VITE_USE_MOCK_DATA, false),
+  USE_MOCK_DATA: false,
   ENABLE_WEBSOCKET: isFlagEnabled(import.meta.env.VITE_ENABLE_WEBSOCKET, true),
   ENABLE_BLOCKCHAIN: isFlagEnabled(import.meta.env.VITE_ENABLE_BLOCKCHAIN, true),
 } as const;

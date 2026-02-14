@@ -1,7 +1,6 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
@@ -17,6 +16,7 @@ import { wsService } from '../utils/websocket';
 import { toast } from 'sonner';
 import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
 import { useActiveWallet } from '../hooks/useActiveWallet';
+import { ENV } from '../config/env';
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -34,10 +34,9 @@ interface LobbyScreenProps {
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch }: LobbyScreenProps) {
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
-  const { publicKey } = useAdapterWallet();
   const { connection } = useConnection();
   const { createMatch, joinMatch } = useSolanaProgram();
-  const { walletType } = useActiveWallet();
+  const { walletType, publicKey } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
   const [activeTab, setActiveTab] = useState('quickplay');
@@ -1115,6 +1114,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         onFailure={handleTransactionFailure}
         onSign={!useFreeStakeMode ? handleTransactionSign : undefined}
         stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
+        estimatedFee={0.000005}
+        recipientAddress={pendingMatch?.gameMatch ?? ENV.SOLANA_PROGRAM_ID}
+        network={ENV.SOLANA_NETWORK as 'devnet' | 'mainnet-beta' | 'testnet'}
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
       />
