@@ -18,6 +18,9 @@ import { useSolanaProgram } from '../features/wallet/context/SolanaProvider';
 import { useActiveWallet } from '../hooks/useActiveWallet';
 import { ENV } from '../config/env';
 
+
+const MATCH_ACCOUNT_SIZE_BYTES = 8 + 32 + 32 + 8 + 1 + 8 + 8 + 8 + 1;
+
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
   preselectStake?: string;
@@ -56,6 +59,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const [opponentName, setOpponentName] = useState('');
   const [friendIntroOpen, setFriendIntroOpen] = useState(false);
   const [waitingForStakeConfirmation, setWaitingForStakeConfirmation] = useState(false);
+  const [vaultRentDepositSol, setVaultRentDepositSol] = useState(0);
+  const [matchAccountRentDepositSol, setMatchAccountRentDepositSol] = useState(0);
   const [pendingMatch, setPendingMatch] = useState<{
     sessionId: string;
     stakeLamports: number;
@@ -92,6 +97,33 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
   const freeStakes = getFreeStakeOptions(data);
   const freeStakeTotal = getFreeStakeTotal(freeStakes);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRentDeposits = async () => {
+      try {
+        const [vaultLamports, matchLamports] = await Promise.all([
+          connection.getMinimumBalanceForRentExemption(0),
+          connection.getMinimumBalanceForRentExemption(MATCH_ACCOUNT_SIZE_BYTES),
+        ]);
+
+        if (!active) return;
+        setVaultRentDepositSol(toSol(vaultLamports));
+        setMatchAccountRentDepositSol(toSol(matchLamports));
+      } catch {
+        if (!active) return;
+        setVaultRentDepositSol(0);
+        setMatchAccountRentDepositSol(0);
+      }
+    };
+
+    loadRentDeposits();
+
+    return () => {
+      active = false;
+    };
+  }, [connection]);
 
   useEffect(() => {
     if (selectedMode !== 'ranked') {
@@ -1129,6 +1161,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
         showRentDeposit={pendingMatch?.matchType === 'ranked' && pendingMatch?.slot !== 'p2'}
+        vaultRentDepositSol={vaultRentDepositSol}
+        matchAccountRentDepositSol={matchAccountRentDepositSol}
       />
     </div>
   );

@@ -2,8 +2,6 @@ import { X, Shield, Copy, Check, AlertCircle, ExternalLink, Zap, Vault, Sparkles
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-const RENT_DEPOSIT_SOL = 0.0028;
-
 type TransactionState = 
   | 'review'           // Initial review screen
   | 'signing'          // Waiting for signature
@@ -32,6 +30,8 @@ interface TransactionModalProps {
   autoStart?: boolean;
   walletType?: 'external' | 'in-app' | 'none';
   showRentDeposit?: boolean;
+  vaultRentDepositSol?: number;
+  matchAccountRentDepositSol?: number;
 }
 
 export function TransactionModal({
@@ -52,6 +52,8 @@ export function TransactionModal({
   autoStart = false,
   walletType = 'none',
   showRentDeposit = false,
+  vaultRentDepositSol = 0,
+  matchAccountRentDepositSol = 0,
 }: TransactionModalProps) {
   const [state, setState] = useState<TransactionState>('review');
   const [txId, setTxId] = useState('');
@@ -202,7 +204,8 @@ export function TransactionModal({
     onOpenChange(false);
   };
 
-  const totalCost = stakeAmount + estimatedFee + (showRentDeposit ? RENT_DEPOSIT_SOL : 0);
+  const totalRentDeposit = showRentDeposit ? vaultRentDepositSol + matchAccountRentDepositSol : 0;
+  const totalCost = stakeAmount + estimatedFee + totalRentDeposit;
 
   if (!open) return null;
 
@@ -251,17 +254,32 @@ export function TransactionModal({
                   </div>
                 </div>
 
-                {showRentDeposit && (
+                {showRentDeposit && vaultRentDepositSol > 0 && (
                   <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-gray-400 flex items-center gap-1">
-                        Refundable Deposit
+                        Vault Rent Deposit
                         <Info
                           className="w-3.5 h-3.5 text-gray-400"
-                          title="Solana Account Rent - Returned after match"
+                          title="Temporary Solana rent deposit for escrow vault account creation."
                         />
                       </span>
-                      <span className="text-white">◎ {RENT_DEPOSIT_SOL.toFixed(4)}</span>
+                      <span className="text-white">◎ {vaultRentDepositSol.toFixed(8)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {showRentDeposit && matchAccountRentDepositSol > 0 && (
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-400 flex items-center gap-1">
+                        Match Account Deposit
+                        <Info
+                          className="w-3.5 h-3.5 text-gray-400"
+                          title="Temporary Solana rent deposit for match state account creation."
+                        />
+                      </span>
+                      <span className="text-white">◎ {matchAccountRentDepositSol.toFixed(8)}</span>
                     </div>
                   </div>
                 )}
@@ -288,6 +306,12 @@ export function TransactionModal({
                     <span className="text-white">Total Cost</span>
                     <span className="text-xl text-[#00FFA3]">◎ {totalCost.toFixed(8)}</span>
                   </div>
+                  {(totalRentDeposit > 0 || estimatedFee > 0) && (
+                    <p className="mt-2 text-xs text-gray-300">
+                      Wallet debit includes stake + network fee
+                      {totalRentDeposit > 0 ? ' + temporary rent deposits for account creation' : ''}.
+                    </p>
+                  )}
                 </div>
               </div>
 
