@@ -247,7 +247,7 @@ export function TransactionModal({
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-400">{getAmountLabel()}</span>
-                    <span className="text-white">◎ {stakeAmount.toFixed(3)}</span>
+                    <span className="text-white">◎ {stakeAmount.toFixed(8)}</span>
                   </div>
                 </div>
 
@@ -270,7 +270,7 @@ export function TransactionModal({
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-400">Estimated Network Fee</span>
-                    <span className="text-white">◎ {estimatedFee.toFixed(6)}</span>
+                    <span className="text-white">◎ {estimatedFee.toFixed(8)}</span>
                   </div>
                 </div>
 
@@ -286,7 +286,7 @@ export function TransactionModal({
                 <div className="bg-gradient-to-r from-[#00FFA3]/10 to-[#06B6D4]/10 border border-[#00FFA3]/30 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-white">Total Cost</span>
-                    <span className="text-xl text-[#00FFA3]">◎ {totalCost.toFixed(6)}</span>
+                    <span className="text-xl text-[#00FFA3]">◎ {totalCost.toFixed(8)}</span>
                   </div>
                 </div>
               </div>
@@ -406,7 +406,7 @@ export function TransactionModal({
                 <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-400">{getSuccessAmountLabel()}</span>
-                    <span className="text-[#00FFA3]">◎ {stakeAmount.toFixed(3)}</span>
+                    <span className="text-[#00FFA3]">◎ {stakeAmount.toFixed(8)}</span>
                   </div>
                 </div>
 

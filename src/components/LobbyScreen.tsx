@@ -32,6 +32,11 @@ interface LobbyScreenProps {
 }
 
 export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStartMatch }: LobbyScreenProps) {
+  const normalizeStakeAmount = (value: number): number => {
+    const lamports = Math.round(value * LAMPORTS_PER_SOL);
+    return Number((lamports / LAMPORTS_PER_SOL).toFixed(8));
+  };
+
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { connection } = useConnection();
@@ -126,7 +131,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
             ? 'bot'
             : 'ranked';
       const isBotOpponent = Boolean(payload.isBot) || matchType === 'bot';
-      const resolvedStake = payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake);
+      const resolvedStake = normalizeStakeAmount(payload.stakeAmount ?? payload.stake ?? parseFloat(selectedStake));
       const matchDetails = {
         sessionId: payload.sessionId as string,
         stake: resolvedStake,
@@ -315,7 +320,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
     setMatchStatus('searching');
     send('match:find', {
-      stake: parseFloat(selectedStake),
+      stake: normalizeStakeAmount(parseFloat(selectedStake)),
       useFreeStake: useFreeStakeMode && Boolean(selectedFreeStakeAmount),
     });
   };
@@ -413,7 +418,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       send('match:stake_confirmed', {
         sessionId: pendingMatch.sessionId,
-        stake: pendingMatch.stake,
+        stake: normalizeStakeAmount(pendingMatch.stake),
         matchType: pendingMatch.matchType,
         ...onChainPayload,
       });
@@ -485,7 +490,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   };
 
   const handleCancelMatchmaking = () => {
-    send('match:cancel', { stake: parseFloat(selectedStake) });
+    send('match:cancel', { stake: normalizeStakeAmount(parseFloat(selectedStake)) });
     setMatchStatus('idle');
   };
 
