@@ -69,26 +69,14 @@ export function TransactionModal({
   const handleSign = async () => {
     setState('signing');
 
-    if (walletType === 'external') {
-      try {
-        await Promise.resolve(onConfirm());
-      } catch (error) {
-        const failureMessage = error instanceof Error ? error.message : 'Transaction failed';
-        setErrorMessage(failureMessage);
-        setState('error');
-        onFailure?.(failureMessage);
-      }
-      return;
-    }
-
-    const loadingToastId = toast.loading('Processing transaction...', {
-      description: 'Please wait for blockchain confirmation',
-    });
-    toast.info('Signature requested', {
-      description: 'Please check your wallet',
-    });
-
     if (onSign) {
+      const loadingToastId = toast.loading('Processing transaction...', {
+        description: 'Please wait for blockchain confirmation',
+      });
+      toast.info('Signature requested', {
+        description: 'Please check your wallet',
+      });
+
       try {
         const signature = await onSign((nextState) => {
           if (nextState === 'broadcasting') {
@@ -116,6 +104,25 @@ export function TransactionModal({
         return;
       }
     }
+
+    if (walletType === 'external') {
+      try {
+        await Promise.resolve(onConfirm());
+      } catch (error) {
+        const failureMessage = error instanceof Error ? error.message : 'Transaction failed';
+        setErrorMessage(failureMessage);
+        setState('error');
+        onFailure?.(failureMessage);
+      }
+      return;
+    }
+
+    const loadingToastId = toast.loading('Processing transaction...', {
+      description: 'Please wait for blockchain confirmation',
+    });
+    toast.info('Signature requested', {
+      description: 'Please check your wallet',
+    });
 
     // Simulate wallet signing delay
     setTimeout(() => {

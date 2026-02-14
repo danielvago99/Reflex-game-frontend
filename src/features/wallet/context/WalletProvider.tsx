@@ -200,6 +200,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     const keypair = await deriveSolanaKeypair(vaultRef.current.seed);
+
+    if (transaction instanceof Transaction) {
+      transaction.partialSign(keypair);
+      return transaction;
+    }
+
     transaction.sign([keypair]);
     return transaction;
   };

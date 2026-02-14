@@ -2,6 +2,7 @@ import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lu
 import { useState, useEffect, useRef } from 'react';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { useWallet as useAdapterWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
 import { FriendJoinDialog } from './friends/FriendJoinDialog';
@@ -34,6 +35,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { publicKey } = useAdapterWallet();
+  const { connection } = useConnection();
   const { createMatch, joinMatch } = useSolanaProgram();
   const { walletType } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
@@ -58,6 +60,11 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     gameMatch?: string;
     roomCode?: string;
     opponentName?: string;
+  } | null>(null);
+  const [pendingStakeConfirmation, setPendingStakeConfirmation] = useState<{
+    signature?: string;
+    gameMatch?: string;
+    playerWallet?: string;
   } | null>(null);
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
@@ -399,14 +406,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         return;
       }
 
-      let onChainPayload: { signature?: string; gameMatch?: string; playerWallet?: string } = {};
-      if (pendingMatch.matchType === 'ranked' && !(useFreeStakeMode && selectedFreeStakeAmount)) {
+      let onChainPayload: { signature?: string; gameMatch?: string; playerWallet?: string } = pendingStakeConfirmation ?? {};
+      if (pendingMatch.matchType === 'ranked' && !(useFreeStakeMode && selectedFreeStakeAmount) && !pendingStakeConfirmation) {
         const stakeConfirmation = await confirmRankedStakeOnChain(pendingMatch);
-        onChainPayload = {
-          signature: stakeConfirmation.signature,
-          gameMatch: stakeConfirmation.gameMatch,
-          playerWallet: stakeConfirmation.playerWallet,
-        };
+        onChainPayload = stakeConfirmation;
       }
 
       send('match:stake_confirmed', {
@@ -417,6 +420,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       });
 
       setShowTransactionModal(false);
+      setPendingStakeConfirmation(null);
       if (pendingMatch.matchType !== 'bot') {
         setWaitingForStakeConfirmation(true);
       }
@@ -430,11 +434,34 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         });
       }
       setShowTransactionModal(false);
+      setPendingStakeConfirmation(null);
     }
+  };
+
+  const handleTransactionSign = async (reportState: (state: 'broadcasting') => void) => {
+    if (!pendingMatch) {
+      throw new Error('Match details unavailable.');
+    }
+
+    const stakeConfirmation = await confirmRankedStakeOnChain(pendingMatch);
+    reportState('broadcasting');
+
+    const latestBlockhash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction(
+      {
+        signature: stakeConfirmation.signature,
+        ...latestBlockhash,
+      },
+      'confirmed'
+    );
+
+    setPendingStakeConfirmation(stakeConfirmation);
+    return stakeConfirmation.signature;
   };
 
   const handleTransactionCancelled = () => {
     send('match:cancel_stake', {});
+    setPendingStakeConfirmation(null);
     if (pendingMatchRef.current) {
       send('match:stake_failed', {
         sessionId: pendingMatchRef.current.sessionId,
@@ -1086,6 +1113,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         onConfirm={handleTransactionConfirm}
         onCancel={handleTransactionCancelled}
         onFailure={handleTransactionFailure}
+        onSign={!useFreeStakeMode ? handleTransactionSign : undefined}
         stakeAmount={pendingMatch?.stake ?? parseFloat(selectedStake)}
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
