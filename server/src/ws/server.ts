@@ -945,7 +945,6 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const totalPot = stakeAmount > 0 ? stakeAmount * 2 : 0;
     const stakeFee = totalPot > 0 ? totalPot * 0.15 : 0;
     const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeAmount : 0;
-    const onChainGameMatch = sharedState.onChainGameMatch;
     const shouldTrackJackpot =
       persistedMatchType === 'ranked' && Number.isFinite(stakeAmount) && Math.abs(stakeAmount - 0.2) < 1e-9;
 
@@ -982,22 +981,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       return;
     }
 
-    let player1WalletAddress: string | undefined;
-    let player2WalletAddress: string | undefined;
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
-      const playerIds = [player1Id, player2Id].filter((id): id is string => Boolean(id));
-      const users = (await prisma.user.findMany({
-        where: { id: { in: playerIds } },
-        select: { id: true, walletAddress: true },
-      })) as Array<{ id: string; walletAddress: string }>;
-      const walletAddressByUserId = new Map<string, string>(users.map((user) => [user.id, user.walletAddress]));
-      player1WalletAddress = player1Id ? walletAddressByUserId.get(player1Id) : undefined;
-      player2WalletAddress = player2Id ? walletAddressByUserId.get(player2Id) : undefined;
-    }
-
     const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
     const loserId = winnerSlot === 'p1' ? toPersistableUserId(player2Id) : toPersistableUserId(player1Id);
-    const winnerWalletAddress = winnerSlot === 'p1' ? player1WalletAddress : player2WalletAddress;
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -1369,13 +1354,41 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       finalizedSessions.delete(sharedState.sessionId);
     });
 
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
-      if (!onChainGameMatch) {
-        logger.warn(
-          { sessionId: sharedState.sessionId },
-          'On-chain settle skipped: missing gameMatch public key. TODO: pass and persist gameMatch PDA from frontend handshake.'
-        );
-      } else if (!player1WalletAddress || !player2WalletAddress || !winnerWalletAddress) {
+    let player1WalletAddress: string | undefined;
+    let player2WalletAddress: string | undefined;
+    const shouldSettle = Boolean(sharedState.onChainGameMatch && stakeAmount > 0);
+
+    if (shouldSettle) {
+      if (player1Id && !player1Id.startsWith('guest')) {
+        const p1User = await prisma.user.findUnique({
+          where: { id: player1Id },
+          select: { walletAddress: true },
+        });
+        player1WalletAddress = p1User?.walletAddress ?? undefined;
+      }
+
+      if (hasBotOpponent) {
+        const botKeypair = rankedBotKeypairs.get(sharedState.sessionId);
+        if (botKeypair) {
+          player2WalletAddress = botKeypair.publicKey.toBase58();
+        } else if (player2Id) {
+          const botUser = await prisma.user.findUnique({
+            where: { id: player2Id },
+            select: { walletAddress: true },
+          });
+          player2WalletAddress = botUser?.walletAddress ?? undefined;
+        }
+      } else if (player2Id && !player2Id.startsWith('guest')) {
+        const p2User = await prisma.user.findUnique({
+          where: { id: player2Id },
+          select: { walletAddress: true },
+        });
+        player2WalletAddress = p2User?.walletAddress ?? undefined;
+      }
+
+      const winnerWalletAddress = winnerSlot === 'p1' ? player1WalletAddress : player2WalletAddress;
+
+      if (!player1WalletAddress || !player2WalletAddress || !winnerWalletAddress) {
         logger.error(
           {
             sessionId: sharedState.sessionId,
@@ -1383,12 +1396,12 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             player2WalletAddress,
             winnerWalletAddress,
           },
-          'On-chain settle skipped: missing one or more wallet addresses'
+          'Settlement skipped: Missing wallets'
         );
       } else {
         try {
           const settleResult = await solanaEscrowService.settleMatch({
-            gameMatch: onChainGameMatch,
+            gameMatch: sharedState.onChainGameMatch,
             winner: winnerWalletAddress,
             playerA: player1WalletAddress,
             playerB: player2WalletAddress,
@@ -1396,19 +1409,19 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           logger.info(
             {
               sessionId: sharedState.sessionId,
-              onChainGameMatch,
+              onChainGameMatch: sharedState.onChainGameMatch,
               signature: settleResult.signature,
             },
-            'On-chain match settlement submitted'
+            'Match settled on-chain'
           );
-        } catch (settleError) {
+        } catch (err) {
           logger.error(
             {
-              settleError,
+              err,
               sessionId: sharedState.sessionId,
-              onChainGameMatch,
+              onChainGameMatch: sharedState.onChainGameMatch,
             },
-            'Failed to settle ranked match on-chain'
+            'Settlement failed'
           );
         }
       }
