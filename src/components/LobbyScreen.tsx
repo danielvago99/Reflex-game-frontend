@@ -1119,6 +1119,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         network={ENV.SOLANA_NETWORK as 'devnet' | 'mainnet-beta' | 'testnet'}
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
+        showRentDeposit={pendingMatch?.matchType === 'ranked' && pendingMatch?.slot !== 'p2'}
       />
     </div>
   );
