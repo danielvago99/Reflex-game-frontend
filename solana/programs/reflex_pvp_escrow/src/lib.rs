@@ -202,20 +202,28 @@ pub mod reflex_pvp_escrow {
 }
 
 fn transfer_from_vault<'info>(
-    match_key: &Pubkey,
-    vault_bump: u8,
+    _match_key: &Pubkey,
+    _vault_bump: u8,
     vault: &AccountInfo<'info>,
     destination: &AccountInfo<'info>,
-    system_program: &AccountInfo<'info>,
+    _system_program: &AccountInfo<'info>,
     lamports: u64,
 ) -> Result<()> {
-    let seeds = &[b"vault", match_key.as_ref(), &[vault_bump]];
-    let signer = &[&seeds[..]];
-    invoke_signed(
-        &system_instruction::transfer(&vault.key(), &destination.key(), lamports),
-        &[vault.clone(), destination.clone(), system_program.clone()],
-        signer,
-    )?;
+    // Since the vault account is owned by the program (assigned in create_match),
+    // we must manually manipulate the lamports instead of using the System Program.
+
+    // Decrease vault balance
+    **vault.try_borrow_mut_lamports()? = vault
+        .lamports()
+        .checked_sub(lamports)
+        .ok_or(EscrowError::MathOverflow)?;
+
+    // Increase destination balance
+    **destination.try_borrow_mut_lamports()? = destination
+        .lamports()
+        .checked_add(lamports)
+        .ok_or(EscrowError::MathOverflow)?;
+
     Ok(())
 }
 
