@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { Transaction, type Connection, type VersionedTransaction } from '@solana/web3.js';
 import {
   deriveSolanaKeypair,
   encryptSeedPhrase,
