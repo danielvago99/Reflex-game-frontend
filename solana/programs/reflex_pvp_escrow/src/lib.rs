@@ -114,8 +114,6 @@ pub mod reflex_pvp_escrow {
         let total_pot = game_match.stake.checked_mul(2).ok_or(EscrowError::MathOverflow)?;
         let fee = total_pot.checked_mul(config.fee_bps).ok_or(EscrowError::MathOverflow)?
             .checked_div(BPS_DENOMINATOR).ok_or(EscrowError::MathOverflow)?;
-        let payout = total_pot.checked_sub(fee).ok_or(EscrowError::MathOverflow)?;
-
         transfer_from_vault(
             &match_key,
             vault_bump,
@@ -124,6 +122,8 @@ pub mod reflex_pvp_escrow {
             &ctx.accounts.system_program.to_account_info(),
             fee,
         )?;
+
+        let payout = ctx.accounts.vault.lamports();
 
         let winner_info = if winner_pubkey == player_a {
             &ctx.accounts.player_a
@@ -269,7 +269,7 @@ pub struct Settle<'info> {
     pub server_authority: Signer<'info>,
     #[account(seeds=[b"config"], bump=config.bump)]
     pub config: Account<'info, Config>,
-    #[account(mut)]
+    #[account(mut, close=player_a)]
     pub game_match: Account<'info, Match>,
     /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
@@ -290,7 +290,7 @@ pub struct Settle<'info> {
 pub struct CancelUnjoined<'info> {
     #[account(mut, address=game_match.player_a)]
     pub player_a: Signer<'info>,
-    #[account(mut)]
+    #[account(mut, close=player_a)]
     pub game_match: Account<'info, Match>,
     /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
@@ -300,7 +300,7 @@ pub struct CancelUnjoined<'info> {
 
 #[derive(Accounts)]
 pub struct TimeoutRefund<'info> {
-    #[account(mut)]
+    #[account(mut, close=player_a)]
     pub game_match: Account<'info, Match>,
     /// CHECK: PDA vault used to hold player stakes.
     #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
