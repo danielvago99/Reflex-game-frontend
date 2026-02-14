@@ -13,6 +13,13 @@ import { solanaEscrowService } from '../services/solanaEscrowService';
 import { matchmakingEvents } from '../utils/events';
 import { stakeInputToLamports, toStakeLamports } from '../utils/stake';
 
+const LAMPORTS_PER_SOL = 1_000_000_000;
+
+const normalizeStakeAmount = (lamports: number): string => {
+  const stakeSol = lamports / LAMPORTS_PER_SOL;
+  return stakeSol.toFixed(8);
+};
+
 type Shape = 'circle' | 'square' | 'triangle';
 
 interface Target {
@@ -940,12 +947,14 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       typeof sharedState.stakeLamports === 'number' && Number.isFinite(sharedState.stakeLamports)
         ? sharedState.stakeLamports
         : 0;
+    const normalizedStakeAmount = normalizeStakeAmount(stakeLamports);
     const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
     const totalPot = stakeLamports > 0 ? stakeLamports * 2 : 0;
     const stakeFee = totalPot > 0 ? Math.floor((totalPot * 15) / 100) : 0;
-    const payoutAmount = totalPot > 0 ? totalPot - stakeFee - stakeLamports : 0;
+    const payoutLamports = totalPot > 0 ? totalPot - stakeFee - stakeLamports : 0;
+    const normalizedPayoutAmount = normalizeStakeAmount(payoutLamports);
     const shouldTrackJackpot =
       persistedMatchType === 'ranked' && Number.isFinite(stakeLamports) && stakeLamports === 200_000_000;
 
@@ -1038,9 +1047,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               winRate: newWinRate,
               bestReaction: newBestReaction ?? 9999,
               avgReaction: newAverageReaction ?? 0,
-              totalVolumeSolPlayed: stakeLamports,
-              totalSolWon: outcome === 'win' ? payoutAmount : 0,
-              totalSolLost: outcome === 'loss' ? stakeLamports : 0,
+              totalVolumeSolPlayed: normalizedStakeAmount,
+              totalSolWon: outcome === 'win' ? normalizedPayoutAmount : undefined,
+              totalSolLost: outcome === 'loss' ? normalizedStakeAmount : undefined,
             },
           });
         } else {
@@ -1053,9 +1062,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               winRate: newWinRate,
               bestReaction: newBestReaction ?? undefined,
               avgReaction: newAverageReaction ?? undefined,
-              totalVolumeSolPlayed: stakeLamports ? { increment: stakeLamports } : undefined,
-              totalSolWon: outcome === 'win' && payoutAmount ? { increment: payoutAmount } : undefined,
-              totalSolLost: outcome === 'loss' && stakeLamports ? { increment: stakeLamports } : undefined,
+              totalVolumeSolPlayed: stakeLamports > 0 ? { increment: normalizedStakeAmount } : undefined,
+              totalSolWon: outcome === 'win' && payoutLamports > 0 ? { increment: normalizedPayoutAmount } : undefined,
+              totalSolLost: outcome === 'loss' && stakeLamports > 0 ? { increment: normalizedStakeAmount } : undefined,
             },
           });
         }
@@ -1071,9 +1080,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
           loserId,
           avgWinnerReaction,
           avgLoserReaction,
-          stakeWinner: stakeLamports,
-          stakeLoser: stakeLamports,
-          payout: payoutAmount,
+          stakeWinner: normalizedStakeAmount,
+          stakeLoser: normalizedStakeAmount,
+          payout: normalizedPayoutAmount,
           winnerScore,
           loserScore,
           snapshotDate: new Date(),
@@ -1336,12 +1345,12 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         }
       }
 
-      if (winnerId && payoutAmount > 0) {
+      if (winnerId && payoutLamports > 0) {
         await tx.transaction.create({
           data: {
             userId: winnerId,
             gameSessionId: session.id,
-            amount: payoutAmount,
+            amount: normalizedPayoutAmount,
             type: 'game_payout',
             status: 'confirmed',
           },
