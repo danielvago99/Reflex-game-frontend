@@ -1161,8 +1161,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
         showRentDeposit={pendingMatch?.matchType === 'ranked' && pendingMatch?.slot !== 'p2'}
-        vaultRentDepositSol={vaultRentDepositSol}
-        matchAccountRentDepositSol={matchAccountRentDepositSol}
+        temporaryDepositSol={vaultRentDepositSol + matchAccountRentDepositSol}
       />
     </div>
   );
