@@ -984,7 +984,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
 
     let player1WalletAddress: string | undefined;
     let player2WalletAddress: string | undefined;
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+    if (sharedState.matchType === 'ranked') {
       const playerIds = [player1Id, player2Id].filter((id): id is string => Boolean(id));
       const users = (await prisma.user.findMany({
         where: { id: { in: playerIds } },
@@ -992,7 +992,13 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       })) as Array<{ id: string; walletAddress: string }>;
       const walletAddressByUserId = new Map<string, string>(users.map((user) => [user.id, user.walletAddress]));
       player1WalletAddress = player1Id ? walletAddressByUserId.get(player1Id) : undefined;
-      player2WalletAddress = player2Id ? walletAddressByUserId.get(player2Id) : undefined;
+
+      if (hasBotOpponent) {
+        const botKeypair = rankedBotKeypairs.get(sharedState.sessionId);
+        player2WalletAddress = botKeypair?.publicKey.toBase58() ?? (player2Id ? walletAddressByUserId.get(player2Id) : undefined);
+      } else {
+        player2WalletAddress = player2Id ? walletAddressByUserId.get(player2Id) : undefined;
+      }
     }
 
     const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
@@ -1369,7 +1375,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       finalizedSessions.delete(sharedState.sessionId);
     });
 
-    if (sharedState.matchType === 'ranked' && !hasBotOpponent) {
+    if (sharedState.matchType === 'ranked') {
       if (!onChainGameMatch) {
         logger.warn(
           { sessionId: sharedState.sessionId },
