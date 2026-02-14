@@ -117,47 +117,10 @@ export function TransactionModal({
       return;
     }
 
-    const loadingToastId = toast.loading('Processing transaction...', {
-      description: 'Please wait for blockchain confirmation',
-    });
-    toast.info('Signature requested', {
-      description: 'Please check your wallet',
-    });
-
-    // Simulate wallet signing delay
-    setTimeout(() => {
-      setState('broadcasting');
-      toast.info('Transaction broadcasting', {
-        description: 'Sending to Solana network...',
-      });
-
-      // Simulate network broadcast
-      setTimeout(() => {
-        // Simulate success (90% chance) or error (10% chance)
-        const success = Math.random() > 0.1;
-
-        if (success) {
-          const mockTxId = generateMockTxId();
-          setTxId(mockTxId);
-          setState('success');
-          toast.dismiss(loadingToastId);
-          toast.success('Transaction confirmed', {
-            description: 'Stake is now active',
-            duration: 3000,
-          });
-        } else {
-          const failureMessage = 'Transaction failed. Insufficient funds or network error.';
-          setErrorMessage(failureMessage);
-          setState('error');
-          toast.dismiss(loadingToastId);
-          toast.error('Transaction failed', {
-            description: 'Please try again',
-            duration: 4000,
-          });
-          onFailure?.(failureMessage);
-        }
-      }, 2000);
-    }, 1500);
+    const failureMessage = 'Live signing is not configured for this transaction.';
+    setErrorMessage(failureMessage);
+    setState('error');
+    onFailure?.(failureMessage);
   };
 
   useEffect(() => {
@@ -206,20 +169,11 @@ export function TransactionModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const generateMockTxId = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 64; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   const getRecipientAddress = () => {
     if (recipientAddress) return recipientAddress;
-    if (transactionType === 'stake') return 'GameContract...xyz';
-    if (transactionType === 'claim') return 'YourWallet...abc';
-    return 'DAO Treasury...def';
+    if (transactionType === 'stake') return 'Waiting for escrow account...';
+    if (transactionType === 'claim') return 'Waiting for destination wallet...';
+    return 'Waiting for treasury wallet...';
   };
 
   const getAmountLabel = () => {
