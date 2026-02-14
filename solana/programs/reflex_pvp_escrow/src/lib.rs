@@ -112,8 +112,13 @@ pub mod reflex_pvp_escrow {
         let player_b = game_match.player_b;
 
         let total_pot = game_match.stake.checked_mul(2).ok_or(EscrowError::MathOverflow)?;
-        let fee = total_pot.checked_mul(config.fee_bps).ok_or(EscrowError::MathOverflow)?
-            .checked_div(BPS_DENOMINATOR).ok_or(EscrowError::MathOverflow)?;
+        let fee = total_pot
+            .checked_mul(config.fee_bps)
+            .ok_or(EscrowError::MathOverflow)?
+            .checked_div(BPS_DENOMINATOR)
+            .ok_or(EscrowError::MathOverflow)?;
+        let winner_payout = total_pot.checked_sub(fee).ok_or(EscrowError::MathOverflow)?;
+
         transfer_from_vault(
             &match_key,
             vault_bump,
@@ -122,8 +127,6 @@ pub mod reflex_pvp_escrow {
             &ctx.accounts.system_program.to_account_info(),
             fee,
         )?;
-
-        let payout = ctx.accounts.vault.lamports();
 
         let winner_info = if winner_pubkey == player_a {
             &ctx.accounts.player_a
@@ -138,7 +141,17 @@ pub mod reflex_pvp_escrow {
             &ctx.accounts.vault,
             &winner_info.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-            payout,
+            winner_payout,
+        )?;
+
+        let rent_refund = ctx.accounts.vault.lamports();
+        transfer_from_vault(
+            &match_key,
+            vault_bump,
+            &ctx.accounts.vault,
+            &ctx.accounts.player_a.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+            rent_refund,
         )?;
 
         let game_match = &mut ctx.accounts.game_match;
