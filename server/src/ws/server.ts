@@ -59,6 +59,7 @@ interface SessionState extends RoundTimers {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
   target?: Target;
@@ -104,6 +105,7 @@ interface RedisSessionState {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
   target?: Target;
@@ -162,7 +164,8 @@ const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
 const MAX_FRIEND_STAKE_LAMPORTS = 10 * 1_000_000_000;
 const DISCONNECT_TIMEOUT_MS = 30_000;
-const READY_TIMEOUT_MS = 15_000;
+const STAKE_CONFIRM_TIMEOUT_MS = 15_000;
+const ARENA_READY_TIMEOUT_MS = 30_000;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
 const getRoomCodeKey = (roomCode: string) => `game:roomcode:${roomCode}`;
@@ -182,6 +185,7 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
   p2Ready: state.p2Ready,
+  readyDeadlineTs: state.readyDeadlineTs,
   p1RoundReady: state.p1RoundReady,
   p2RoundReady: state.p2RoundReady,
   target: state.target,
@@ -359,6 +363,11 @@ const clearReadyTimeout = (sessionId: string) => {
     clearTimeout(timeout);
     readyTimeouts.delete(sessionId);
   }
+
+  const state = sessionStates.get(sessionId);
+  if (state) {
+    state.readyDeadlineTs = undefined;
+  }
 };
 
 const incrementDisconnectCount = (state: SessionState, slot: 'p1' | 'p2') => {
@@ -483,6 +492,14 @@ const triggerDisconnectFlow = async (
   void persistSessionState(state);
 };
 
+const hasAllRequiredStakesConfirmed = (state: SessionState) => {
+  if (state.matchType === 'bot') {
+    return true;
+  }
+
+  return state.p1Staked && state.p2Staked;
+};
+
 const scheduleReadyTimeout = (state: SessionState) => {
   if (state.isFinished || state.hasStarted || isBotOpponent(state)) {
     clearReadyTimeout(state.sessionId);
@@ -499,16 +516,30 @@ const scheduleReadyTimeout = (state: SessionState) => {
     return;
   }
 
+  const waitingForStakeConfirmation = !hasAllRequiredStakesConfirmed(state);
+  const timeoutMs = waitingForStakeConfirmation ? STAKE_CONFIRM_TIMEOUT_MS : ARENA_READY_TIMEOUT_MS;
+
   clearReadyTimeout(state.sessionId);
+  state.readyDeadlineTs = Date.now() + timeoutMs;
+
   const timeout = setTimeout(() => {
     const activeState = sessionStates.get(state.sessionId);
     if (!activeState || activeState.isFinished || activeState.hasStarted) return;
     if (activeState.disconnectPause) return;
     if (activeState.p1Ready && activeState.p2Ready) return;
 
+    if (!hasAllRequiredStakesConfirmed(activeState)) {
+      void failFastCancelSession(
+        activeState.sessionId,
+        'stake_cancel_timeout',
+        'Match cancelled: stake confirmation timed out.',
+      );
+      return;
+    }
+
     const unreadySlot = activeState.p1Ready ? 'p2' : 'p1';
     void triggerDisconnectFlow(activeState, unreadySlot, { reason: 'ready-timeout' });
-  }, READY_TIMEOUT_MS);
+  }, timeoutMs);
 
   readyTimeouts.set(state.sessionId, timeout);
 };
@@ -702,6 +733,7 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.p2Staked = false;
   state.p1Ready = false;
   state.p2Ready = false;
+  state.readyDeadlineTs = undefined;
   state.p1RoundReady = false;
   state.p2RoundReady = false;
   state.history = [];
@@ -2718,7 +2750,11 @@ export function createWsServer(server: Server) {
               matchType: 'bot',
             });
             scheduleReadyTimeout(sessionState);
-            sendMessage(socket, 'game:enter_arena', { sessionId });
+            sendMessage(socket, 'game:enter_arena', {
+              sessionId,
+              readyDeadlineTs: sessionState.readyDeadlineTs,
+              readyTimeoutSeconds: ARENA_READY_TIMEOUT_MS / 1000,
+            });
             logger.info({ userId, sessionId }, 'Started practice bot match');
             break;
           }
@@ -3126,9 +3162,14 @@ export function createWsServer(server: Server) {
               : resolvedSessionState.p1Staked && resolvedSessionState.p2Staked;
 
             if (bothStaked) {
+              scheduleReadyTimeout(resolvedSessionState);
               void persistSessionState(resolvedSessionState);
               for (const sessionSocket of sockets) {
-                sendMessage(sessionSocket, 'game:enter_arena', { sessionId });
+                sendMessage(sessionSocket, 'game:enter_arena', {
+                  sessionId,
+                  readyDeadlineTs: resolvedSessionState.readyDeadlineTs,
+                  readyTimeoutSeconds: ARENA_READY_TIMEOUT_MS / 1000,
+                });
               }
             }
             break;

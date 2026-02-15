@@ -20,6 +20,7 @@ import { ENV } from '../config/env';
 
 
 const MATCH_ACCOUNT_SIZE_BYTES = 8 + 32 + 32 + 8 + 1 + 8 + 8 + 8 + 1;
+const STAKE_CONFIRM_TIMEOUT_MS = 15000;
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -79,7 +80,6 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const suppressFriendRoomClose = Boolean(pendingMatch && pendingMatch.matchType === 'friend');
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const stakeConfirmationTimeoutRef = useRef<number | null>(null);
-  const botReadyDelayTimeoutRef = useRef<number | null>(null);
   const stakeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const stakeSyncSessionRef = useRef<string | null>(null);
   const pendingMatchRef = useRef<{
@@ -238,46 +238,28 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
       console.log('game:enter_arena received');
       const matchToStart = pendingMatchRef.current;
-      const shouldDelayBotReady =
-        matchToStart?.matchType === 'ranked' && matchToStart.isBot && Math.random() < 0.65;
-      const botReadyDelayMs = shouldDelayBotReady ? 1200 + Math.floor(Math.random() * 2800) : 0;
-      const proceedToArena = () => {
-        setWaitingForStakeConfirmation(false);
-        setFriendIntroOpen(false);
-        if (matchToStart) {
-          if (onStartMatch) {
-            onStartMatch(
-              matchToStart.matchType === 'ranked',
-              toSol(matchToStart.stakeLamports),
-              matchToStart.matchType,
-              matchToStart.opponentName
-            );
-          } else {
-            onNavigate('arena');
-          }
+      setWaitingForStakeConfirmation(false);
+      setFriendIntroOpen(false);
+      if (matchToStart) {
+        if (onStartMatch) {
+          onStartMatch(
+            matchToStart.matchType === 'ranked',
+            toSol(matchToStart.stakeLamports),
+            matchToStart.matchType,
+            matchToStart.opponentName
+          );
+        } else {
+          onNavigate('arena');
         }
-        setShowTransactionModal(false);
-        setMatchStatus('idle');
-        setPendingStakeConfirmation(null);
-        stakeSyncSessionRef.current = null;
-        if (stakeTimerRef.current) {
-          clearTimeout(stakeTimerRef.current);
-          stakeTimerRef.current = null;
-        }
-      };
-
-      if (botReadyDelayMs > 0) {
-        if (botReadyDelayTimeoutRef.current) {
-          window.clearTimeout(botReadyDelayTimeoutRef.current);
-        }
-        botReadyDelayTimeoutRef.current = window.setTimeout(() => {
-          botReadyDelayTimeoutRef.current = null;
-          proceedToArena();
-        }, botReadyDelayMs);
-        return;
       }
-
-      proceedToArena();
+      setShowTransactionModal(false);
+      setMatchStatus('idle');
+      setPendingStakeConfirmation(null);
+      stakeSyncSessionRef.current = null;
+      if (stakeTimerRef.current) {
+        clearTimeout(stakeTimerRef.current);
+        stakeTimerRef.current = null;
+      }
     });
 
       const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
@@ -331,10 +313,6 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         window.clearTimeout(stakeConfirmationTimeoutRef.current);
         stakeConfirmationTimeoutRef.current = null;
       }
-      if (botReadyDelayTimeoutRef.current) {
-        window.clearTimeout(botReadyDelayTimeoutRef.current);
-        botReadyDelayTimeoutRef.current = null;
-      }
       if (stakeTimerRef.current) {
         clearTimeout(stakeTimerRef.current);
         stakeTimerRef.current = null;
@@ -370,7 +348,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setMatchStatus('idle');
       setPendingMatch(null);
       pendingMatchRef.current = null;
-    }, 15000);
+    }, STAKE_CONFIRM_TIMEOUT_MS);
 
     return () => {
       if (stakeConfirmationTimeoutRef.current) {
