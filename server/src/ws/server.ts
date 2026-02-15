@@ -3313,11 +3313,28 @@ export function createWsServer(server: Server) {
             return;
           }
 
-          const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);
-          void triggerDisconnectFlow(sessionState, disconnectedSlot, {
-            reason: 'socket_closed',
-            excludeSocket: socket,
-          });
+          sessions.delete(socket);
+
+          setTimeout(() => {
+            const currentSession = sessionStates.get(sessionRef.sessionId);
+            if (!currentSession || currentSession.isFinished) {
+              return;
+            }
+
+            if (sessionRef.userId && activeUsers.has(sessionRef.userId)) {
+              logger.info(
+                { userId: sessionRef.userId, sessionId: sessionRef.sessionId },
+                'User reconnected within 5s grace period. Disconnect flow cancelled.',
+              );
+              return;
+            }
+
+            const disconnectedSlot = getSlotForUser(currentSession, sessionRef.userId);
+            void triggerDisconnectFlow(currentSession, disconnectedSlot, {
+              reason: 'socket_closed',
+              excludeSocket: socket,
+            });
+          }, 5000);
           return;
         }
 

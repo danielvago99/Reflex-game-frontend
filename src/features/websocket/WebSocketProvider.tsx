@@ -68,9 +68,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user?.username) {
-      if (status !== 'disconnected') {
-        disconnect();
-      }
       return;
     }
 
@@ -79,7 +76,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
 
     connect().catch(() => setStatus('error'));
-  }, [user?.username, status, connect, disconnect]);
+  }, [user?.username, status, connect]);
 
   const value = useMemo<WebSocketContextValue>(
     () => ({ status, error, connect, disconnect, send }),
