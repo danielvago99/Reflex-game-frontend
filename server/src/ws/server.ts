@@ -2,7 +2,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import type { Keypair } from '@solana/web3.js';
+import { PublicKey, type Keypair } from '@solana/web3.js';
 import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
 import { env } from '../config/env';
@@ -818,6 +818,18 @@ const emitMatchCancelled = (
   }
 };
 
+const normalizeWalletAddress = (walletAddress?: string | null): string | undefined => {
+  if (!walletAddress) {
+    return undefined;
+  }
+
+  try {
+    return new PublicKey(walletAddress).toBase58();
+  } catch {
+    return undefined;
+  }
+};
+
 const resolveSessionWallets = async (sessionId: string, state: SessionState) => {
   const assignments = sessionAssignments.get(sessionId);
   const player1Id = assignments?.p1;
@@ -831,7 +843,7 @@ const resolveSessionWallets = async (sessionId: string, state: SessionState) => 
       where: { id: player1Id },
       select: { walletAddress: true },
     });
-    playerA = p1User?.walletAddress ?? undefined;
+    playerA = normalizeWalletAddress(p1User?.walletAddress);
   }
 
   if (state.isBotOpponent) {
@@ -843,14 +855,14 @@ const resolveSessionWallets = async (sessionId: string, state: SessionState) => 
         where: { id: player2Id },
         select: { walletAddress: true },
       });
-      playerB = botUser?.walletAddress ?? undefined;
+      playerB = normalizeWalletAddress(botUser?.walletAddress);
     }
   } else if (player2Id && !player2Id.startsWith('guest')) {
     const p2User = await prisma.user.findUnique({
       where: { id: player2Id },
       select: { walletAddress: true },
     });
-    playerB = p2User?.walletAddress ?? undefined;
+    playerB = normalizeWalletAddress(p2User?.walletAddress);
   }
 
   return { playerA, playerB };
