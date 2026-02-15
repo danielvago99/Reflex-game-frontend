@@ -7,6 +7,82 @@
   },
   "instructions": [
     {
+      "name": "cancel_active_match",
+      "discriminator": [
+        180,
+        212,
+        94,
+        158,
+        204,
+        90,
+        40,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "server_authority",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "game_match",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_match"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_a",
+          "writable": true
+        },
+        {
+          "name": "player_b",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "cancel_unjoined",
       "discriminator": [
         15,
