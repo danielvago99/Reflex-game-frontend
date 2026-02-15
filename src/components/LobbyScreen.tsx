@@ -44,7 +44,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { connection } = useConnection();
-  const { createMatch, joinMatch } = useSolanaProgram();
+  const { createMatch, joinMatch, cancelUnjoinedMatch } = useSolanaProgram();
   const { walletType, publicKey } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
@@ -282,11 +282,41 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
       const payload = message?.payload ?? {};
+      const activePendingMatch = pendingMatchRef.current;
       const isStakeCancel =
         payload.reason === 'stake_cancel' ||
+        payload.reason === 'stake cancelled' ||
         payload.reason === 'stake_cancel_timeout' ||
         payload.cancelReason === 'stake_cancel' ||
         payload.type === 'stake_cancel';
+
+      const shouldAutoRefundUnjoinedStake =
+        isStakeCancel &&
+        activePendingMatch?.matchType === 'ranked' &&
+        activePendingMatch?.slot === 'p1' &&
+        typeof activePendingMatch?.gameMatch === 'string';
+
+      if (shouldAutoRefundUnjoinedStake) {
+        void (async () => {
+          try {
+            const refundSignature = await cancelUnjoinedMatch({
+              gameMatch: new PublicKey(activePendingMatch.gameMatch!),
+            });
+
+            toast.success('Stake refunded', {
+              description: `Refund signature: ${refundSignature.slice(0, 8)}...`,
+            });
+          } catch (refundError: any) {
+            const description =
+              typeof refundError?.message === 'string'
+                ? refundError.message
+                : 'Manual refund may be required from the wallet.';
+
+            toast.error('Automatic refund failed', { description });
+          }
+        })();
+      }
+
       const toastMessage = isStakeCancel
         ? 'Match cancelled due to stake cancel.'
         : payload.message ?? 'Match cancelled.';
@@ -332,7 +362,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         stakeTimerRef.current = null;
       }
     };
-  }, [onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
+  }, [cancelUnjoinedMatch, onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
 
   useEffect(() => {
     if (!waitingForStakeConfirmation || !pendingMatchRef.current) {
