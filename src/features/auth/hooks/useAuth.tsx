@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useWallet } from '../../wallet/context/WalletProvider';
+import { wsService } from '../../../utils/websocket';
 
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 
@@ -228,6 +229,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
     } finally {
+      wsService.disconnect();
       localStorage.removeItem('auth_token');
       sessionVersionRef.current += 1;
       setUser(null);
