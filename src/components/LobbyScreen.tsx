@@ -222,17 +222,14 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     const unsubscribeGameMatchReady = wsService.on('match:game_match_ready', (message: any) => {
       const payload = message?.payload ?? {};
       if (typeof payload?.sessionId !== 'string' || typeof payload?.gameMatch !== 'string') return;
+      console.log('match:game_match_ready payload received:', payload);
 
       setPendingMatch((current) => {
         if (!current || current.sessionId !== payload.sessionId) return current;
         const updated = { ...current, gameMatch: payload.gameMatch };
         pendingMatchRef.current = updated;
 
-        if (
-          (updated.matchType === 'ranked' || updated.matchType === 'friend') &&
-          updated.slot === 'p2' &&
-          !waitingForStakeConfirmation
-        ) {
+        if (current.matchType === 'friend' && current.slot === 'p2') {
           setWaitingForStakeConfirmation(false);
           setShowTransactionModal(true);
         }
