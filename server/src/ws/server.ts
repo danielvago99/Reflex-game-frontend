@@ -165,6 +165,10 @@ const ROOM_CODE_LENGTH = 6;
 const MAX_FRIEND_STAKE_LAMPORTS = 10 * 1_000_000_000;
 const DISCONNECT_TIMEOUT_MS = 30_000;
 const ARENA_READY_TIMEOUT_MS = 30_000;
+const FRIEND_ARENA_READY_TIMEOUT_MS = 60_000;
+
+const getReadyTimeoutMs = (state: SessionState) =>
+  state.matchType === 'friend' ? FRIEND_ARENA_READY_TIMEOUT_MS : ARENA_READY_TIMEOUT_MS;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
 const getRoomCodeKey = (roomCode: string) => `game:roomcode:${roomCode}`;
@@ -521,7 +525,7 @@ const scheduleReadyTimeout = (state: SessionState) => {
     return;
   }
 
-  const timeoutMs = ARENA_READY_TIMEOUT_MS;
+  const timeoutMs = getReadyTimeoutMs(state);
 
   clearReadyTimeout(state.sessionId);
   state.readyDeadlineTs = Date.now() + timeoutMs;
@@ -3027,7 +3031,7 @@ export function createWsServer(server: Server) {
                 ? message.payload.gameMatch
                 : undefined;
 
-            if (matchType === 'ranked') {
+            if (matchType === 'ranked' || matchType === 'friend') {
               if (!onChainTxSignature) {
                 await failFastCancelSession(
                   sessionId,
@@ -3140,7 +3144,10 @@ export function createWsServer(server: Server) {
             sockets.add(socket);
             sessionSockets.set(sessionId, sockets);
 
-            if (resolvedSessionState.onChainGameMatch && matchType === 'ranked') {
+            if (
+              resolvedSessionState.onChainGameMatch &&
+              (matchType === 'ranked' || matchType === 'friend')
+            ) {
               for (const sessionSocket of sockets) {
                 sendMessage(sessionSocket, 'match:game_match_ready', {
                   sessionId,
@@ -3163,7 +3170,7 @@ export function createWsServer(server: Server) {
                 sendMessage(sessionSocket, 'game:enter_arena', {
                   sessionId,
                   readyDeadlineTs: resolvedSessionState.readyDeadlineTs,
-                  readyTimeoutSeconds: ARENA_READY_TIMEOUT_MS / 1000,
+                  readyTimeoutSeconds: getReadyTimeoutMs(resolvedSessionState) / 1000,
                 });
               }
             }

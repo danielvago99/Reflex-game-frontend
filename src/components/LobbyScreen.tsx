@@ -204,7 +204,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         window.clearTimeout(matchFoundTimeoutRef.current);
       }
 
-      if (matchType !== 'bot') {
+      if (matchType !== 'bot' && matchType !== 'friend') {
         matchFoundTimeoutRef.current = window.setTimeout(() => {
           const awaitingHostMatch =
             matchDetails.matchType === 'ranked' && matchDetails.slot === 'p2' && !matchDetails.gameMatch;
@@ -228,7 +228,12 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         const updated = { ...current, gameMatch: payload.gameMatch };
         pendingMatchRef.current = updated;
 
-        if (updated.matchType === 'ranked' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
+        if (
+          updated.matchType !== 'friend' &&
+          updated.matchType === 'ranked' &&
+          updated.slot === 'p2' &&
+          !waitingForStakeConfirmation
+        ) {
           setShowTransactionModal(true);
         }
 
@@ -494,7 +499,11 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       }
 
       let onChainPayload: { signature?: string; gameMatch?: string; playerWallet?: string } = pendingStakeConfirmation ?? {};
-      if (pendingMatch.matchType === 'ranked' && !(useFreeStakeMode && selectedFreeStakeAmount) && !pendingStakeConfirmation) {
+      if (
+        (pendingMatch.matchType === 'ranked' || pendingMatch.matchType === 'friend') &&
+        !(useFreeStakeMode && selectedFreeStakeAmount) &&
+        !pendingStakeConfirmation
+      ) {
         const stakeConfirmation = await confirmRankedStakeOnChain(pendingMatch);
         onChainPayload = stakeConfirmation;
       }
@@ -607,6 +616,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const handleFriendContinue = () => {
     setFriendIntroOpen(false);
     if (!pendingMatchRef.current) return;
+    if (pendingMatchRef.current.matchType === 'friend') {
+      setShowTransactionModal(true);
+      return;
+    }
     setShowTransactionModal(true);
   };
 
@@ -1245,7 +1258,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         network={ENV.SOLANA_NETWORK as 'devnet' | 'mainnet-beta' | 'testnet'}
         isFreeStake={useFreeStakeMode}
         walletType={walletType}
-        showRentDeposit={pendingMatch?.matchType === 'ranked' && pendingMatch?.slot !== 'p2'}
+        showRentDeposit={
+          (pendingMatch?.matchType === 'ranked' && pendingMatch?.slot !== 'p2') ||
+          (pendingMatch?.matchType === 'friend' && pendingMatch?.slot === 'p1')
+        }
         temporaryDepositSol={vaultRentDepositSol + matchAccountRentDepositSol}
       />
     </div>
