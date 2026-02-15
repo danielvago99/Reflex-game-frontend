@@ -180,8 +180,8 @@ class SolanaEscrowService {
   async cancelActiveMatch(input: {
     gameMatch?: string;
     matchId?: string;
-    playerA: string;
-    playerB: string;
+    playerA?: string;
+    playerB?: string;
   }) {
     if (!this.isConfigured || !this.program || !this.walletKeypair) {
       logger.warn({ input }, 'Solana active match cancel skipped (service not configured).');
@@ -194,8 +194,21 @@ class SolanaEscrowService {
     }
 
     const gameMatch = new PublicKey(gameMatchKey);
-    const playerA = new PublicKey(input.playerA);
-    const playerB = new PublicKey(input.playerB);
+
+    let playerA: PublicKey;
+    let playerB: PublicKey = PublicKey.default;
+
+    if (input.playerA) {
+      playerA = new PublicKey(input.playerA);
+    } else {
+      const gameMatchState = await (this.program.account as any).match.fetch(gameMatch);
+      playerA = gameMatchState.playerA as PublicKey;
+      playerB = gameMatchState.playerB as PublicKey;
+    }
+
+    if (input.playerB) {
+      playerB = new PublicKey(input.playerB);
+    }
 
     const configPda = this.deriveConfigPda();
     const vaultPda = this.deriveVaultPda(gameMatch);
