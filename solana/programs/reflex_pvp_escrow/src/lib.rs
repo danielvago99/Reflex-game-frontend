@@ -184,33 +184,55 @@ pub mod reflex_pvp_escrow {
 
     pub fn cancel_active_match(ctx: Context<CancelActiveMatch>) -> Result<()> {
         let config = &ctx.accounts.config;
-        require!(ctx.accounts.server_authority.key() == config.server_authority, EscrowError::Unauthorized);
+        require!(
+            ctx.accounts.server_authority.key() == config.server_authority,
+            EscrowError::Unauthorized
+        );
 
         let game_match = &ctx.accounts.game_match;
-        require!(game_match.state == MatchState::Active, EscrowError::InvalidState);
-
-        let stake = game_match.stake;
         let vault_bump = game_match.vault_bump;
         let match_key = game_match.key();
 
-        transfer_from_vault(
-            &match_key,
-            vault_bump,
-            &ctx.accounts.vault,
-            &ctx.accounts.player_b.to_account_info(),
-            &ctx.accounts.system_program.to_account_info(),
-            stake,
-        )?;
+        match game_match.state {
+            MatchState::WaitingForB => {
+                let total_refund = ctx.accounts.vault.lamports();
+                transfer_from_vault(
+                    &match_key,
+                    vault_bump,
+                    &ctx.accounts.vault,
+                    &ctx.accounts.player_a.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    total_refund,
+                )?;
+            }
+            MatchState::Active => {
+                require!(
+                    ctx.accounts.player_b.key() == game_match.player_b,
+                    EscrowError::InvalidPlayerB
+                );
 
-        let remaining = ctx.accounts.vault.lamports();
-        transfer_from_vault(
-            &match_key,
-            vault_bump,
-            &ctx.accounts.vault,
-            &ctx.accounts.player_a.to_account_info(),
-            &ctx.accounts.system_program.to_account_info(),
-            remaining,
-        )?;
+                let stake = game_match.stake;
+                transfer_from_vault(
+                    &match_key,
+                    vault_bump,
+                    &ctx.accounts.vault,
+                    &ctx.accounts.player_b.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    stake,
+                )?;
+
+                let remaining = ctx.accounts.vault.lamports();
+                transfer_from_vault(
+                    &match_key,
+                    vault_bump,
+                    &ctx.accounts.vault,
+                    &ctx.accounts.player_a.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    remaining,
+                )?;
+            }
+            _ => return err!(EscrowError::InvalidState),
+        }
 
         let game_match = &mut ctx.accounts.game_match;
         game_match.state = MatchState::Cancelled;
@@ -375,8 +397,8 @@ pub struct CancelActiveMatch<'info> {
     /// CHECK: validated to be playerA.
     #[account(mut, address=game_match.player_a)]
     pub player_a: UncheckedAccount<'info>,
-    /// CHECK: validated to be playerB.
-    #[account(mut, address=game_match.player_b)]
+    /// CHECK: validated in instruction for active matches.
+    #[account(mut)]
     pub player_b: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -431,4 +453,6 @@ pub enum EscrowError {
     JoinNotExpired,
     #[msg("Settlement deadline not reached")]
     SettlementDeadlineNotReached,
+    #[msg("Provided player B account does not match match state")]
+    InvalidPlayerB,
 }
