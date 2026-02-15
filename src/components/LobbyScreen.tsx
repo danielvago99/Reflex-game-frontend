@@ -283,6 +283,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
       const payload = message?.payload ?? {};
       const activePendingMatch = pendingMatchRef.current;
+      const cancellationReason = [payload.reason, payload.cancelReason, payload.type]
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.toLowerCase());
+      const hasTimeoutReason = cancellationReason.some((value) => value.includes('timeout'));
       const isStakeCancel =
         payload.reason === 'stake_cancel' ||
         payload.reason === 'stake cancelled' ||
@@ -291,7 +295,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         payload.type === 'stake_cancel';
 
       const shouldAutoRefundUnjoinedStake =
-        isStakeCancel &&
+        (isStakeCancel || hasTimeoutReason) &&
         activePendingMatch?.matchType === 'ranked' &&
         activePendingMatch?.slot === 'p1' &&
         typeof activePendingMatch?.gameMatch === 'string';
@@ -319,7 +323,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       const toastMessage = isStakeCancel
         ? 'Match cancelled due to stake cancel.'
-        : payload.message ?? 'Match cancelled.';
+        : hasTimeoutReason
+          ? 'Match cancelled due to timeout.'
+          : payload.message ?? 'Match cancelled.';
       setMatchStatus('idle');
       setPendingMatch(null);
       pendingMatchRef.current = null;
