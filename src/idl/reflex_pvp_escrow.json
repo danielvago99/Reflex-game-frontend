@@ -528,6 +528,11 @@
       "code": 6007,
       "name": "SettlementDeadlineNotReached",
       "msg": "Settlement deadline not reached"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidPlayerB",
+      "msg": "Provided player B account does not match match state"
     }
   ],
   "types": [
