@@ -164,7 +164,7 @@ pub mod reflex_pvp_escrow {
         require!(game_match.state == MatchState::WaitingForB, EscrowError::InvalidState);
         require!(Clock::get()?.unix_timestamp > game_match.join_expiry_ts, EscrowError::JoinNotExpired);
 
-        let stake = game_match.stake;
+        let total_refund = ctx.accounts.vault.lamports();
         let vault_bump = game_match.vault_bump;
         let match_key = game_match.key();
 
@@ -174,7 +174,42 @@ pub mod reflex_pvp_escrow {
             &ctx.accounts.vault,
             &ctx.accounts.player_a.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
+            total_refund,
+        )?;
+
+        let game_match = &mut ctx.accounts.game_match;
+        game_match.state = MatchState::Cancelled;
+        Ok(())
+    }
+
+    pub fn cancel_active_match(ctx: Context<CancelActiveMatch>) -> Result<()> {
+        let config = &ctx.accounts.config;
+        require!(ctx.accounts.server_authority.key() == config.server_authority, EscrowError::Unauthorized);
+
+        let game_match = &ctx.accounts.game_match;
+        require!(game_match.state == MatchState::Active, EscrowError::InvalidState);
+
+        let stake = game_match.stake;
+        let vault_bump = game_match.vault_bump;
+        let match_key = game_match.key();
+
+        transfer_from_vault(
+            &match_key,
+            vault_bump,
+            &ctx.accounts.vault,
+            &ctx.accounts.player_b.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
             stake,
+        )?;
+
+        let remaining = ctx.accounts.vault.lamports();
+        transfer_from_vault(
+            &match_key,
+            vault_bump,
+            &ctx.accounts.vault,
+            &ctx.accounts.player_a.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+            remaining,
         )?;
 
         let game_match = &mut ctx.accounts.game_match;
@@ -322,6 +357,25 @@ pub struct TimeoutRefund<'info> {
     #[account(mut, address=game_match.player_a)]
     pub player_a: UncheckedAccount<'info>,
     /// CHECK:
+    #[account(mut, address=game_match.player_b)]
+    pub player_b: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CancelActiveMatch<'info> {
+    pub server_authority: Signer<'info>,
+    #[account(seeds=[b"config"], bump=config.bump)]
+    pub config: Account<'info, Config>,
+    #[account(mut, close=player_a)]
+    pub game_match: Account<'info, Match>,
+    /// CHECK: PDA vault used to hold player stakes.
+    #[account(mut, seeds=[b"vault", game_match.key().as_ref()], bump=game_match.vault_bump)]
+    pub vault: UncheckedAccount<'info>,
+    /// CHECK: validated to be playerA.
+    #[account(mut, address=game_match.player_a)]
+    pub player_a: UncheckedAccount<'info>,
+    /// CHECK: validated to be playerB.
     #[account(mut, address=game_match.player_b)]
     pub player_b: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
