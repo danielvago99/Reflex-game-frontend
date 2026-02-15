@@ -59,6 +59,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const [matchStatus, setMatchStatus] = useState<MatchmakingStatus>('idle');
   const [opponentName, setOpponentName] = useState('');
   const [friendIntroOpen, setFriendIntroOpen] = useState(false);
+  const [friendContinueConfirmed, setFriendContinueConfirmed] = useState(false);
   const [waitingForStakeConfirmation, setWaitingForStakeConfirmation] = useState(false);
   const [vaultRentDepositSol, setVaultRentDepositSol] = useState(0);
   const [matchAccountRentDepositSol, setMatchAccountRentDepositSol] = useState(0);
@@ -189,6 +190,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setShowInviteDialog(false);
       setShowJoinDialog(false);
       setWaitingForStakeConfirmation(false);
+      setFriendContinueConfirmed(false);
       setPendingStakeConfirmation(null);
       stakeSyncSessionRef.current = null;
       if (stakeTimerRef.current) {
@@ -228,17 +230,57 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         const updated = { ...current, gameMatch: payload.gameMatch };
         pendingMatchRef.current = updated;
 
-        if (
-          updated.matchType !== 'friend' &&
-          updated.matchType === 'ranked' &&
-          updated.slot === 'p2' &&
-          !waitingForStakeConfirmation
-        ) {
+        if (updated.matchType !== 'bot' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
           setShowTransactionModal(true);
         }
 
         return updated;
       });
+    });
+
+    const applyFriendReadyState = (payload: any) => {
+      if (typeof payload?.sessionId !== 'string') return;
+
+      const currentMatch = pendingMatchRef.current;
+      if (!currentMatch || currentMatch.sessionId !== payload.sessionId || currentMatch.matchType !== 'friend') return;
+
+      const bothConfirmed =
+        payload?.bothReady === true ||
+        payload?.allReady === true ||
+        payload?.readyCount === 2 ||
+        payload?.status === 'both_ready' ||
+        payload?.phase === 'stake';
+
+      if (!bothConfirmed) {
+        return;
+      }
+
+      setFriendIntroOpen(false);
+      if (currentMatch.slot === 'p1') {
+        setWaitingForStakeConfirmation(false);
+        setShowTransactionModal(true);
+        return;
+      }
+
+      setShowTransactionModal(false);
+      setWaitingForStakeConfirmation(true);
+      toast.info('Waiting for host to initialize on-chain match escrow...');
+    };
+
+    const unsubscribeFriendReadyState = wsService.on('match:friend_ready_state', (message: any) => {
+      applyFriendReadyState(message?.payload ?? {});
+    });
+
+    const unsubscribeMatchStatus = wsService.on('match:status', (message: any) => {
+      const payload = message?.payload ?? {};
+      if (
+        payload?.stage === 'friend_ready' ||
+        payload?.phase === 'friend_ready' ||
+        payload?.status === 'both_ready' ||
+        payload?.bothReady === true
+      ) {
+        applyFriendReadyState(payload);
+      }
     });
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
@@ -250,6 +292,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       const proceedToArena = () => {
         setWaitingForStakeConfirmation(false);
         setFriendIntroOpen(false);
+        setFriendContinueConfirmed(false);
         if (matchToStart) {
           if (onStartMatch) {
             onStartMatch(
@@ -312,6 +355,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setWaitingForStakeConfirmation(false);
       setFriendIntroOpen(false);
       setFriendRoom(null);
+      setFriendContinueConfirmed(false);
       setPendingStakeConfirmation(null);
       stakeSyncSessionRef.current = null;
       if (stakeTimerRef.current) {
@@ -327,6 +371,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeGameMatchReady();
+      unsubscribeFriendReadyState();
+      unsubscribeMatchStatus();
       unsubscribeEnterArena();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
@@ -614,13 +660,20 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   };
 
   const handleFriendContinue = () => {
-    setFriendIntroOpen(false);
     if (!pendingMatchRef.current) return;
-    if (pendingMatchRef.current.matchType === 'friend') {
+    if (pendingMatchRef.current.matchType !== 'friend') {
       setShowTransactionModal(true);
       return;
     }
-    setShowTransactionModal(true);
+
+    if (friendContinueConfirmed) {
+      return;
+    }
+
+    setFriendContinueConfirmed(true);
+    send('match:friend_ready', { sessionId: pendingMatchRef.current.sessionId });
+    send('friend:ready', { sessionId: pendingMatchRef.current.sessionId });
+    toast.info('Ready confirmed. Waiting for your friend to continue...');
   };
 
   const handleCancelMatchmaking = () => {
@@ -1179,13 +1232,14 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">
-                  Review the details and continue to confirm your stake.
+                  Both players must press Continue before staking can begin.
                 </p>
                 <button
                   onClick={handleFriendContinue}
-                  className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)]"
+                  disabled={friendContinueConfirmed}
+                  className="w-full rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#06B6D4] px-4 py-3 font-semibold text-[#0B0F1A] transition hover:shadow-[0_0_25px_rgba(0,255,163,0.4)] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Continue
+                  {friendContinueConfirmed ? 'Waiting for friend...' : 'Continue'}
                 </button>
               </div>
             </div>
@@ -1219,9 +1273,15 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
                   }}
                 ></div>
                 <div>
-                  <p className="text-lg font-semibold text-white">Waiting for opponent to confirm stake...</p>
+                  <p className="text-lg font-semibold text-white">
+                    {pendingMatch.matchType === 'friend' && pendingMatch.slot === 'p2'
+                      ? 'Waiting for host to initialize stake...'
+                      : 'Waiting for opponent to confirm stake...'}
+                  </p>
                   <p className="text-sm text-gray-400">
-                    {pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ {toSol(pendingMatch.stakeLamports).toFixed(3)} SOL.
+                    {pendingMatch.matchType === 'friend' && pendingMatch.slot === 'p2'
+                      ? 'Your host is setting up the on-chain match escrow. You will be prompted to sign next.'
+                      : `${pendingMatch.opponentName ?? 'Your opponent'} needs to confirm ◎ ${toSol(pendingMatch.stakeLamports).toFixed(3)} SOL.`}
                   </p>
                 </div>
               </div>
