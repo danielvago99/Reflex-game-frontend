@@ -425,7 +425,7 @@ const triggerDisconnectFlow = async (
   const remainingSocket = getSocketForSlot(state, remainingSlot, options?.excludeSocket);
   const disconnectCount = incrementDisconnectCount(state, disconnectedSlot);
 
-  if (disconnectCount >= 2) {
+  if (disconnectCount >= 10) {
     clearTimers(state);
     state.scores[remainingSlot] = Math.max(state.scores[remainingSlot], ROUNDS_TO_WIN);
     broadcastToSession(state.sessionId, 'game:end', {
@@ -2551,6 +2551,10 @@ export function createWsServer(server: Server) {
           case 'player:away': {
             const sessionState = sessionStates.get(sessionRef.sessionId);
             if (!sessionState || sessionState.isFinished) {
+              break;
+            }
+
+            if (!sessionState.hasStarted) {
               break;
             }
 
