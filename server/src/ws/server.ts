@@ -59,6 +59,8 @@ interface SessionState extends RoundTimers {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1FriendReady?: boolean;
+  p2FriendReady?: boolean;
   readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
@@ -105,6 +107,8 @@ interface RedisSessionState {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1FriendReady?: boolean;
+  p2FriendReady?: boolean;
   readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
@@ -188,6 +192,8 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
   p2Ready: state.p2Ready,
+  p1FriendReady: state.p1FriendReady,
+  p2FriendReady: state.p2FriendReady,
   readyDeadlineTs: state.readyDeadlineTs,
   p1RoundReady: state.p1RoundReady,
   p2RoundReady: state.p2RoundReady,
@@ -732,6 +738,8 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.p2Staked = false;
   state.p1Ready = false;
   state.p2Ready = false;
+  state.p1FriendReady = false;
+  state.p2FriendReady = false;
   state.readyDeadlineTs = undefined;
   state.p1RoundReady = false;
   state.p2RoundReady = false;
@@ -2571,6 +2579,56 @@ export function createWsServer(server: Server) {
                 ? normalizeRoomCode(message.payload.roomCode)
                 : undefined;
             void closeFriendRoom(sessionId, sessionRef.userId, { roomCode, socket });
+            break;
+          }
+          case 'client:friend_continue': {
+            const state = sessionStates.get(sessionRef.sessionId);
+            if (!state || state.matchType !== 'friend' || state.isFinished) {
+              break;
+            }
+
+            const assignments = sessionAssignments.get(sessionRef.sessionId);
+            if (!assignments?.p1 || !assignments?.p2 || !sessionRef.userId) {
+              break;
+            }
+
+            if (assignments.p1 === sessionRef.userId) {
+              state.p1FriendReady = true;
+            } else if (assignments.p2 === sessionRef.userId) {
+              state.p2FriendReady = true;
+            } else {
+              break;
+            }
+
+            if (state.p1FriendReady && state.p2FriendReady) {
+              const hostSocket = getSocketForSlot(state, 'p1');
+              const joinerSocket = getSocketForSlot(state, 'p2');
+
+              if (hostSocket) {
+                sendMessage(hostSocket, 'friend:start_staking', {
+                  sessionId: state.sessionId,
+                  stakeLamports: state.stakeLamports ?? 0,
+                });
+              }
+
+              if (joinerSocket) {
+                sendMessage(joinerSocket, 'friend:waiting_for_host', {
+                  sessionId: state.sessionId,
+                  stakeLamports: state.stakeLamports ?? 0,
+                });
+              }
+
+              broadcastToSession(state.sessionId, 'match:status', {
+                status: 'friend_continue_ready',
+                readyCount: 2,
+              });
+            } else {
+              sendMessage(socket, 'friend:waiting_for_opponent', {
+                sessionId: state.sessionId,
+              });
+            }
+
+            void persistSessionState(state);
             break;
           }
           case 'round:ready':
