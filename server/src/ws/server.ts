@@ -767,6 +767,13 @@ const clearSessionAssignments = (sessionId: string, state?: SessionState) => {
 const isPreGameSession = (state?: SessionState) =>
   Boolean(state && !state.hasStarted && !state.isFinished);
 
+const hasStakingStarted = (state?: SessionState) =>
+  Boolean(
+    state &&
+      (state.matchType === 'ranked' || state.matchType === 'friend') &&
+      (state.onChainGameMatch || state.p1Staked || state.p2Staked),
+  );
+
 const collectSessionSockets = (sessionId: string, state?: SessionState) => {
   const sockets = new Set<WebSocket>();
   const sessionSet = sessionSockets.get(sessionId);
@@ -3266,7 +3273,7 @@ export function createWsServer(server: Server) {
         const sockets = sessionSockets.get(sessionRef.sessionId);
         sockets?.delete(socket);
 
-        if (sessionState && isPreGameSession(sessionState)) {
+        if (sessionState && isPreGameSession(sessionState) && !hasStakingStarted(sessionState)) {
           if (sessionState.matchType === 'friend') {
             broadcastToSession(sessionRef.sessionId, 'friend:room_closed', {
               message: 'Room closed because a player disconnected.',
