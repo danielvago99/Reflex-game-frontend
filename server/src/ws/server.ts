@@ -222,7 +222,8 @@ const getBotReactionWindow = (state: SessionState) => {
 };
 
 const createInstruction = (target: Target) => {
-  const shapeName = target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
+  const shapeName =
+    target.shape === 'circle' ? 'Kruh' : target.shape === 'square' ? 'Štvorec' : 'Trojuholník';
   return `Hľadaj ${target.colorName} ${shapeName}`;
 };
 
@@ -243,7 +244,7 @@ const sendMessage = (socket: WebSocket, type: string, payload: unknown) => {
       type,
       payload,
       timestamp: Date.now(),
-    })
+    }),
   );
 };
 
@@ -293,7 +294,8 @@ const readyTimeouts = new Map<string, NodeJS.Timeout>();
 const rankedBotKeypairs = new Map<string, Keypair>();
 const isPersistableUserId = (userId?: string | null) =>
   Boolean(userId && userId !== 'bot_opponent' && !userId.startsWith('guest'));
-const toPersistableUserId = (userId?: string | null) => (isPersistableUserId(userId) ? userId : null);
+const toPersistableUserId = (userId?: string | null) =>
+  isPersistableUserId(userId) ? userId : null;
 
 const getOpponentSlot = (slot: 'p1' | 'p2') => (slot === 'p1' ? 'p2' : 'p1');
 
@@ -363,8 +365,8 @@ const incrementDisconnectCount = (state: SessionState, slot: 'p1' | 'p2') => {
   const previous = state.disconnectCounts ?? { p1: 0, p2: 0 };
   const nextCount = (previous[slot] ?? 0) + 1;
   state.disconnectCounts = {
-    p1: slot === 'p1' ? nextCount : previous.p1 ?? 0,
-    p2: slot === 'p2' ? nextCount : previous.p2 ?? 0,
+    p1: slot === 'p1' ? nextCount : (previous.p1 ?? 0),
+    p2: slot === 'p2' ? nextCount : (previous.p2 ?? 0),
   };
   return nextCount;
 };
@@ -407,7 +409,10 @@ const getSocketForSlot = (state: SessionState, slot: 'p1' | 'p2', exclude?: WebS
 const triggerDisconnectFlow = async (
   state: SessionState,
   disconnectedSlot: 'p1' | 'p2',
-  options?: { reason?: 'tabbed_out' | 'ready-timeout' | 'socket_closed'; excludeSocket?: WebSocket }
+  options?: {
+    reason?: 'tabbed_out' | 'ready-timeout' | 'socket_closed';
+    excludeSocket?: WebSocket;
+  },
 ) => {
   if (state.isFinished || isBotOpponent(state)) {
     return;
@@ -454,7 +459,10 @@ const triggerDisconnectFlow = async (
       if (!activeState || activeState.isFinished) return;
 
       clearTimers(activeState);
-      activeState.scores[remainingSlot] = Math.max(activeState.scores[remainingSlot], ROUNDS_TO_WIN);
+      activeState.scores[remainingSlot] = Math.max(
+        activeState.scores[remainingSlot],
+        ROUNDS_TO_WIN,
+      );
       broadcastToSession(activeState.sessionId, 'game:end', {
         winnerSlot: remainingSlot,
         loserSlot: disconnectedSlot,
@@ -579,9 +587,15 @@ const closeFriendRoom = async (
         const sockets = sessionSockets.get(sessionId);
         sockets?.delete(options.socket);
       }
-      logger.info({ sessionId, userId: requestedByUserId }, 'Guest sent room close; treated as leave');
+      logger.info(
+        { sessionId, userId: requestedByUserId },
+        'Guest sent room close; treated as leave',
+      );
     } else {
-      logger.info({ sessionId, userId: requestedByUserId }, 'Friend room close ignored from non-host');
+      logger.info(
+        { sessionId, userId: requestedByUserId },
+        'Friend room close ignored from non-host',
+      );
     }
     return;
   }
@@ -642,7 +656,7 @@ const broadcastRoundResult = (
     reason?: 'early-click' | 'no-reaction' | 'slower';
     rawBotTime: number;
     target: Target;
-  }
+  },
 ) => {
   const sockets = sessionSockets.get(state.sessionId);
   if (!sockets || sockets.size === 0) return;
@@ -696,14 +710,20 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.disconnectPause = undefined;
 
   if (state.matchType !== 'friend') {
-    state.stakeLamports = typeof payload?.stakeLamports === 'number' ? payload.stakeLamports : state.stakeLamports;
+    state.stakeLamports =
+      typeof payload?.stakeLamports === 'number' ? payload.stakeLamports : state.stakeLamports;
   }
   const validTypes = ['ranked', 'friend', 'bot'];
   const requestedMatchType =
-    payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : state.matchType ?? 'friend';
+    payload?.matchType && validTypes.includes(payload.matchType)
+      ? payload.matchType
+      : (state.matchType ?? 'friend');
   const assignments = sessionAssignments.get(state.sessionId);
   const hasHumanOpponent =
-    assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
+    assignments?.p1 &&
+    assignments?.p2 &&
+    assignments.p1 !== 'bot_opponent' &&
+    assignments.p2 !== 'bot_opponent';
   const matchType =
     state.matchType && state.matchType !== 'bot'
       ? state.matchType
@@ -744,7 +764,8 @@ const clearSessionAssignments = (sessionId: string, state?: SessionState) => {
   }
 };
 
-const isPreGameSession = (state?: SessionState) => Boolean(state && !state.hasStarted && !state.isFinished);
+const isPreGameSession = (state?: SessionState) =>
+  Boolean(state && !state.hasStarted && !state.isFinished);
 
 const collectSessionSockets = (sessionId: string, state?: SessionState) => {
   const sockets = new Set<WebSocket>();
@@ -768,7 +789,12 @@ const collectSessionSockets = (sessionId: string, state?: SessionState) => {
   return sockets;
 };
 
-const emitMatchCancelled = (sessionId: string, state: SessionState | undefined, reason: string, message: string) => {
+const emitMatchCancelled = (
+  sessionId: string,
+  state: SessionState | undefined,
+  reason: string,
+  message: string,
+) => {
   const sockets = collectSessionSockets(sessionId, state);
   for (const sessionSocket of sockets) {
     sendMessage(sessionSocket, 'match:cancelled', {
@@ -776,6 +802,103 @@ const emitMatchCancelled = (sessionId: string, state: SessionState | undefined, 
       reason,
       message,
     });
+  }
+};
+
+const resolveSessionWallets = async (sessionId: string, state: SessionState) => {
+  const assignments = sessionAssignments.get(sessionId);
+  const player1Id = assignments?.p1;
+  const player2Id = assignments?.p2;
+
+  let playerA: string | undefined;
+  let playerB: string | undefined;
+
+  if (player1Id && !player1Id.startsWith('guest')) {
+    const p1User = await prisma.user.findUnique({
+      where: { id: player1Id },
+      select: { walletAddress: true },
+    });
+    playerA = p1User?.walletAddress ?? undefined;
+  }
+
+  if (state.isBotOpponent) {
+    const botKeypair = rankedBotKeypairs.get(sessionId);
+    if (botKeypair) {
+      playerB = botKeypair.publicKey.toBase58();
+    } else if (player2Id && !player2Id.startsWith('guest')) {
+      const botUser = await prisma.user.findUnique({
+        where: { id: player2Id },
+        select: { walletAddress: true },
+      });
+      playerB = botUser?.walletAddress ?? undefined;
+    }
+  } else if (player2Id && !player2Id.startsWith('guest')) {
+    const p2User = await prisma.user.findUnique({
+      where: { id: player2Id },
+      select: { walletAddress: true },
+    });
+    playerB = p2User?.walletAddress ?? undefined;
+  }
+
+  return { playerA, playerB };
+};
+
+const tryRefundCancelledPregameStake = async (
+  sessionId: string,
+  state: SessionState,
+  reason: string,
+) => {
+  const shouldRefundOnChain =
+    state.matchType === 'ranked' &&
+    Boolean(state.onChainGameMatch) &&
+    state.p1Staked &&
+    state.p2Staked;
+
+  if (!shouldRefundOnChain) {
+    return;
+  }
+
+  try {
+    const { playerA, playerB } = await resolveSessionWallets(sessionId, state);
+    if (!playerA || !playerB) {
+      logger.error(
+        {
+          sessionId,
+          reason,
+          playerA,
+          playerB,
+          gameMatch: state.onChainGameMatch,
+        },
+        'Pre-game ranked cancellation refund skipped: missing wallet address',
+      );
+      return;
+    }
+
+    const result = await solanaEscrowService.cancelActiveMatch({
+      gameMatch: state.onChainGameMatch,
+      playerA,
+      playerB,
+    });
+
+    logger.info(
+      {
+        sessionId,
+        reason,
+        signature: result.signature,
+        gameMatch: state.onChainGameMatch,
+      },
+      'Pre-game ranked session refunded on-chain',
+    );
+  } catch (refundError) {
+    logger.error(
+      {
+        refundError,
+        sessionId,
+        reason,
+        gameMatch: state.onChainGameMatch,
+      },
+      'Pre-game ranked cancellation refund failed',
+    );
   }
 };
 
@@ -815,6 +938,7 @@ const failFastCancelSession = async (sessionId: string, reason: string, message:
     return;
   }
 
+  await tryRefundCancelledPregameStake(sessionId, sessionState, reason);
   emitMatchCancelled(sessionId, sessionState, reason, message);
   await cleanupAbortedSession(sessionId, reason);
 };
@@ -823,7 +947,7 @@ const clearInvalidSession = async (
   userId: string,
   sessionId: string,
   reason: string,
-  state?: SessionState
+  state?: SessionState,
 ) => {
   logger.warn({ userId, sessionId, reason }, 'Invalid session found, clearing...');
   clearUserActiveSession(userId);
@@ -865,11 +989,13 @@ const validateRestorableSession = async (userId: string, sessionId: string) => {
   const assignments = sessionAssignments.get(sessionId);
   const hasBotOpponent = isBotOpponent(state);
 
-  const isUserAssigned = assignments?.p1 === userId || assignments?.p2 === userId || state.userId === userId;
+  const isUserAssigned =
+    assignments?.p1 === userId || assignments?.p2 === userId || state.userId === userId;
   if (!hasBotOpponent) {
     const hasBothPlayers = Boolean(assignments?.p1 && assignments?.p2);
     const opponentId = assignments?.p1 === userId ? assignments?.p2 : assignments?.p1;
-    const opponentValid = Boolean(opponentId) && opponentId !== userId && opponentId !== 'bot_opponent';
+    const opponentValid =
+      Boolean(opponentId) && opponentId !== userId && opponentId !== 'bot_opponent';
     if (!hasBothPlayers || !isUserAssigned || !opponentValid) {
       await clearInvalidSession(userId, sessionId, 'missing or invalid player assignments', state);
       return null;
@@ -915,7 +1041,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   finalizedSessions.add(sharedState.sessionId);
   logger.info(
     { scores: sharedState.scores, history: sharedState.history, forfeit },
-    'Match completed. Persist final result with Prisma.'
+    'Match completed. Persist final result with Prisma.',
   );
 
   const player1Id = assignments?.p1;
@@ -925,7 +1051,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
   if (!player1Id || (!player2Id && !hasBotOpponent)) {
     logger.error(
       { sessionId: sharedState.sessionId, player1Id, player2Id, matchType: sharedState.matchType },
-      'Cannot persist match: Missing player IDs in session'
+      'Cannot persist match: Missing player IDs in session',
     );
     try {
       await redisClient.del(getSessionKey(sharedState.sessionId));
@@ -933,7 +1059,10 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         await redisClient.del(getRoomCodeKey(sharedState.roomCode));
       }
     } catch (error) {
-      logger.warn({ error, sessionId: sharedState.sessionId }, 'Failed to cleanup Redis session state');
+      logger.warn(
+        { error, sessionId: sharedState.sessionId },
+        'Failed to cleanup Redis session state',
+      );
     } finally {
       finalizedSessions.delete(sharedState.sessionId);
     }
@@ -948,7 +1077,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         ? sharedState.stakeLamports
         : 0;
     const normalizedStakeAmount = normalizeStakeAmount(stakeLamports);
-    const persistedMatchType: 'friend' | 'ranked' = sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
+    const persistedMatchType: 'friend' | 'ranked' =
+      sharedState.matchType === 'ranked' ? 'ranked' : 'friend';
     const winnerScore = sharedState.scores[winnerSlot];
     const loserScore = sharedState.scores[loserSlot];
     const totalPot = stakeLamports > 0 ? stakeLamports * 2 : 0;
@@ -956,7 +1086,9 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const payoutLamports = totalPot > 0 ? totalPot - stakeFee - stakeLamports : 0;
     const normalizedPayoutAmount = normalizeStakeAmount(payoutLamports);
     const shouldTrackJackpot =
-      persistedMatchType === 'ranked' && Number.isFinite(stakeLamports) && stakeLamports === 200_000_000;
+      persistedMatchType === 'ranked' &&
+      Number.isFinite(stakeLamports) &&
+      stakeLamports === 200_000_000;
 
     const playerTimes = sharedState.history
       .map((round) => round.p1Time)
@@ -986,13 +1118,18 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
     const humanId = humanSlot === 'p1' ? player1Id : humanSlot === 'p2' ? player2Id : undefined;
 
     if (hasBotOpponent && !humanId) {
-      logger.error({ sessionId: sharedState.sessionId }, 'Cannot persist bot match without a human player');
+      logger.error(
+        { sessionId: sharedState.sessionId },
+        'Cannot persist bot match without a human player',
+      );
       finalizedSessions.delete(sharedState.sessionId);
       return;
     }
 
-    const winnerId = winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
-    const loserId = winnerSlot === 'p1' ? toPersistableUserId(player2Id) : toPersistableUserId(player1Id);
+    const winnerId =
+      winnerSlot === 'p1' ? toPersistableUserId(player1Id) : toPersistableUserId(player2Id);
+    const loserId =
+      winnerSlot === 'p1' ? toPersistableUserId(player2Id) : toPersistableUserId(player1Id);
 
     const avgWinnerReaction = winnerSlot === 'p1' ? playerAverageReaction : opponentAverageReaction;
     const avgLoserReaction = winnerSlot === 'p1' ? opponentAverageReaction : playerAverageReaction;
@@ -1001,10 +1138,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       const updatePlayerStats = async (
         userId: string,
         outcome: 'win' | 'loss',
-        {
-          bestReaction,
-          averageReaction,
-        }: { bestReaction?: number; averageReaction?: number }
+        { bestReaction, averageReaction }: { bestReaction?: number; averageReaction?: number },
       ) => {
         const existingStats = await tx.playerStats.findUnique({ where: { userId } });
 
@@ -1062,9 +1196,16 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               winRate: newWinRate,
               bestReaction: newBestReaction ?? undefined,
               avgReaction: newAverageReaction ?? undefined,
-              totalVolumeSolPlayed: stakeLamports > 0 ? { increment: normalizedStakeAmount } : undefined,
-              totalSolWon: outcome === 'win' && payoutLamports > 0 ? { increment: normalizedPayoutAmount } : undefined,
-              totalSolLost: outcome === 'loss' && stakeLamports > 0 ? { increment: normalizedStakeAmount } : undefined,
+              totalVolumeSolPlayed:
+                stakeLamports > 0 ? { increment: normalizedStakeAmount } : undefined,
+              totalSolWon:
+                outcome === 'win' && payoutLamports > 0
+                  ? { increment: normalizedPayoutAmount }
+                  : undefined,
+              totalSolLost:
+                outcome === 'loss' && stakeLamports > 0
+                  ? { increment: normalizedStakeAmount }
+                  : undefined,
             },
           });
         }
@@ -1112,9 +1253,17 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             winnerId: roundWinnerId,
             loserId: roundLoserId,
             winnerReaction:
-              round.winner === 'p1' ? roundPlayerTime : round.winner === 'p2' ? roundOpponentTime : null,
+              round.winner === 'p1'
+                ? roundPlayerTime
+                : round.winner === 'p2'
+                  ? roundOpponentTime
+                  : null,
             loserReaction:
-              round.winner === 'p1' ? roundOpponentTime : round.winner === 'p2' ? roundPlayerTime : null,
+              round.winner === 'p1'
+                ? roundOpponentTime
+                : round.winner === 'p2'
+                  ? roundPlayerTime
+                  : null,
           },
         });
       }
@@ -1172,7 +1321,8 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
       }
 
       const persistableUserIds = Array.from(new Set([player1Id, player2Id])).filter(
-        (userId): userId is string => !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest')
+        (userId): userId is string =>
+          !!userId && userId !== 'bot_opponent' && !userId.startsWith('guest'),
       );
 
       for (const userId of persistableUserIds) {
@@ -1210,7 +1360,11 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             });
 
             const newTier =
-              ambassador.activeReferrals >= 30 ? 'gold' : ambassador.activeReferrals >= 10 ? 'silver' : 'bronze';
+              ambassador.activeReferrals >= 30
+                ? 'gold'
+                : ambassador.activeReferrals >= 10
+                  ? 'silver'
+                  : 'bronze';
 
             if (newTier !== ambassador.tier) {
               await tx.ambassadorProfile.update({
@@ -1256,7 +1410,6 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
         }
 
         if (dailyProgress && dailyJustCompleted) {
-
           await tx.playerRewards.update({
             where: { userId },
             data: { reflexPoints: { increment: 10 } },
@@ -1406,7 +1559,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
             player2WalletAddress,
             winnerWalletAddress,
           },
-          'Settlement skipped: Missing wallets'
+          'Settlement skipped: Missing wallets',
         );
       } else {
         try {
@@ -1422,7 +1575,7 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               onChainGameMatch: sharedState.onChainGameMatch,
               signature: settleResult.signature,
             },
-            'Match settled on-chain'
+            'Match settled on-chain',
           );
         } catch (err) {
           logger.error(
@@ -1431,14 +1584,19 @@ const finalizeGame = async (state: SessionState, forfeit: boolean) => {
               sessionId: sharedState.sessionId,
               onChainGameMatch: sharedState.onChainGameMatch,
             },
-            'Settlement failed'
+            'Settlement failed',
           );
         }
       }
     }
   } catch (error) {
     finalizedSessions.delete(sharedState.sessionId);
-    if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'P2002') {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    ) {
       logger.warn({ error }, 'Game already saved');
       return;
     }
@@ -1451,7 +1609,7 @@ const finalizeRound = async (
   options: {
     reason?: 'early-click' | 'no-reaction' | 'slower';
     clickingUserId?: string;
-  }
+  },
 ): Promise<boolean> => {
   if (state.roundResolved) return false;
 
@@ -1503,7 +1661,10 @@ const finalizeRound = async (
     winner: winnerSlot,
     target: state.target ?? DEFAULT_TARGET,
   });
-  logger.debug({ round: state.round, p1Time, p2Time }, 'Round history recorded with both reaction times');
+  logger.debug(
+    { round: state.round, p1Time, p2Time },
+    'Round history recorded with both reaction times',
+  );
 
   setTimeout(() => {
     broadcastRoundResult(state, {
@@ -1586,7 +1747,11 @@ const restoreTimers = (state: SessionState) => {
     }, botDelay);
   }
 
-  if (state.timeRemaining.roundTimeout !== undefined && !state.isBotOpponent && state.targetShownAt) {
+  if (
+    state.timeRemaining.roundTimeout !== undefined &&
+    !state.isBotOpponent &&
+    state.targetShownAt
+  ) {
     const roundDelay = state.timeRemaining.roundTimeout;
     state.roundTimeoutEndsAt = Date.now() + roundDelay;
     state.roundTimeout = setTimeout(() => {
@@ -1626,15 +1791,22 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
   }
 
   if (sessionState.matchType !== 'friend') {
-    sessionState.stakeLamports = typeof payload?.stakeLamports === 'number' ? payload.stakeLamports : sessionState.stakeLamports;
+    sessionState.stakeLamports =
+      typeof payload?.stakeLamports === 'number'
+        ? payload.stakeLamports
+        : sessionState.stakeLamports;
   }
   if (sessionState.matchType) {
     if (payload?.matchType) {
-      logger.info({ sessionId }, 'Ignoring client matchType payload because session is already set');
+      logger.info(
+        { sessionId },
+        'Ignoring client matchType payload because session is already set',
+      );
     }
   } else {
     const validTypes = ['ranked', 'friend', 'bot'];
-    const matchType = payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
+    const matchType =
+      payload?.matchType && validTypes.includes(payload.matchType) ? payload.matchType : 'friend';
     sessionState.matchType = matchType;
     if (matchType === 'bot') {
       sessionState.isBotOpponent = true;
@@ -1656,7 +1828,10 @@ const handleRoundReady = async (socket: WebSocket, sessionRef: SocketSessionRef,
   }
 
   if (sessionState.showTimeout || sessionState.targetShownAt) {
-    logger.info({ sessionId, round: sessionState.round }, 'Round already prepared; skipping duplicate ready');
+    logger.info(
+      { sessionId, round: sessionState.round },
+      'Round already prepared; skipping duplicate ready',
+    );
     return;
   }
 
@@ -1728,7 +1903,10 @@ const handlePlayerClick = async (socket: WebSocket, sessionRef: SocketSessionRef
   const playerTime = Math.round(validatedTime);
   sessionState.reactions[slot] = playerTime;
 
-  if (sessionState.botTimeout && playerTime < (sessionState.botReactionTime ?? Infinity) + BOT_GRACE_MS) {
+  if (
+    sessionState.botTimeout &&
+    playerTime < (sessionState.botReactionTime ?? Infinity) + BOT_GRACE_MS
+  ) {
     clearTimeout(sessionState.botTimeout);
     sessionState.botTimeout = undefined;
     sessionState.botTimeoutEndsAt = undefined;
@@ -1811,8 +1989,8 @@ const startGame = async (state: SessionState) => {
   const fallbackP1Name = userNames.get(p1Id ?? '') ?? 'Player 1';
   const fallbackP2Name =
     state.isBotOpponent || p2Id === 'bot_opponent'
-      ? state.botDisplayName ?? 'Training Bot'
-      : userNames.get(p2Id ?? '') ?? 'Player 2';
+      ? (state.botDisplayName ?? 'Training Bot')
+      : (userNames.get(p2Id ?? '') ?? 'Player 2');
 
   const [p1Profile, p2Profile] = await Promise.all([
     fetchPlayerProfile(p1Id, fallbackP1Name),
@@ -1843,7 +2021,10 @@ export function createWsServer(server: Server) {
   const startRoundSequence = (state: SessionState) => {
     const sockets = sessionSockets.get(state.sessionId);
     if (!sockets || sockets.size === 0) {
-      logger.error({ sessionId: state.sessionId }, 'CRITICAL: No sockets found to broadcast countdown');
+      logger.error(
+        { sessionId: state.sessionId },
+        'CRITICAL: No sockets found to broadcast countdown',
+      );
       return;
     }
 
@@ -1937,7 +2118,6 @@ export function createWsServer(server: Server) {
     scheduleReadyTimeout(baseState);
   });
 
-
   matchmakingEvents.on('match_status', (data) => {
     const { userIds, ...payload } = data as { userIds: string[]; [key: string]: unknown };
 
@@ -2011,7 +2191,11 @@ export function createWsServer(server: Server) {
     } catch (error) {
       logger.error({ error, userId, sessionId }, 'Failed to create bot match session');
       if (sessionStates.has(sessionId)) {
-        void failFastCancelSession(sessionId, 'bot creation failed', 'Match cancelled due to bot setup error.');
+        void failFastCancelSession(
+          sessionId,
+          'bot creation failed',
+          'Match cancelled due to bot setup error.',
+        );
       } else if (socket) {
         sendMessage(socket, 'match:cancelled', {
           sessionId,
@@ -2033,9 +2217,10 @@ export function createWsServer(server: Server) {
       const url = new URL(request.url ?? '/ws', 'http://localhost');
       const queryToken = url.searchParams.get('token') ?? undefined;
       const authHeader = request.headers['authorization'];
-      const headerToken = typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')
-        ? authHeader.slice(7).trim()
-        : undefined;
+      const headerToken =
+        typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')
+          ? authHeader.slice(7).trim()
+          : undefined;
 
       const token = queryToken ?? headerToken;
 
@@ -2093,7 +2278,9 @@ export function createWsServer(server: Server) {
             : assignments?.p1 === userId
               ? assignments?.p2
               : assignments?.p1;
-          const opponentName = hasBotOpponent ? existingState.botDisplayName ?? 'Training Bot' : undefined;
+          const opponentName = hasBotOpponent
+            ? (existingState.botDisplayName ?? 'Training Bot')
+            : undefined;
 
           logger.info({ userId, activeSessionId }, 'RESTORING ACTIVE SESSION for user');
           sendMessage(socket, 'match_found', {
@@ -2203,7 +2390,9 @@ export function createWsServer(server: Server) {
             }
 
             if (!mappingCreated) {
-              sendMessage(socket, 'friend:error', { message: 'Unable to create room. Please try again.' });
+              sendMessage(socket, 'friend:error', {
+                message: 'Unable to create room. Please try again.',
+              });
               break;
             }
 
@@ -2252,7 +2441,9 @@ export function createWsServer(server: Server) {
 
             const normalizedCode = normalizeRoomCode(String(message.payload?.roomCode ?? ''));
             if (normalizedCode.length !== ROOM_CODE_LENGTH) {
-              sendMessage(socket, 'friend:join_error', { message: 'Room code must be 6 characters.' });
+              sendMessage(socket, 'friend:join_error', {
+                message: 'Room code must be 6 characters.',
+              });
               break;
             }
 
@@ -2261,17 +2452,24 @@ export function createWsServer(server: Server) {
               const lookup = await redisClient.get(getRoomCodeKey(normalizedCode));
               sessionId = typeof lookup === 'string' ? lookup : lookup ? String(lookup) : null;
             } catch (error) {
-              logger.error({ error, roomCode: normalizedCode }, 'Failed to fetch room code mapping');
+              logger.error(
+                { error, roomCode: normalizedCode },
+                'Failed to fetch room code mapping',
+              );
             }
 
             if (!sessionId) {
-              sendMessage(socket, 'friend:join_error', { message: 'Room code invalid or expired.' });
+              sendMessage(socket, 'friend:join_error', {
+                message: 'Room code invalid or expired.',
+              });
               break;
             }
 
             const sessionState = sessionStates.get(sessionId);
             if (!sessionState) {
-              sendMessage(socket, 'friend:join_error', { message: 'Room not available. Please try again.' });
+              sendMessage(socket, 'friend:join_error', {
+                message: 'Room not available. Please try again.',
+              });
               break;
             }
 
@@ -2377,7 +2575,11 @@ export function createWsServer(server: Server) {
               }
             }
 
-            const opponentSocket = getSocketForSlot(sessionState, getOpponentSlot(playerSlot), socket);
+            const opponentSocket = getSocketForSlot(
+              sessionState,
+              getOpponentSlot(playerSlot),
+              socket,
+            );
             if (opponentSocket) {
               sendMessage(opponentSocket, 'player:reconnected', {});
             }
@@ -2398,7 +2600,10 @@ export function createWsServer(server: Server) {
             {
               const sessionState = sessionStates.get(sessionRef.sessionId);
               if (!sessionState) {
-                logger.error({ sessionId: sessionRef.sessionId }, 'Session not found for match reset');
+                logger.error(
+                  { sessionId: sessionRef.sessionId },
+                  'Session not found for match reset',
+                );
                 break;
               }
               void handleMatchReset(sessionState, message.payload);
@@ -2435,7 +2640,9 @@ export function createWsServer(server: Server) {
                     : assignments?.p1;
                 const isBot = hasBotOpponent;
                 const stake = existingState.stakeLamports || 0;
-                const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
+                const opponentName = isBot
+                  ? (existingState.botDisplayName ?? 'Training Bot')
+                  : undefined;
 
                 sendMessage(socket, 'match_found', {
                   sessionId: activeSessionId,
@@ -2535,7 +2742,9 @@ export function createWsServer(server: Server) {
                   // Need to define stake/isBot from state
                   const isBot = hasBotOpponent;
                   const stake = existingState.stakeLamports || 0;
-                  const opponentName = isBot ? existingState.botDisplayName ?? 'Training Bot' : undefined;
+                  const opponentName = isBot
+                    ? (existingState.botDisplayName ?? 'Training Bot')
+                    : undefined;
 
                   socket.send(
                     JSON.stringify({
@@ -2570,7 +2779,8 @@ export function createWsServer(server: Server) {
                   const reaction = stats?.avgReaction ? Number(stats.avgReaction) : 600;
 
                   // Ensure stake is a number
-                  const requestedStakeLamports = toStakeLamports(message.payload?.stakeLamports) ?? 0;
+                  const requestedStakeLamports =
+                    toStakeLamports(message.payload?.stakeLamports) ?? 0;
                   const useFreeStake = Boolean(message.payload?.useFreeStake);
 
                   if (useFreeStake) {
@@ -2583,12 +2793,17 @@ export function createWsServer(server: Server) {
                     const timer = setTimeout(() => {
                       freeStakeBotTimers.delete(userId!);
                       if (!userActiveSessions.has(userId!)) {
-                        matchmakingEvents.emit('bot_match', { userId, stakeLamports: requestedStakeLamports });
+                        matchmakingEvents.emit('bot_match', {
+                          userId,
+                          stakeLamports: requestedStakeLamports,
+                        });
                       }
                     }, waitMs);
 
                     freeStakeBotTimers.set(userId!, timer);
-                    sendMessage(socket, 'match:searching', { stakeLamports: requestedStakeLamports });
+                    sendMessage(socket, 'match:searching', {
+                      stakeLamports: requestedStakeLamports,
+                    });
                     return;
                   }
 
@@ -2653,16 +2868,24 @@ export function createWsServer(server: Server) {
           case 'match:stake_failed': {
             const { userId } = sessionRef;
             const sessionId =
-              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : userId
-                ? userActiveSessions.get(userId)
-                : undefined;
+              typeof message.payload?.sessionId === 'string'
+                ? message.payload.sessionId
+                : userId
+                  ? userActiveSessions.get(userId)
+                  : undefined;
             const reason =
-              typeof message.payload?.reason === 'string' ? message.payload.reason : 'stake transaction failed';
+              typeof message.payload?.reason === 'string'
+                ? message.payload.reason
+                : 'stake transaction failed';
 
             if (sessionId) {
               const sessionState = sessionStates.get(sessionId);
               if (sessionState && isPreGameSession(sessionState)) {
-                await failFastCancelSession(sessionId, reason, 'Match cancelled due to stake failure.');
+                await failFastCancelSession(
+                  sessionId,
+                  reason,
+                  'Match cancelled due to stake failure.',
+                );
                 break;
               }
             }
@@ -2673,12 +2896,18 @@ export function createWsServer(server: Server) {
             break;
           }
           case 'match:stake_confirmed': {
-            const sessionId = typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : undefined;
+            const sessionId =
+              typeof message.payload?.sessionId === 'string'
+                ? message.payload.sessionId
+                : undefined;
             if (!sessionId) return;
 
             const assignments = sessionAssignments.get(sessionId);
             const hasHumanOpponent =
-              assignments?.p1 && assignments?.p2 && assignments.p1 !== 'bot_opponent' && assignments.p2 !== 'bot_opponent';
+              assignments?.p1 &&
+              assignments?.p2 &&
+              assignments.p1 !== 'bot_opponent' &&
+              assignments.p2 !== 'bot_opponent';
             const sessionState = sessionStates.get(sessionId);
             const requestedMatchType =
               message.payload?.matchType === 'bot'
@@ -2687,16 +2916,16 @@ export function createWsServer(server: Server) {
                   ? 'friend'
                   : 'ranked';
             const resolvedMatchType = sessionState?.matchType ?? requestedMatchType;
-            const payloadStake =
-              toStakeLamports(message.payload?.stakeLamports) ?? undefined;
+            const payloadStake = toStakeLamports(message.payload?.stakeLamports) ?? undefined;
             const sessionStake =
-              typeof sessionState?.stakeLamports === 'number' && Number.isFinite(sessionState.stakeLamports)
+              typeof sessionState?.stakeLamports === 'number' &&
+              Number.isFinite(sessionState.stakeLamports)
                 ? sessionState.stakeLamports
                 : undefined;
             const stakeLamports =
               resolvedMatchType === 'friend'
-                ? sessionStake ?? payloadStake ?? 0
-                : payloadStake ?? sessionStake ?? 0;
+                ? (sessionStake ?? payloadStake ?? 0)
+                : (payloadStake ?? sessionStake ?? 0);
 
             const matchType =
               hasHumanOpponent && requestedMatchType === 'bot'
@@ -2729,7 +2958,8 @@ export function createWsServer(server: Server) {
             resolvedSessionState.sessionId = sessionId;
             resolvedSessionState.matchType = matchType;
             resolvedSessionState.stakeLamports = stakeLamports;
-            const hasBotOpponent = matchType === 'bot' || resolvedSessionState.isBotOpponent === true;
+            const hasBotOpponent =
+              matchType === 'bot' || resolvedSessionState.isBotOpponent === true;
             resolvedSessionState.isBotOpponent = hasBotOpponent;
             sessionStates.set(sessionId, resolvedSessionState);
 
@@ -2748,20 +2978,31 @@ export function createWsServer(server: Server) {
             sessionAssignments.set(sessionId, updatedAssignments);
 
             const onChainTxSignature =
-              typeof message.payload?.signature === 'string' ? message.payload.signature : undefined;
+              typeof message.payload?.signature === 'string'
+                ? message.payload.signature
+                : undefined;
             const onChainGameMatch =
-              typeof message.payload?.gameMatch === 'string' ? message.payload.gameMatch : undefined;
+              typeof message.payload?.gameMatch === 'string'
+                ? message.payload.gameMatch
+                : undefined;
 
             if (matchType === 'ranked') {
               if (!onChainTxSignature) {
-                await failFastCancelSession(sessionId, 'missing on-chain signature', 'Match cancelled: missing stake transaction.');
+                await failFastCancelSession(
+                  sessionId,
+                  'missing on-chain signature',
+                  'Match cancelled: missing stake transaction.',
+                );
                 break;
               }
 
               try {
                 await solanaEscrowService.confirmTransaction(onChainTxSignature);
               } catch (confirmError) {
-                logger.error({ confirmError, sessionId, onChainTxSignature }, 'Stake transaction confirmation failed');
+                logger.error(
+                  { confirmError, sessionId, onChainTxSignature },
+                  'Stake transaction confirmation failed',
+                );
                 await failFastCancelSession(
                   sessionId,
                   'stake transaction unconfirmed',
@@ -2791,7 +3032,10 @@ export function createWsServer(server: Server) {
                   break;
                 }
 
-                if (onChainGameMatch && onChainGameMatch !== resolvedSessionState.onChainGameMatch) {
+                if (
+                  onChainGameMatch &&
+                  onChainGameMatch !== resolvedSessionState.onChainGameMatch
+                ) {
                   await failFastCancelSession(
                     sessionId,
                     'gameMatch mismatch',
@@ -2889,7 +3133,10 @@ export function createWsServer(server: Server) {
             const winningSlot = getOpponentSlot(forfeitingSlot);
 
             clearTimers(sessionState);
-            sessionState.scores[winningSlot] = Math.max(sessionState.scores[winningSlot], ROUNDS_TO_WIN);
+            sessionState.scores[winningSlot] = Math.max(
+              sessionState.scores[winningSlot],
+              ROUNDS_TO_WIN,
+            );
 
             broadcastToSession(sessionRef.sessionId, 'game:end', {
               winnerSlot: winningSlot,
@@ -2936,7 +3183,9 @@ export function createWsServer(server: Server) {
           }
           case 'game:player_ready': {
             const targetSessionId =
-              typeof message.payload?.sessionId === 'string' ? message.payload.sessionId : sessionRef.sessionId;
+              typeof message.payload?.sessionId === 'string'
+                ? message.payload.sessionId
+                : sessionRef.sessionId;
 
             if (!targetSessionId) return;
 
@@ -2958,7 +3207,11 @@ export function createWsServer(server: Server) {
               isP1 = true;
             } else if (assignments?.p1 === userId) {
               isP1 = true;
-            } else if (!sessionState.p1Ready && assignments?.p1 && assignments.p1.startsWith('guest')) {
+            } else if (
+              !sessionState.p1Ready &&
+              assignments?.p1 &&
+              assignments.p1.startsWith('guest')
+            ) {
               isP1 = true;
             }
 
@@ -3025,7 +3278,9 @@ export function createWsServer(server: Server) {
 
         if (
           sessionState &&
-          (sessionState.matchType === 'ranked' || sessionState.matchType === 'bot' || sessionState.matchType === 'friend') &&
+          (sessionState.matchType === 'ranked' ||
+            sessionState.matchType === 'bot' ||
+            sessionState.matchType === 'friend') &&
           !sessionState.isFinished
         ) {
           const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);

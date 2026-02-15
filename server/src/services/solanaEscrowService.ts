@@ -53,7 +53,10 @@ class SolanaEscrowService {
 
     if (!this.walletKeypair || !this.programId) {
       if (env.SOLANA_PROGRAM_ID && !this.programId) {
-        logger.warn({ programId: env.SOLANA_PROGRAM_ID }, 'Invalid SOLANA_PROGRAM_ID. Solana settlement disabled.');
+        logger.warn(
+          { programId: env.SOLANA_PROGRAM_ID },
+          'Invalid SOLANA_PROGRAM_ID. Solana settlement disabled.',
+        );
       }
       this.provider = null;
       this.program = null;
@@ -70,13 +73,16 @@ class SolanaEscrowService {
         ...(idl as Idl),
         address: this.programId.toBase58(),
       },
-      this.provider
+      this.provider,
     );
 
     if (!this.programId.equals(this.program.programId)) {
       logger.warn(
-        { envProgramId: this.programId.toBase58(), idlProgramId: this.program.programId.toBase58() },
-        'SOLANA_PROGRAM_ID does not match IDL program address. Using env value for PDA derivations only.'
+        {
+          envProgramId: this.programId.toBase58(),
+          idlProgramId: this.program.programId.toBase58(),
+        },
+        'SOLANA_PROGRAM_ID does not match IDL program address. Using env value for PDA derivations only.',
       );
     }
   }
@@ -102,7 +108,10 @@ class SolanaEscrowService {
   }
 
   private deriveVaultPda(gameMatch: PublicKey) {
-    return PublicKey.findProgramAddressSync([VAULT_SEED, gameMatch.toBuffer()], this.getProgramId())[0];
+    return PublicKey.findProgramAddressSync(
+      [VAULT_SEED, gameMatch.toBuffer()],
+      this.getProgramId(),
+    )[0];
   }
 
   private async resolveFeeVault(feeVault?: string) {
@@ -161,6 +170,45 @@ class SolanaEscrowService {
         playerA,
         playerB,
         feeVault,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    return { signature };
+  }
+
+  async cancelActiveMatch(input: {
+    gameMatch?: string;
+    matchId?: string;
+    playerA: string;
+    playerB: string;
+  }) {
+    if (!this.isConfigured || !this.program || !this.walletKeypair) {
+      logger.warn({ input }, 'Solana active match cancel skipped (service not configured).');
+      return { signature: 'cancel_skipped_unconfigured' };
+    }
+
+    const gameMatchKey = input.gameMatch ?? input.matchId;
+    if (!gameMatchKey) {
+      throw new Error('gameMatch public key is required for cancellation');
+    }
+
+    const gameMatch = new PublicKey(gameMatchKey);
+    const playerA = new PublicKey(input.playerA);
+    const playerB = new PublicKey(input.playerB);
+
+    const configPda = this.deriveConfigPda();
+    const vaultPda = this.deriveVaultPda(gameMatch);
+
+    const signature = await this.program.methods
+      .cancelActiveMatch()
+      .accountsStrict({
+        serverAuthority: this.walletKeypair.publicKey,
+        config: configPda,
+        gameMatch,
+        vault: vaultPda,
+        playerA,
+        playerB,
         systemProgram: SystemProgram.programId,
       })
       .rpc();
