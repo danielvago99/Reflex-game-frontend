@@ -164,7 +164,6 @@ const ROOM_CODE_TTL_SECONDS = 60 * 60;
 const ROOM_CODE_LENGTH = 6;
 const MAX_FRIEND_STAKE_LAMPORTS = 10 * 1_000_000_000;
 const DISCONNECT_TIMEOUT_MS = 30_000;
-const STAKE_CONFIRM_TIMEOUT_MS = 15_000;
 const ARENA_READY_TIMEOUT_MS = 30_000;
 
 const getSessionKey = (sessionId: string) => `game:session:${sessionId}`;
@@ -516,8 +515,13 @@ const scheduleReadyTimeout = (state: SessionState) => {
     return;
   }
 
-  const waitingForStakeConfirmation = !hasAllRequiredStakesConfirmed(state);
-  const timeoutMs = waitingForStakeConfirmation ? STAKE_CONFIRM_TIMEOUT_MS : ARENA_READY_TIMEOUT_MS;
+  if (!hasAllRequiredStakesConfirmed(state)) {
+    clearReadyTimeout(state.sessionId);
+    state.readyDeadlineTs = undefined;
+    return;
+  }
+
+  const timeoutMs = ARENA_READY_TIMEOUT_MS;
 
   clearReadyTimeout(state.sessionId);
   state.readyDeadlineTs = Date.now() + timeoutMs;
@@ -527,15 +531,6 @@ const scheduleReadyTimeout = (state: SessionState) => {
     if (!activeState || activeState.isFinished || activeState.hasStarted) return;
     if (activeState.disconnectPause) return;
     if (activeState.p1Ready && activeState.p2Ready) return;
-
-    if (!hasAllRequiredStakesConfirmed(activeState)) {
-      void failFastCancelSession(
-        activeState.sessionId,
-        'stake_cancel_timeout',
-        'Match cancelled: stake confirmation timed out.',
-      );
-      return;
-    }
 
     const unreadySlot = activeState.p1Ready ? 'p2' : 'p1';
     void triggerDisconnectFlow(activeState, unreadySlot, { reason: 'ready-timeout' });
