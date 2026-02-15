@@ -872,24 +872,11 @@ const tryRefundCancelledPregameStake = async (
 
   try {
     const { playerA, playerB } = await resolveSessionWallets(sessionId, state);
-    if (!playerA) {
-      logger.error(
-        {
-          sessionId,
-          reason,
-          playerA,
-          playerB,
-          gameMatch: state.onChainGameMatch,
-        },
-        'Pre-game ranked cancellation refund skipped: missing host wallet address',
-      );
-      return;
-    }
 
     const result = await solanaEscrowService.cancelActiveMatch({
       gameMatch: state.onChainGameMatch,
-      playerA,
-      playerB: playerB ?? playerA,
+      playerA: playerA ?? undefined,
+      playerB: playerB ?? undefined,
     });
 
     logger.info(
