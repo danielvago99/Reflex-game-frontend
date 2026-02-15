@@ -229,17 +229,52 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         pendingMatchRef.current = updated;
 
         if (
-          updated.matchType !== 'friend' &&
-          updated.matchType === 'ranked' &&
+          (updated.matchType === 'ranked' || updated.matchType === 'friend') &&
           updated.slot === 'p2' &&
           !waitingForStakeConfirmation
         ) {
+          setWaitingForStakeConfirmation(false);
           setShowTransactionModal(true);
         }
 
         return updated;
       });
     });
+
+    const unsubscribeFriendStartStaking = wsService.on('friend:start_staking', (message: any) => {
+      const payload = message?.payload ?? {};
+      if (typeof payload?.sessionId !== 'string') return;
+
+      const pending = pendingMatchRef.current;
+      if (!pending || pending.sessionId !== payload.sessionId || pending.slot !== 'p1') return;
+
+      setWaitingForStakeConfirmation(false);
+      setShowTransactionModal(true);
+    });
+
+    const unsubscribeFriendWaitingForHost = wsService.on('friend:waiting_for_host', (message: any) => {
+      const payload = message?.payload ?? {};
+      if (typeof payload?.sessionId !== 'string') return;
+
+      const pending = pendingMatchRef.current;
+      if (!pending || pending.sessionId !== payload.sessionId || pending.slot !== 'p2') return;
+
+      setWaitingForStakeConfirmation(true);
+      toast.info('Waiting for host to create match escrow...');
+    });
+
+    const unsubscribeFriendWaitingForOpponent = wsService.on(
+      'friend:waiting_for_opponent',
+      (message: any) => {
+        const payload = message?.payload ?? {};
+        if (typeof payload?.sessionId !== 'string') return;
+
+        const pending = pendingMatchRef.current;
+        if (!pending || pending.sessionId !== payload.sessionId) return;
+
+        toast.info('Waiting for your friend to continue...');
+      },
+    );
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
       console.log('game:enter_arena received');
@@ -327,6 +362,9 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       unsubscribeSearching();
       unsubscribeMatchFound();
       unsubscribeGameMatchReady();
+      unsubscribeFriendStartStaking();
+      unsubscribeFriendWaitingForHost();
+      unsubscribeFriendWaitingForOpponent();
       unsubscribeEnterArena();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
@@ -615,11 +653,15 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
   const handleFriendContinue = () => {
     setFriendIntroOpen(false);
-    if (!pendingMatchRef.current) return;
-    if (pendingMatchRef.current.matchType === 'friend') {
-      setShowTransactionModal(true);
+    const pending = pendingMatchRef.current;
+    if (!pending) return;
+
+    if (pending.matchType === 'friend') {
+      send('client:friend_continue', { sessionId: pending.sessionId });
+      toast.info('Waiting for your friend to continue...');
       return;
     }
+
     setShowTransactionModal(true);
   };
 

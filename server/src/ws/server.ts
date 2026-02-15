@@ -59,6 +59,8 @@ interface SessionState extends RoundTimers {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1FriendReady?: boolean;
+  p2FriendReady?: boolean;
   readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
@@ -105,6 +107,8 @@ interface RedisSessionState {
   p2Staked: boolean;
   p1Ready: boolean;
   p2Ready: boolean;
+  p1FriendReady?: boolean;
+  p2FriendReady?: boolean;
   readyDeadlineTs?: number;
   p1RoundReady: boolean;
   p2RoundReady: boolean;
@@ -188,6 +192,8 @@ const serializeSessionState = (state: SessionState): RedisSessionState => ({
   p2Staked: state.p2Staked,
   p1Ready: state.p1Ready,
   p2Ready: state.p2Ready,
+  p1FriendReady: state.p1FriendReady,
+  p2FriendReady: state.p2FriendReady,
   readyDeadlineTs: state.readyDeadlineTs,
   p1RoundReady: state.p1RoundReady,
   p2RoundReady: state.p2RoundReady,
@@ -732,6 +738,8 @@ const handleMatchReset = async (state: SessionState, payload: any) => {
   state.p2Staked = false;
   state.p1Ready = false;
   state.p2Ready = false;
+  state.p1FriendReady = false;
+  state.p2FriendReady = false;
   state.readyDeadlineTs = undefined;
   state.p1RoundReady = false;
   state.p2RoundReady = false;
@@ -2359,6 +2367,8 @@ export function createWsServer(server: Server) {
         p2Staked: false,
         p1Ready: false,
         p2Ready: false,
+        p1FriendReady: false,
+        p2FriendReady: false,
         p1RoundReady: false,
         p2RoundReady: false,
         roundResolved: false,
@@ -2450,6 +2460,8 @@ export function createWsServer(server: Server) {
               p2Staked: false,
               p1Ready: false,
               p2Ready: false,
+              p1FriendReady: false,
+              p2FriendReady: false,
               p1RoundReady: false,
               p2RoundReady: false,
             };
@@ -2571,6 +2583,41 @@ export function createWsServer(server: Server) {
                 ? normalizeRoomCode(message.payload.roomCode)
                 : undefined;
             void closeFriendRoom(sessionId, sessionRef.userId, { roomCode, socket });
+            break;
+          }
+          case 'client:friend_continue': {
+            const state = sessionStates.get(sessionRef.sessionId);
+            if (!state || state.matchType !== 'friend') {
+              break;
+            }
+
+            const assignments = sessionAssignments.get(state.sessionId);
+            if (!assignments) {
+              break;
+            }
+
+            if (sessionRef.userId === assignments.p1) {
+              state.p1FriendReady = true;
+            } else if (sessionRef.userId === assignments.p2) {
+              state.p2FriendReady = true;
+            }
+
+            if (state.p1FriendReady && state.p2FriendReady) {
+              const p1Socket = assignments.p1 ? activeUsers.get(assignments.p1) : undefined;
+              const p2Socket = assignments.p2 ? activeUsers.get(assignments.p2) : undefined;
+
+              if (p1Socket) {
+                sendMessage(p1Socket, 'friend:start_staking', { sessionId: state.sessionId });
+              }
+
+              if (p2Socket) {
+                sendMessage(p2Socket, 'friend:waiting_for_host', { sessionId: state.sessionId });
+              }
+            } else {
+              sendMessage(socket, 'friend:waiting_for_opponent', { sessionId: state.sessionId });
+            }
+
+            void persistSessionState(state);
             break;
           }
           case 'round:ready':
@@ -2993,6 +3040,8 @@ export function createWsServer(server: Server) {
               p2Staked: false,
               p1Ready: false,
               p2Ready: false,
+              p1FriendReady: false,
+              p2FriendReady: false,
               p1RoundReady: false,
               p2RoundReady: false,
               roundResolved: false,
@@ -3148,11 +3197,22 @@ export function createWsServer(server: Server) {
               resolvedSessionState.onChainGameMatch &&
               (matchType === 'ranked' || matchType === 'friend')
             ) {
-              for (const sessionSocket of sockets) {
-                sendMessage(sessionSocket, 'match:game_match_ready', {
-                  sessionId,
-                  gameMatch: resolvedSessionState.onChainGameMatch,
-                });
+              if (matchType === 'friend' && slot === 'p1') {
+                const joinerId = updatedAssignments.p2;
+                const joinerSocket = joinerId ? activeUsers.get(joinerId) : undefined;
+                if (joinerSocket) {
+                  sendMessage(joinerSocket, 'match:game_match_ready', {
+                    sessionId,
+                    gameMatch: resolvedSessionState.onChainGameMatch,
+                  });
+                }
+              } else {
+                for (const sessionSocket of sockets) {
+                  sendMessage(sessionSocket, 'match:game_match_ready', {
+                    sessionId,
+                    gameMatch: resolvedSessionState.onChainGameMatch,
+                  });
+                }
               }
             }
 

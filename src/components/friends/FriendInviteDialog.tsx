@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Link, Check, QrCode, Lock, Eye, Coins, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -70,9 +70,14 @@ export function FriendInviteDialog({
   const [sessionId, setSessionId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const { send, isConnected } = useWebSocket({ autoConnect: true });
+  const suppressRoomCloseRef = useRef(suppressRoomClose);
+
+  useEffect(() => {
+    suppressRoomCloseRef.current = suppressRoomClose;
+  }, [suppressRoomClose]);
 
   const cleanupRoom = useCallback(() => {
-    if (!suppressRoomClose && roomCode && sessionId && isConnected) {
+    if (!suppressRoomCloseRef.current && roomCode && sessionId && isConnected) {
       send('friend:room_closed', { sessionId, roomCode, reason: 'host_exit' });
     }
 
@@ -84,7 +89,7 @@ export function FriendInviteDialog({
     setStakeError('');
     setCopiedLink(false);
     setShowQR(false);
-  }, [isConnected, onRoomCreated, roomCode, send, sessionId, suppressRoomClose]);
+  }, [isConnected, onRoomCreated, roomCode, send, sessionId]);
 
   useEffect(() => {
     if (open) {
