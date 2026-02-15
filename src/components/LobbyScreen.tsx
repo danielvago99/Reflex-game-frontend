@@ -230,7 +230,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         const updated = { ...current, gameMatch: payload.gameMatch };
         pendingMatchRef.current = updated;
 
-        if (updated.matchType !== 'bot' && updated.slot === 'p2' && !waitingForStakeConfirmation) {
+        if (updated.matchType !== 'bot' && updated.slot === 'p2') {
+          setWaitingForStakeConfirmation(false);
           setShowTransactionModal(true);
         }
 
@@ -671,9 +672,22 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     }
 
     setFriendContinueConfirmed(true);
-    send('match:friend_ready', { sessionId: pendingMatchRef.current.sessionId });
-    send('friend:ready', { sessionId: pendingMatchRef.current.sessionId });
-    toast.info('Ready confirmed. Waiting for your friend to continue...');
+
+    // Backend currently does not handle legacy friend-ready WS events.
+    // Move the flow forward locally so friend matches do not get stuck
+    // on "Waiting for friend...".
+    setFriendIntroOpen(false);
+
+    if (pendingMatchRef.current.slot === 'p1') {
+      setWaitingForStakeConfirmation(false);
+      setShowTransactionModal(true);
+      toast.info('Continue confirmed. Initialize match escrow to start.');
+      return;
+    }
+
+    setShowTransactionModal(false);
+    setWaitingForStakeConfirmation(true);
+    toast.info('Continue confirmed. Waiting for host to initialize on-chain match escrow...');
   };
 
   const handleCancelMatchmaking = () => {
