@@ -2029,6 +2029,7 @@ export function createWsServer(server: Server) {
     }
 
     state.hasStarted = true;
+    clearDisconnectTimeout(state.sessionId);
     clearReadyTimeout(state.sessionId);
     void persistSessionState(state);
     logger.info({ sessionId: state.sessionId, count: sockets.size }, 'Broadcasting game:countdown');
@@ -3195,6 +3196,8 @@ export function createWsServer(server: Server) {
               logger.error({ targetSessionId }, 'Session not found in memory');
               return;
             }
+
+            clearDisconnectTimeout(targetSessionId);
 
             const assignments = sessionAssignments.get(targetSessionId);
             const userId = sessionRef.userId;
