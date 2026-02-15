@@ -26,6 +26,7 @@ interface SolanaProgramContextValue {
     joinExpirySeconds: number;
   }) => Promise<string>;
   joinMatch: (input: { gameMatch: PublicKey; settleDeadlineSeconds: number }) => Promise<string>;
+  cancelUnjoinedMatch: (input: { gameMatch: PublicKey }) => Promise<string>;
 }
 
 const programId = new PublicKey(ENV.SOLANA_PROGRAM_ID);
@@ -88,6 +89,23 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
           .joinMatch(new BN(settleDeadlineSeconds))
           .accounts({
             playerB: publicKey,
+            gameMatch,
+            vault,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+      },
+      cancelUnjoinedMatch: async ({ gameMatch }) => {
+        if (!program || !publicKey) {
+          throw new Error('Wallet is not connected');
+        }
+
+        const vault = PublicKey.findProgramAddressSync([VAULT_SEED, gameMatch.toBuffer()], programId)[0];
+
+        return program.methods
+          .cancelUnjoined()
+          .accounts({
+            playerA: publicKey,
             gameMatch,
             vault,
             systemProgram: SystemProgram.programId,
