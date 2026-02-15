@@ -126,7 +126,6 @@ export function GameArena({
 
   const MAX_PAUSES = 3;
   const READY_WAIT_SECONDS = 30;
-  const READY_COUNTDOWN_SECONDS = 30;
   const isMatchOver =
     playerScore >= ROUNDS_TO_WIN ||
     opponentScore >= ROUNDS_TO_WIN ||
@@ -206,7 +205,7 @@ export function GameArena({
       return;
     }
 
-    setReadyDeadlineTs(Date.now() + READY_WAIT_SECONDS * 1000);
+    setReadyDeadlineTs(prevDeadline => prevDeadline ?? Date.now() + READY_WAIT_SECONDS * 1000);
   }, [readyTimerMode, READY_WAIT_SECONDS]);
 
   useEffect(() => {
@@ -855,7 +854,7 @@ export function GameArena({
                   <p className="text-sm text-gray-300 mt-1">
                     {opponentProfile.name} is preparing. We&apos;ll start as soon as they&apos;re ready.
                   </p>
-                  {readySecondsRemaining !== null && readySecondsRemaining <= READY_COUNTDOWN_SECONDS && (
+                  {readySecondsRemaining !== null && (
                     <p className="text-sm text-gray-300 mt-3 font-semibold">
                       Opponent must ready up in {readySecondsRemaining}s or forfeit.
                     </p>
