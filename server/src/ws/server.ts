@@ -2,7 +2,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { Server } from 'http';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import type { Keypair } from '@solana/web3.js';
+import { PublicKey, type Keypair } from '@solana/web3.js';
 import { logger } from '../utils/logger';
 import prisma from '../db/prisma';
 import { env } from '../config/env';
@@ -871,10 +871,16 @@ const tryRefundCancelledPregameStake = async (
   }
 
   try {
+    const onChainGameMatch = state.onChainGameMatch;
+    if (!onChainGameMatch) {
+      return;
+    }
+
+    const gameMatch = new PublicKey(onChainGameMatch).toBase58();
     const { playerA, playerB } = await resolveSessionWallets(sessionId, state);
 
     const result = await solanaEscrowService.cancelActiveMatch({
-      gameMatch: state.onChainGameMatch,
+      gameMatch,
       playerA: playerA ?? undefined,
       playerB: playerB ?? undefined,
     });
@@ -884,7 +890,7 @@ const tryRefundCancelledPregameStake = async (
         sessionId,
         reason,
         signature: result.signature,
-        gameMatch: state.onChainGameMatch,
+        gameMatch,
       },
       'Pre-game ranked session refunded on-chain',
     );
