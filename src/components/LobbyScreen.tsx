@@ -1,6 +1,6 @@
 import { Bot, Users, ArrowLeft, Play, UserPlus, KeyRound, Zap, Ticket } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { FriendInviteDialog } from './friends/FriendInviteDialog';
@@ -44,7 +44,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const { data, consumeFreeStake } = useRewardsData();
   const { isConnected, send } = useWebSocket({ autoConnect: true });
   const { connection } = useConnection();
-  const { createMatch, joinMatch, cancelUnjoinedMatch } = useSolanaProgram();
+  const { createMatch, joinMatch } = useSolanaProgram();
   const { walletType, publicKey } = useActiveWallet();
   const [selectedMode, setSelectedMode] = useState<'bot' | 'ranked' | null>(preselectMode ?? null);
   const [selectedStake, setSelectedStake] = useState(preselectStake ?? '0.1');
@@ -282,7 +282,6 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
       const unsubscribeMatchCancelled = wsService.on('match:cancelled', (message: any) => {
       const payload = message?.payload ?? {};
-      const activePendingMatch = pendingMatchRef.current;
       const cancellationReason = [payload.reason, payload.cancelReason, payload.type]
         .filter((value): value is string => typeof value === 'string')
         .map((value) => value.toLowerCase());
@@ -293,33 +292,6 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         payload.reason === 'stake_cancel_timeout' ||
         payload.cancelReason === 'stake_cancel' ||
         payload.type === 'stake_cancel';
-
-      const shouldAutoRefundUnjoinedStake =
-        (isStakeCancel || hasTimeoutReason) &&
-        activePendingMatch?.matchType === 'ranked' &&
-        activePendingMatch?.slot === 'p1' &&
-        typeof activePendingMatch?.gameMatch === 'string';
-
-      if (shouldAutoRefundUnjoinedStake) {
-        void (async () => {
-          try {
-            const refundSignature = await cancelUnjoinedMatch({
-              gameMatch: new PublicKey(activePendingMatch.gameMatch!),
-            });
-
-            toast.success('Stake refunded', {
-              description: `Refund signature: ${refundSignature.slice(0, 8)}...`,
-            });
-          } catch (refundError: any) {
-            const description =
-              typeof refundError?.message === 'string'
-                ? refundError.message
-                : 'Manual refund may be required from the wallet.';
-
-            toast.error('Automatic refund failed', { description });
-          }
-        })();
-      }
 
       const toastMessage = isStakeCancel
         ? 'Match cancelled due to stake cancel.'
@@ -368,7 +340,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         stakeTimerRef.current = null;
       }
     };
-  }, [cancelUnjoinedMatch, onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
+  }, [onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
 
   useEffect(() => {
     if (!waitingForStakeConfirmation || !pendingMatchRef.current) {
