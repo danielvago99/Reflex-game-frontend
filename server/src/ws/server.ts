@@ -3252,7 +3252,10 @@ export function createWsServer(server: Server) {
       const sessionRef = sessions.get(socket);
       if (sessionRef) {
         if (sessionRef.userId) {
-          activeUsers.delete(sessionRef.userId);
+          if (activeUsers.get(sessionRef.userId) === socket) {
+            activeUsers.delete(sessionRef.userId);
+          }
+
           const timer = freeStakeBotTimers.get(sessionRef.userId);
           if (timer) {
             clearTimeout(timer);
@@ -3286,6 +3289,15 @@ export function createWsServer(server: Server) {
             sessionState.matchType === 'friend') &&
           !sessionState.isFinished
         ) {
+          if (sessionRef.userId && activeUsers.has(sessionRef.userId)) {
+            sessions.delete(socket);
+            logger.info(
+              { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
+              'Skipping disconnect flow because user already reconnected',
+            );
+            return;
+          }
+
           const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);
           void triggerDisconnectFlow(sessionState, disconnectedSlot, {
             reason: 'socket_closed',
