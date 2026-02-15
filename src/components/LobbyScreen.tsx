@@ -20,6 +20,7 @@ import { ENV } from '../config/env';
 
 
 const MATCH_ACCOUNT_SIZE_BYTES = 8 + 32 + 32 + 8 + 1 + 8 + 8 + 8 + 1;
+const STAKE_CONFIRM_TIMEOUT_MS = 15000;
 
 interface LobbyScreenProps {
   preselectMode?: 'bot' | 'ranked';
@@ -370,7 +371,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setMatchStatus('idle');
       setPendingMatch(null);
       pendingMatchRef.current = null;
-    }, 15000);
+    }, STAKE_CONFIRM_TIMEOUT_MS);
 
     return () => {
       if (stakeConfirmationTimeoutRef.current) {
