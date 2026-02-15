@@ -239,17 +239,32 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     });
 
     const applyFriendReadyState = (payload: any) => {
-      if (typeof payload?.sessionId !== 'string') return;
-
       const currentMatch = pendingMatchRef.current;
-      if (!currentMatch || currentMatch.sessionId !== payload.sessionId || currentMatch.matchType !== 'friend') return;
+      if (!currentMatch || currentMatch.matchType !== 'friend') return;
+
+      const payloadSessionId =
+        typeof payload?.sessionId === 'string'
+          ? payload.sessionId
+          : typeof payload?.matchId === 'string'
+            ? payload.matchId
+            : undefined;
+
+      // Some backend deployments emit readiness updates without sessionId,
+      // or with a renamed matchId field. Accept either format while still
+      // guarding against cross-session updates when an ID is available.
+      if (payloadSessionId && currentMatch.sessionId !== payloadSessionId) return;
 
       const bothConfirmed =
         payload?.bothReady === true ||
         payload?.allReady === true ||
         payload?.readyCount === 2 ||
+        payload?.readyCount >= 2 ||
         payload?.status === 'both_ready' ||
-        payload?.phase === 'stake';
+        payload?.status === 'ready_for_stake' ||
+        payload?.phase === 'stake' ||
+        payload?.phase === 'staking' ||
+        payload?.stage === 'stake' ||
+        payload?.stage === 'staking';
 
       if (!bothConfirmed) {
         return;
@@ -277,10 +292,20 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         payload?.stage === 'friend_ready' ||
         payload?.phase === 'friend_ready' ||
         payload?.status === 'both_ready' ||
-        payload?.bothReady === true
+        payload?.status === 'ready_for_stake' ||
+        payload?.phase === 'stake' ||
+        payload?.phase === 'staking' ||
+        payload?.stage === 'stake' ||
+        payload?.stage === 'staking' ||
+        payload?.bothReady === true ||
+        payload?.readyCount >= 2
       ) {
         applyFriendReadyState(payload);
       }
+    });
+
+    const unsubscribeFriendReady = wsService.on('friend:ready', (message: any) => {
+      applyFriendReadyState(message?.payload ?? {});
     });
 
     const unsubscribeEnterArena = wsService.on('game:enter_arena', () => {
@@ -373,6 +398,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       unsubscribeGameMatchReady();
       unsubscribeFriendReadyState();
       unsubscribeMatchStatus();
+      unsubscribeFriendReady();
       unsubscribeEnterArena();
       unsubscribeMatchCancelled();
       if (matchFoundTimeoutRef.current) {
