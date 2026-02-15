@@ -3306,10 +3306,20 @@ export function createWsServer(server: Server) {
           }
 
           const disconnectedSlot = getSlotForUser(sessionState, sessionRef.userId);
-          void triggerDisconnectFlow(sessionState, disconnectedSlot, {
-            reason: 'socket_closed',
-            excludeSocket: socket,
-          });
+          setTimeout(() => {
+            if (sessionRef.userId && activeUsers.has(sessionRef.userId)) {
+              logger.info(
+                { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
+                'Skipping disconnect flow because user reconnected during grace period',
+              );
+              return;
+            }
+
+            void triggerDisconnectFlow(sessionState, disconnectedSlot, {
+              reason: 'socket_closed',
+              excludeSocket: socket,
+            });
+          }, 2000);
           return;
         }
 
