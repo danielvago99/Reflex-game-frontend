@@ -80,6 +80,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const stakeConfirmationTimeoutRef = useRef<number | null>(null);
   const botReadyDelayTimeoutRef = useRef<number | null>(null);
+  const stakeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const stakeSyncSessionRef = useRef<string | null>(null);
   const pendingMatchRef = useRef<{
     sessionId: string;
@@ -189,6 +190,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setWaitingForStakeConfirmation(false);
       setPendingStakeConfirmation(null);
       stakeSyncSessionRef.current = null;
+      if (stakeTimerRef.current) {
+        clearTimeout(stakeTimerRef.current);
+        stakeTimerRef.current = null;
+      }
       setFriendIntroOpen(matchType === 'friend');
       if (matchType === 'friend') {
         setFriendRoom(null);
@@ -255,6 +260,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         setMatchStatus('idle');
         setPendingStakeConfirmation(null);
         stakeSyncSessionRef.current = null;
+        if (stakeTimerRef.current) {
+          clearTimeout(stakeTimerRef.current);
+          stakeTimerRef.current = null;
+        }
       };
 
       if (botReadyDelayMs > 0) {
@@ -291,6 +300,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setFriendRoom(null);
       setPendingStakeConfirmation(null);
       stakeSyncSessionRef.current = null;
+      if (stakeTimerRef.current) {
+        clearTimeout(stakeTimerRef.current);
+        stakeTimerRef.current = null;
+      }
       toast.info(toastMessage, {
         description: 'You have been returned to the lobby.',
       });
@@ -313,6 +326,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       if (botReadyDelayTimeoutRef.current) {
         window.clearTimeout(botReadyDelayTimeoutRef.current);
         botReadyDelayTimeoutRef.current = null;
+      }
+      if (stakeTimerRef.current) {
+        clearTimeout(stakeTimerRef.current);
+        stakeTimerRef.current = null;
       }
     };
   }, [onNavigate, onStartMatch, selectedStake, waitingForStakeConfirmation]);
@@ -437,6 +454,10 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const handleTransactionConfirm = async () => {
     try {
       if (pendingMatch && stakeSyncSessionRef.current === pendingMatch.sessionId) {
+        if (stakeTimerRef.current) {
+          clearTimeout(stakeTimerRef.current);
+          stakeTimerRef.current = null;
+        }
         setShowTransactionModal(false);
         return;
       }
@@ -456,6 +477,11 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
           description: 'Please try matchmaking again.',
         });
         return;
+      }
+
+      if (stakeTimerRef.current) {
+        clearTimeout(stakeTimerRef.current);
+        stakeTimerRef.current = null;
       }
 
       let onChainPayload: { signature?: string; gameMatch?: string; playerWallet?: string } = pendingStakeConfirmation ?? {};
@@ -510,21 +536,42 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
     setPendingStakeConfirmation(stakeConfirmation);
 
-    send('match:stake_confirmed', {
-      sessionId: pendingMatch.sessionId,
-      stakeLamports: pendingMatch.stakeLamports,
-      matchType: pendingMatch.matchType,
-      ...stakeConfirmation,
-    });
-    stakeSyncSessionRef.current = pendingMatch.sessionId;
-    if (pendingMatch.matchType !== 'bot') {
-      setWaitingForStakeConfirmation(true);
+    if (stakeTimerRef.current) {
+      clearTimeout(stakeTimerRef.current);
     }
+
+    const currentSessionId = pendingMatch.sessionId;
+    const currentStakeLamports = pendingMatch.stakeLamports;
+    const currentMatchType = pendingMatch.matchType;
+
+    stakeTimerRef.current = setTimeout(() => {
+      if (stakeSyncSessionRef.current === currentSessionId) {
+        stakeTimerRef.current = null;
+        return;
+      }
+
+      send('match:stake_confirmed', {
+        sessionId: currentSessionId,
+        stakeLamports: currentStakeLamports,
+        matchType: currentMatchType,
+        ...stakeConfirmation,
+      });
+      stakeSyncSessionRef.current = currentSessionId;
+      if (currentMatchType !== 'bot') {
+        setWaitingForStakeConfirmation(true);
+      }
+      stakeTimerRef.current = null;
+    }, 2000);
 
     return stakeConfirmation.signature;
   };
 
   const handleTransactionCancelled = () => {
+    if (stakeTimerRef.current) {
+      clearTimeout(stakeTimerRef.current);
+      stakeTimerRef.current = null;
+    }
+
     if (pendingMatchRef.current && stakeSyncSessionRef.current === pendingMatchRef.current.sessionId) {
       return;
     }
