@@ -80,6 +80,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
   const matchFoundTimeoutRef = useRef<number | null>(null);
   const stakeConfirmationTimeoutRef = useRef<number | null>(null);
   const botReadyDelayTimeoutRef = useRef<number | null>(null);
+  const stakeSyncSessionRef = useRef<string | null>(null);
   const pendingMatchRef = useRef<{
     sessionId: string;
     stakeLamports: number;
@@ -186,6 +187,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setShowInviteDialog(false);
       setShowJoinDialog(false);
       setWaitingForStakeConfirmation(false);
+      setPendingStakeConfirmation(null);
+      stakeSyncSessionRef.current = null;
       setFriendIntroOpen(matchType === 'friend');
       if (matchType === 'friend') {
         setFriendRoom(null);
@@ -250,6 +253,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         }
         setShowTransactionModal(false);
         setMatchStatus('idle');
+        setPendingStakeConfirmation(null);
+        stakeSyncSessionRef.current = null;
       };
 
       if (botReadyDelayMs > 0) {
@@ -284,6 +289,8 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
       setWaitingForStakeConfirmation(false);
       setFriendIntroOpen(false);
       setFriendRoom(null);
+      setPendingStakeConfirmation(null);
+      stakeSyncSessionRef.current = null;
       toast.info(toastMessage, {
         description: 'You have been returned to the lobby.',
       });
@@ -429,6 +436,11 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
 
   const handleTransactionConfirm = async () => {
     try {
+      if (pendingMatch && stakeSyncSessionRef.current === pendingMatch.sessionId) {
+        setShowTransactionModal(false);
+        return;
+      }
+
       if (pendingMatch?.matchType === 'ranked' && useFreeStakeMode && selectedFreeStakeAmount) {
         try {
           await consumeFreeStake(selectedFreeStakeAmount);
@@ -458,6 +470,7 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
         matchType: pendingMatch.matchType,
         ...onChainPayload,
       });
+      stakeSyncSessionRef.current = pendingMatch.sessionId;
 
       setShowTransactionModal(false);
       setPendingStakeConfirmation(null);
@@ -496,10 +509,26 @@ export function LobbyScreen({ preselectMode, preselectStake, onNavigate, onStart
     );
 
     setPendingStakeConfirmation(stakeConfirmation);
+
+    send('match:stake_confirmed', {
+      sessionId: pendingMatch.sessionId,
+      stakeLamports: pendingMatch.stakeLamports,
+      matchType: pendingMatch.matchType,
+      ...stakeConfirmation,
+    });
+    stakeSyncSessionRef.current = pendingMatch.sessionId;
+    if (pendingMatch.matchType !== 'bot') {
+      setWaitingForStakeConfirmation(true);
+    }
+
     return stakeConfirmation.signature;
   };
 
   const handleTransactionCancelled = () => {
+    if (pendingMatchRef.current && stakeSyncSessionRef.current === pendingMatchRef.current.sessionId) {
+      return;
+    }
+
     send('match:cancel_stake', {});
     setPendingStakeConfirmation(null);
     if (pendingMatchRef.current) {
