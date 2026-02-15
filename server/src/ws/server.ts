@@ -864,8 +864,7 @@ const tryRefundCancelledPregameStake = async (
   const shouldRefundOnChain =
     state.matchType === 'ranked' &&
     Boolean(state.onChainGameMatch) &&
-    state.p1Staked &&
-    state.p2Staked;
+    state.p1Staked;
 
   if (!shouldRefundOnChain) {
     return;
@@ -873,7 +872,7 @@ const tryRefundCancelledPregameStake = async (
 
   try {
     const { playerA, playerB } = await resolveSessionWallets(sessionId, state);
-    if (!playerA || !playerB) {
+    if (!playerA) {
       logger.error(
         {
           sessionId,
@@ -882,7 +881,7 @@ const tryRefundCancelledPregameStake = async (
           playerB,
           gameMatch: state.onChainGameMatch,
         },
-        'Pre-game ranked cancellation refund skipped: missing wallet address',
+        'Pre-game ranked cancellation refund skipped: missing host wallet address',
       );
       return;
     }
@@ -890,7 +889,7 @@ const tryRefundCancelledPregameStake = async (
     const result = await solanaEscrowService.cancelActiveMatch({
       gameMatch: state.onChainGameMatch,
       playerA,
-      playerB,
+      playerB: playerB ?? playerA,
     });
 
     logger.info(
