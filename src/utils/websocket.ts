@@ -27,6 +27,7 @@ class WebSocketService {
   private heartbeatInterval: number | null = null;
   private isIntentionalClose = false;
   private visibilityListenerAttached = false;
+  private static readonly HEARTBEAT_INTERVAL_MS = 10000;
 
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -57,7 +58,16 @@ class WebSocketService {
         };
 
         this.ws.onmessage = (event) => {
-          const parsed = MessageSchema.safeParse(JSON.parse(event.data));
+          let rawMessage: unknown;
+
+          try {
+            rawMessage = JSON.parse(event.data);
+          } catch {
+            console.error('[WebSocket] Failed to parse message');
+            return;
+          }
+
+          const parsed = MessageSchema.safeParse(rawMessage);
           if (!parsed.success) {
             console.error('[WebSocket] Invalid message schema');
             return;
@@ -83,10 +93,9 @@ class WebSocketService {
 
         if (!this.visibilityListenerAttached) {
           document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-              this.stopHeartbeat();
-            } else if (this.isConnected()) {
+            if (this.isConnected()) {
               this.startHeartbeat();
+              this.send('ping', {});
             }
           });
           this.visibilityListenerAttached = true;
@@ -176,9 +185,8 @@ class WebSocketService {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatInterval = window.setInterval(() => {
-      if (document.hidden) return;
       this.send('ping', {});
-    }, 30000);
+    }, WebSocketService.HEARTBEAT_INTERVAL_MS);
   }
 
   private stopHeartbeat(): void {

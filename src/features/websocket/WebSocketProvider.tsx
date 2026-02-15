@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { useAuth } from '../auth/hooks/useAuth';
 import { wsService } from '../../utils/websocket';
 import type { WSMessageType } from '../../types/api';
@@ -23,7 +31,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | undefined>(undefined);
   const { user } = useAuth();
 
-  const connect = async (token?: string) => {
+  const connect = useCallback(async (token?: string) => {
     setStatus('connecting');
     try {
       const authToken = token ?? getStoredAuthToken() ?? undefined;
@@ -34,12 +42,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Connection failed');
     }
-  };
+  }, []);
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     wsService.disconnect();
     setStatus('disconnected');
-  };
+  }, []);
 
   const send = <T,>(type: WSMessageType, payload: T) => wsService.send(type, payload);
 
@@ -55,7 +63,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       unsubOpen();
       unsubClose();
       unsubError();
-      disconnect();
     };
   }, []);
 
@@ -76,7 +83,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<WebSocketContextValue>(
     () => ({ status, error, connect, disconnect, send }),
-    [status, error]
+    [status, error, connect, disconnect]
   );
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
