@@ -489,6 +489,11 @@ const scheduleReadyTimeout = (state: SessionState) => {
     return;
   }
 
+  if (state.disconnectPause) {
+    clearReadyTimeout(state.sessionId);
+    return;
+  }
+
   if (state.p1Ready && state.p2Ready) {
     clearReadyTimeout(state.sessionId);
     return;
@@ -498,6 +503,7 @@ const scheduleReadyTimeout = (state: SessionState) => {
   const timeout = setTimeout(() => {
     const activeState = sessionStates.get(state.sessionId);
     if (!activeState || activeState.isFinished || activeState.hasStarted) return;
+    if (activeState.disconnectPause) return;
     if (activeState.p1Ready && activeState.p2Ready) return;
 
     const unreadySlot = activeState.p1Ready ? 'p2' : 'p1';
@@ -770,8 +776,8 @@ const isPreGameSession = (state?: SessionState) =>
 const hasStakingStarted = (state?: SessionState) =>
   Boolean(
     state &&
-      (state.matchType === 'ranked' || state.matchType === 'friend') &&
-      (state.onChainGameMatch || state.p1Staked || state.p2Staked),
+    (state.matchType === 'ranked' || state.matchType === 'friend') &&
+    (state.onChainGameMatch || state.p1Staked || state.p2Staked),
   );
 
 const collectSessionSockets = (sessionId: string, state?: SessionState) => {
@@ -3258,8 +3264,13 @@ export function createWsServer(server: Server) {
     socket.on('close', () => {
       const sessionRef = sessions.get(socket);
       if (sessionRef) {
+        const currentActiveSocket = sessionRef.userId
+          ? activeUsers.get(sessionRef.userId)
+          : undefined;
+        const isGhostDisconnect = Boolean(currentActiveSocket) && currentActiveSocket !== socket;
+
         if (sessionRef.userId) {
-          if (activeUsers.get(sessionRef.userId) === socket) {
+          if (currentActiveSocket === socket) {
             activeUsers.delete(sessionRef.userId);
           }
 
@@ -3296,7 +3307,12 @@ export function createWsServer(server: Server) {
             sessionState.matchType === 'friend') &&
           !sessionState.isFinished
         ) {
-          if (sessionRef.userId && activeUsers.has(sessionRef.userId)) {
+          if (isGhostDisconnect) {
+            if (isPreGameSession(sessionState) && hasStakingStarted(sessionState)) {
+              clearReadyTimeout(sessionRef.sessionId);
+              scheduleReadyTimeout(sessionState);
+            }
+
             sessions.delete(socket);
             logger.info(
               { sessionId: sessionRef.sessionId, userId: sessionRef.userId },
